@@ -12,7 +12,7 @@ import json
 import sys
 from pathlib import Path
 
-KEYS = ("budget_words", "adaptive_cap", "strategy", "local_idf", "q_expand")
+KEYS = ("budget_words", "adaptive_cap", "strategy", "local_idf", "q_expand", "neighbour_glue")
 
 
 def wanted(scorer_path):
@@ -23,6 +23,7 @@ def wanted(scorer_path):
         "strategy": s.get("evidence_strategy", "quota"),
         "local_idf": s.get("evidence_local_idf", False),
         "q_expand": s.get("evidence_q_expand", False),
+        "neighbour_glue": s.get("evidence_neighbour_glue", 0),
     }
 
 
@@ -34,6 +35,7 @@ def flags(want):
         out.append("--local-idf")
     if want["q_expand"]:
         out.append("--q-expand")
+    out += ["--neighbour-glue", str(want["neighbour_glue"])]
     return " ".join(out)
 
 
@@ -48,7 +50,9 @@ def main():
             unverified.append(pairs)
             continue
         m = json.loads(meta.read_text())
-        got = {k: m.get(k) for k in KEYS}
+        got = {k: m.get(k, want[k] if k == "neighbour_glue" and "neighbour_glue" not in m else None) for k in KEYS}
+        if "neighbour_glue" not in m:
+            got["neighbour_glue"] = 0
         if got != want:
             diff = {k: (got[k], want[k]) for k in KEYS if got[k] != want[k]}
             bad.append(f"  {pairs}: " + ", ".join(f"{k} is {g!r}, model needs {w!r}" for k, (g, w) in diff.items()))

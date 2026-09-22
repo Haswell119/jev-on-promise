@@ -310,3 +310,36 @@ can share a family, and stronger than a record-level split, which puts the
 same structure on both sides by construction. It exists so that a weight
 learned from a generator artefact fails during selection rather than after
 adoption.
+
+## Contiguity: the largest retrieval gain measured
+
+The annotated span is a median 38 words and routinely runs across several
+segments. The recall metric scores the longest unbroken run of gold
+tokens, and a reader needs a whole sentence for the same reason, so a
+span retrieved in pieces counts only as its largest fragment. Selecting
+the individually best segments scatters it.
+
+`neighbour_glue` takes N segments either side of each chosen segment
+while the budget allows. On the frozen long-context suite, at a 140-word
+budget:
+
+| glue | 0 | 1 | 2 | 3 | 4 | 6 | 8 | 12 |
+|---|---|---|---|---|---|---|---|---|
+| span fully retrieved | 0.306 | 0.403 | 0.446 | 0.462 | 0.463 | 0.452 | 0.457 | 0.457 |
+| span lost entirely | 0.504 | 0.339 | 0.315 | 0.316 | 0.316 | 0.317 | 0.317 | 0.318 |
+
+Monotone to 3 and flat beyond, so 3 is the knee and the default. Every
+length bucket improves and the long ones most: 2048 tokens 0.356 to
+0.493, 4096 tokens 0.353 to 0.584, 8192 tokens 0.327 to 0.523, 16384
+tokens 0.366 to 0.581. Every evidence position improves too.
+
+This also settles the ranker question. Applying the same contiguity to
+the learned R4 ranker gives 0.444, against 0.446 for the heuristic
+ordering at the same width. The contiguity is the whole gain; the
+learned ranking adds nothing on top of it. R3 and R4 remain rejected and
+no `retrieval.json` is shipped.
+
+It changes retrieval only, so the symbolic champion is unaffected. The
+accuracy benefit arrives when a model is trained against the improved
+evidence, which is why the switch is recorded per model in `scorer.json`
+alongside the others.

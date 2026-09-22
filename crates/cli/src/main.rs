@@ -161,8 +161,8 @@ enum Cmd {
         /// Do not fill leftover budget with unscored segments in document order.
         #[arg(long)]
         no_doc_order_fallback: bool,
-        /// With a learned ranker, also take N segments either side of each pick.
-        #[arg(long, default_value_t = 0)]
+        /// Also take N segments either side of each pick, to keep a span whole.
+        #[arg(long, default_value_t = 3)]
         neighbour_glue: usize,
         /// Weight retrieval terms by their document frequency inside the state.
         #[arg(long)]

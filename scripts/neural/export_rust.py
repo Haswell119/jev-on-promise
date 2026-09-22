@@ -22,13 +22,14 @@ def resolve_evidence(run, a):
         "strategy": a.evidence_strategy,
         "local_idf": False,
         "q_expand": False,
+        "neighbour_glue": 0,
     }
     cfg_path = run / "config.json"
     if not cfg_path.exists():
         print(f"warning: {cfg_path} missing; using the command-line evidence parameters", file=sys.stderr)
         return cli
     train_files = json.loads(cfg_path.read_text()).get("train") or []
-    keys = ("budget_words", "adaptive_cap", "strategy", "local_idf", "q_expand")
+    keys = ("budget_words", "adaptive_cap", "strategy", "local_idf", "q_expand", "neighbour_glue")
     found = {}
     for f in train_files:
         meta = Path(str(f)).with_suffix(".meta.json")
@@ -36,7 +37,9 @@ def resolve_evidence(run, a):
             print(f"warning: no retrieval sidecar for {f}", file=sys.stderr)
             continue
         m = json.loads(meta.read_text())
-        found[str(f)] = {k: m[k] for k in keys}
+        # Exports made before a switch existed simply lack the key; the
+        # engine's serde default for it is the same "off" value.
+        found[str(f)] = {k: m.get(k, cli[k]) for k in keys}
     if not found:
         print("warning: no retrieval sidecars found; using the command-line evidence parameters", file=sys.stderr)
         return cli
@@ -95,6 +98,7 @@ def main():
         "evidence_strategy": evidence["strategy"],
         "evidence_local_idf": evidence["local_idf"],
         "evidence_q_expand": evidence["q_expand"],
+        "evidence_neighbour_glue": evidence["neighbour_glue"],
         "n_features": cfg.get("n_features", 0),
         "use_symbolic_logit": bool(cfg.get("use_symbolic_logit", False)),
         "encoder": cfg["encoder"],
