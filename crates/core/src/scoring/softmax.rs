@@ -30,7 +30,8 @@ pub fn fix_sum(p: &mut [f64]) {
     let s: f64 = p.iter().sum();
     let residual = 1.0 - s;
     if residual != 0.0 {
-        let (i, _) = p.iter().enumerate().fold((0usize, f64::NEG_INFINITY), |acc, (i, &v)| if v > acc.1 { (i, v) } else { acc });
+        let (i, _) =
+            p.iter().enumerate().fold((0usize, f64::NEG_INFINITY), |acc, (i, &v)| if v > acc.1 { (i, v) } else { acc });
         p[i] = (p[i] + residual).clamp(0.0, 1.0);
     }
 }
@@ -54,11 +55,11 @@ pub fn ordinal_smooth(p: &[f64], lambda: f64) -> Vec<f64> {
         return p.to_vec();
     }
     let mut out = vec![0.0f64; k];
-    for j in 0..k {
-        for i in 0..k {
+    for (j, pj) in p.iter().enumerate() {
+        for (i, o) in out.iter_mut().enumerate() {
             let d = (i as i64 - j as i64).unsigned_abs() as u32;
             if d <= 2 {
-                out[i] += p[j] * lambda.powi(d as i32);
+                *o += pj * lambda.powi(d as i32);
             }
         }
     }

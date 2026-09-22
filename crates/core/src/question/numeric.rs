@@ -99,19 +99,72 @@ pub fn parse_range(text: &str) -> Option<NumericRange> {
     let (a, b) = (nums[0].1, nums.get(1).map(|n| n.1));
     if let Some(b) = b {
         let (lo, hi) = if a <= b { (a, b) } else { (b, a) };
-        return Some(NumericRange { lo: Some(lo), hi: Some(hi), lo_inclusive: true, hi_inclusive: true, kind, unit, exact: false });
+        return Some(NumericRange {
+            lo: Some(lo),
+            hi: Some(hi),
+            lo_inclusive: true,
+            hi_inclusive: true,
+            kind,
+            unit,
+            exact: false,
+        });
     }
-    let lower_words = ["under", "below", "less", "fewer", "up to", "at most", "maximum", "max", "no more than", "within", "or less", "or fewer", "or under", "shorter", "cheaper", "smaller", "lower"];
-    let upper_words = ["over", "above", "more", "greater", "at least", "minimum", "min", "exceed", "exceeds", "beyond", "or more", "or above", "or over", "longer", "larger", "higher", "+"];
+    let lower_words = [
+        "under",
+        "below",
+        "less",
+        "fewer",
+        "up to",
+        "at most",
+        "maximum",
+        "max",
+        "no more than",
+        "within",
+        "or less",
+        "or fewer",
+        "or under",
+        "shorter",
+        "cheaper",
+        "smaller",
+        "lower",
+    ];
+    let upper_words = [
+        "over", "above", "more", "greater", "at least", "minimum", "min", "exceed", "exceeds", "beyond", "or more",
+        "or above", "or over", "longer", "larger", "higher", "+",
+    ];
     let is_lower = lower_words.iter().any(|w| has(w)) || text.trim_end().ends_with("or less");
     let is_upper = upper_words.iter().any(|w| has(w)) || text.contains('+');
     if is_lower && !is_upper {
-        let inclusive = has("up to") || has("at most") || has("or less") || has("or fewer") || has("or under") || has("max") || has("within") || has("no more");
-        return Some(NumericRange { lo: None, hi: Some(a), lo_inclusive: false, hi_inclusive: inclusive, kind, unit, exact: false });
+        let inclusive = has("up to")
+            || has("at most")
+            || has("or less")
+            || has("or fewer")
+            || has("or under")
+            || has("max")
+            || has("within")
+            || has("no more");
+        return Some(NumericRange {
+            lo: None,
+            hi: Some(a),
+            lo_inclusive: false,
+            hi_inclusive: inclusive,
+            kind,
+            unit,
+            exact: false,
+        });
     }
     if is_upper && !is_lower {
-        let inclusive = has("at least") || has("or more") || has("or above") || has("or over") || has("min") || text.contains('+');
-        return Some(NumericRange { lo: Some(a), hi: None, lo_inclusive: inclusive, hi_inclusive: false, kind, unit, exact: false });
+        let inclusive =
+            has("at least") || has("or more") || has("or above") || has("or over") || has("min") || text.contains('+');
+        return Some(NumericRange {
+            lo: Some(a),
+            hi: None,
+            lo_inclusive: inclusive,
+            hi_inclusive: false,
+            kind,
+            unit,
+            exact: false,
+        });
     }
     Some(NumericRange { lo: Some(a), hi: Some(a), lo_inclusive: true, hi_inclusive: true, kind, unit, exact: true })
 }

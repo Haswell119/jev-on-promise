@@ -111,7 +111,13 @@ pub struct VocabExt<'a> {
 
 impl<'a> VocabExt<'a> {
     pub fn new(base: &'a Vocab) -> Self {
-        VocabExt { base, local_stems: FxHashMap::default(), local_surface: FxHashMap::default(), local_terms: Vec::new(), expansions: FxHashMap::default() }
+        VocabExt {
+            base,
+            local_stems: FxHashMap::default(),
+            local_surface: FxHashMap::default(),
+            local_terms: Vec::new(),
+            expansions: FxHashMap::default(),
+        }
     }
 
     pub fn base(&self) -> &'a Vocab {
@@ -157,7 +163,13 @@ impl<'a> VocabExt<'a> {
         }
         let id = (self.base.len() + self.local_terms.len()) as TermId;
         let idf = res.idf(st, st);
-        self.local_terms.push(TermInfo { stem: st.into(), surface: st.into(), idf, stop: is_stopword(st), func: is_function_word(st) });
+        self.local_terms.push(TermInfo {
+            stem: st.into(),
+            surface: st.into(),
+            idf,
+            stop: is_stopword(st),
+            func: is_function_word(st),
+        });
         self.local_stems.insert(st.into(), id);
         id
     }

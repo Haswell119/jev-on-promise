@@ -19,17 +19,11 @@ use indexmap::IndexMap;
 use serde_json::Value;
 use std::sync::Arc;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct EngineConfig {
     pub limits: Limits,
     /// Worker threads for question evaluation (0 = number of CPUs).
     pub threads: usize,
-}
-
-impl Default for EngineConfig {
-    fn default() -> Self {
-        EngineConfig { limits: Limits::default(), threads: 0 }
-    }
 }
 
 pub struct Engine {
@@ -55,8 +49,16 @@ struct Ctx<'a> {
 
 impl Engine {
     pub fn new(res: Arc<Resources>, model: Arc<Model>, config: EngineConfig) -> Engine {
-        let threads = if config.threads == 0 { std::thread::available_parallelism().map(|n| n.get()).unwrap_or(2) } else { config.threads };
-        let pool = rayon::ThreadPoolBuilder::new().num_threads(threads).thread_name(|i| format!("sextant-worker-{i}")).build().expect("thread pool");
+        let threads = if config.threads == 0 {
+            std::thread::available_parallelism().map(|n| n.get()).unwrap_or(2)
+        } else {
+            config.threads
+        };
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .thread_name(|i| format!("sextant-worker-{i}"))
+            .build()
+            .expect("thread pool");
         Engine { res, model, config, pool }
     }
 
@@ -102,7 +104,7 @@ impl Engine {
             };
             out.insert((*id).clone(), a);
         }
-        let question_tokens: u64 = req.questions.values().map(|q| approx_tokens(q)).sum();
+        let question_tokens: u64 = req.questions.values().map(approx_tokens).sum();
         Ok(SystemOneResponse {
             model: MODEL_ID.into(),
             answers: out,
@@ -129,8 +131,16 @@ fn approx_tokens(q: &Question) -> u64 {
     }
     let base = count(q.instructions());
     match q {
-        Question::Noul(n) => base + n.criteria.as_ref().map(|c| c.yes.as_ref().map(count).unwrap_or(0) + c.no.as_ref().map(count).unwrap_or(0)).unwrap_or(0),
-        Question::Choice(c) => base + c.criteria.iter().map(|(k, v)| 1 + count(v) + k.split('_').count() as u64).sum::<u64>(),
+        Question::Noul(n) => {
+            base + n
+                .criteria
+                .as_ref()
+                .map(|c| c.yes.as_ref().map(count).unwrap_or(0) + c.no.as_ref().map(count).unwrap_or(0))
+                .unwrap_or(0)
+        }
+        Question::Choice(c) => {
+            base + c.criteria.iter().map(|(k, v)| 1 + count(v) + k.split('_').count() as u64).sum::<u64>()
+        }
         Question::Score(s) => base + s.criteria.iter().map(count).sum::<u64>(),
     }
 }
@@ -168,7 +178,8 @@ fn answer_question(q: &Question, ctx: &Ctx<'_>) -> Answer {
             let p = match &resolved {
                 Some(_) => {
                     let eps = cal.symbolic_epsilon_for(QuestionKind::Noul);
-                    (1.0 - eps) * platt(logit_raw as f64, cal.noul_symbolic_platt.as_ref().unwrap_or(&cal.noul_platt)) + eps * 0.5
+                    (1.0 - eps) * platt(logit_raw as f64, cal.noul_symbolic_platt.as_ref().unwrap_or(&cal.noul_platt))
+                        + eps * 0.5
                 }
                 None => platt(logit_raw as f64, cal.platt_for(family)),
             };
@@ -179,7 +190,11 @@ fn answer_question(q: &Question, ctx: &Ctx<'_>) -> Answer {
                 if let Some(r) = &resolved {
                     ex.notes = r.notes.clone();
                 }
-                let pl = if resolved.is_some() { cal.noul_symbolic_platt.clone().unwrap_or_else(|| cal.noul_platt.clone()) } else { cal.platt_for(family).clone() };
+                let pl = if resolved.is_some() {
+                    cal.noul_symbolic_platt.clone().unwrap_or_else(|| cal.noul_platt.clone())
+                } else {
+                    cal.platt_for(family).clone()
+                };
                 ex.calibration.insert("method".into(), Value::String("platt".into()));
                 ex.calibration.insert("platt_a".into(), serde_json::json!(pl.a));
                 ex.calibration.insert("platt_b".into(), serde_json::json!(pl.b));
@@ -191,7 +206,11 @@ fn answer_question(q: &Question, ctx: &Ctx<'_>) -> Answer {
             let head = if view.kind == QuestionKind::Choice { &ctx.model.dense.choice } else { &ctx.model.dense.score };
             let (z, temperature, path): (Vec<f32>, f64, String) = match &resolved {
                 Some(r) => (r.logits.clone(), cal.symbolic_temperature_for(view.kind), format!("symbolic:{}", r.name)),
-                None => (feats.rows.iter().map(|f| head.score(f, family)).collect(), cal.temperature_for(view.kind, family, k), "semantic".to_string()),
+                None => (
+                    feats.rows.iter().map(|f| head.score(f, family)).collect(),
+                    cal.temperature_for(view.kind, family, k),
+                    "semantic".to_string(),
+                ),
             };
             let mut probs = softmax_temp(&z, temperature as f32);
             if resolved.is_some() {
@@ -209,7 +228,8 @@ fn answer_question(q: &Question, ctx: &Ctx<'_>) -> Answer {
             let ood = feats.rows.iter().map(|f| f.get(F::ood)).fold(1.0f32, f32::min) as f64;
             let conf = confidence(&probs, evidence, ood, &cal.confidence_for(view.kind));
             let explain = ctx.explain.then(|| {
-                let raw: IndexMap<String, f64> = view.criteria.iter().zip(z.iter()).map(|(c, v)| (c.key.clone(), *v as f64)).collect();
+                let raw: IndexMap<String, f64> =
+                    view.criteria.iter().zip(z.iter()).map(|(c, v)| (c.key.clone(), *v as f64)).collect();
                 let mut ex = build_explanation(&view, &feats, ctx, family.as_str(), path.clone(), raw);
                 if let Some(r) = &resolved {
                     ex.notes = r.notes.clone();
@@ -223,15 +243,19 @@ fn answer_question(q: &Question, ctx: &Ctx<'_>) -> Answer {
                 ex
             });
             if view.kind == QuestionKind::Choice {
-                let probabilities: IndexMap<String, f64> = view.criteria.iter().zip(probs.iter()).map(|(c, p)| (c.key.clone(), *p)).collect();
+                let probabilities: IndexMap<String, f64> =
+                    view.criteria.iter().zip(probs.iter()).map(|(c, p)| (c.key.clone(), *p)).collect();
                 let choice = argmax_key(&probabilities);
                 Answer::Choice(ChoiceAnswer { choice, probabilities, confidence: conf, explain })
             } else {
                 let legend: IndexMap<String, String> = match q {
-                    Question::Score(s) => s.criteria.iter().enumerate().map(|(i, v)| (i.to_string(), legend_text(v))).collect(),
+                    Question::Score(s) => {
+                        s.criteria.iter().enumerate().map(|(i, v)| (i.to_string(), legend_text(v))).collect()
+                    }
                     _ => IndexMap::new(),
                 };
-                let probabilities: IndexMap<String, f64> = probs.iter().enumerate().map(|(i, p)| (i.to_string(), *p)).collect();
+                let probabilities: IndexMap<String, f64> =
+                    probs.iter().enumerate().map(|(i, p)| (i.to_string(), *p)).collect();
                 let score: f64 = probs.iter().enumerate().map(|(i, p)| i as f64 * p).sum();
                 Answer::Score(ScoreAnswer { score, legend, probabilities, confidence: conf, explain })
             }
@@ -247,11 +271,24 @@ fn legend_text(v: &Value) -> String {
     }
 }
 
-fn build_explanation(view: &QuestionView<'_>, feats: &crate::features::FeatureMatrix, ctx: &Ctx<'_>, family: &str, path: String, raw_scores: IndexMap<String, f64>) -> Explanation {
+fn build_explanation(
+    view: &QuestionView<'_>,
+    feats: &crate::features::FeatureMatrix,
+    ctx: &Ctx<'_>,
+    family: &str,
+    path: String,
+    raw_scores: IndexMap<String, f64>,
+) -> Explanation {
     // Evidence of the best-scoring criterion (or the yes hypothesis for Noul).
-    let best = raw_scores.iter().enumerate().fold((0usize, f64::NEG_INFINITY), |acc, (i, (_, v))| if *v > acc.1 { (i, *v) } else { acc }).0;
-    let top_evidence = feats.evidence.get(best).map(|e| crate::features::extract::evidence_items(ctx.state, e, 5)).unwrap_or_default();
-    let features: IndexMap<String, IndexMap<String, f64>> = view.criteria.iter().zip(feats.rows.iter()).map(|(c, f)| (c.key.clone(), f.named())).collect();
+    let best = raw_scores
+        .iter()
+        .enumerate()
+        .fold((0usize, f64::NEG_INFINITY), |acc, (i, (_, v))| if *v > acc.1 { (i, *v) } else { acc })
+        .0;
+    let top_evidence =
+        feats.evidence.get(best).map(|e| crate::features::extract::evidence_items(ctx.state, e, 5)).unwrap_or_default();
+    let features: IndexMap<String, IndexMap<String, f64>> =
+        view.criteria.iter().zip(feats.rows.iter()).map(|(c, f)| (c.key.clone(), f.named())).collect();
     let mut calibration = IndexMap::new();
     calibration.insert("family".into(), Value::String(family.into()));
     Explanation { family: family.to_string(), path, top_evidence, raw_scores, features, calibration, notes: Vec::new() }

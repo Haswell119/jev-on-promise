@@ -85,20 +85,9 @@ fn check_score(state: &Value, question: &Value) -> Result<(), TestCaseError> {
     }
     let sum: f64 = a.probabilities.values().sum();
     prop_assert!((sum - 1.0).abs() < EPS, "sum p = {}", sum);
-    let expected_score: f64 =
-        a.probabilities.iter().map(|(key, p)| key.parse::<f64>().unwrap() * p).sum();
-    prop_assert!(
-        (a.score - expected_score).abs() < EPS,
-        "score {} != sum k*p {}",
-        a.score,
-        expected_score
-    );
-    prop_assert!(
-        a.score >= 0.0 && a.score <= (k - 1) as f64,
-        "score {} outside [0, {}]",
-        a.score,
-        k - 1
-    );
+    let expected_score: f64 = a.probabilities.iter().map(|(key, p)| key.parse::<f64>().unwrap() * p).sum();
+    prop_assert!((a.score - expected_score).abs() < EPS, "score {} != sum k*p {}", a.score, expected_score);
+    prop_assert!(a.score >= 0.0 && a.score <= (k - 1) as f64, "score {} outside [0, {}]", a.score, k - 1);
     prop_assert!((0.0..=1.0).contains(&a.confidence));
     check_roundtrip(&resp)
 }
@@ -211,18 +200,14 @@ fn choice_with_255_options_satisfies_contract() {
     for (si, state) in states.iter().enumerate() {
         let mut criteria = serde_json::Map::new();
         for i in 0..255 {
-            criteria.insert(
-                format!("opt_{i:03}"),
-                descriptions[(i + si) % descriptions.len()].clone(),
-            );
+            criteria.insert(format!("opt_{i:03}"), descriptions[(i + si) % descriptions.len()].clone());
         }
         let q = json!({
             "type": "choice",
             "instructions": "Which option is the value?",
             "criteria": criteria
         });
-        check_choice(state, &q)
-            .unwrap_or_else(|e| panic!("255-option contract violated for state #{si}: {e}"));
+        check_choice(state, &q).unwrap_or_else(|e| panic!("255-option contract violated for state #{si}: {e}"));
     }
 }
 

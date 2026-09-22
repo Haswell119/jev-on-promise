@@ -18,12 +18,7 @@ pub struct ApiError {
 
 impl ApiError {
     pub fn invalid(field: impl Into<String>, message: impl Into<String>) -> Self {
-        ApiError {
-            status: 422,
-            code: "invalid_request".into(),
-            message: message.into(),
-            field: Some(field.into()),
-        }
+        ApiError { status: 422, code: "invalid_request".into(), message: message.into(), field: Some(field.into()) }
     }
 
     pub fn unknown_model(model: &str) -> Self {
@@ -36,20 +31,10 @@ impl ApiError {
     }
 
     pub fn too_large(message: impl Into<String>) -> Self {
-        ApiError {
-            status: 413,
-            code: "payload_too_large".into(),
-            message: message.into(),
-            field: None,
-        }
+        ApiError { status: 413, code: "payload_too_large".into(), message: message.into(), field: None }
     }
 
     pub fn internal(message: impl Into<String>) -> Self {
-        ApiError {
-            status: 500,
-            code: "internal_error".into(),
-            message: message.into(),
-            field: None,
-        }
+        ApiError { status: 500, code: "internal_error".into(), message: message.into(), field: None }
     }
 }

@@ -105,7 +105,7 @@ if [ -z "$PY" ] && ! command -v curl >/dev/null 2>&1; then
     exit 0
 fi
 
-"$SX" serve --addr "127.0.0.1:$PORT" 2>/dev/null &
+"$SX" serve --addr "127.0.0.1:$PORT" >/dev/null 2>&1 &
 SERVER_PID=$!
 trap 'kill "$SERVER_PID" 2>/dev/null; wait "$SERVER_PID" 2>/dev/null' EXIT
 
@@ -170,7 +170,10 @@ unshare_usable() {
 # Docker path A: the repo's own Dockerfile (entrypoint = the binary, curl inside).
 run_docker_image() {
     log "building $IMAGE_TAG from $REPO/Dockerfile"
-    docker build -q -t "$IMAGE_TAG" "$REPO" >/dev/null || return 1
+    if ! docker build -q -t "$IMAGE_TAG" "$REPO" > "$WORK/build.log" 2>&1; then
+        tail -n 3 "$WORK/build.log" | sed 's/^/[no-network]   docker build: /'
+        return 1
+    fi
 
     log "docker run --network none $IMAGE_TAG decide < examples/request_basic.json"
     local out

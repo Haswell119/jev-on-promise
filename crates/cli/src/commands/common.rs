@@ -30,7 +30,8 @@ pub fn expand_jsonl(inputs: &[PathBuf]) -> Vec<PathBuf> {
     let mut out = Vec::new();
     for p in inputs {
         if p.is_dir() {
-            let mut entries: Vec<PathBuf> = std::fs::read_dir(p).map(|rd| rd.flatten().map(|e| e.path()).collect()).unwrap_or_default();
+            let mut entries: Vec<PathBuf> =
+                std::fs::read_dir(p).map(|rd| rd.flatten().map(|e| e.path()).collect()).unwrap_or_default();
             entries.sort();
             for e in entries {
                 if e.is_dir() {

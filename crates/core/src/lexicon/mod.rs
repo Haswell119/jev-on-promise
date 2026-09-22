@@ -29,7 +29,13 @@ pub const EMBEDDED_WN_ANTONYMS: &str = include_str!("../../assets/lexicon/wn_ant
 
 impl Resources {
     /// Build from raw TSV contents.
-    pub fn from_tsv(word_freq: &str, sentiment: &str, wn_lemmas: &str, wn_synsets: &str, wn_antonyms: &str) -> Resources {
+    pub fn from_tsv(
+        word_freq: &str,
+        sentiment: &str,
+        wn_lemmas: &str,
+        wn_synsets: &str,
+        wn_antonyms: &str,
+    ) -> Resources {
         Resources {
             idf_table: IdfTable::parse(word_freq),
             sentiment: SentimentLexicon::parse(sentiment),

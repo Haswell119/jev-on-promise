@@ -44,10 +44,22 @@ pub struct ArrayInfo {
     pub len: usize,
 }
 
-fn walk(v: &Value, path: &mut String, key: &str, depth: u8, array_index: Option<u32>, out: &mut Vec<FlatField>, arrays: &mut Vec<ArrayInfo>) {
+fn walk(
+    v: &Value,
+    path: &mut String,
+    key: &str,
+    depth: u8,
+    array_index: Option<u32>,
+    out: &mut Vec<FlatField>,
+    arrays: &mut Vec<ArrayInfo>,
+) {
     match v {
         Value::Object(map) => {
-            for (k, child) in map {
+            // JSON objects are unordered: walk keys in sorted order so that the
+            // index (and therefore every answer) is independent of key order.
+            let mut entries: Vec<(&String, &Value)> = map.iter().collect();
+            entries.sort_by(|a, b| a.0.cmp(b.0));
+            for (k, child) in entries {
                 let saved = path.len();
                 push_key(path, k);
                 walk(child, path, k, depth.saturating_add(1), None, out, arrays);
@@ -136,15 +148,10 @@ pub fn split_key_words(key: &str) -> Vec<String> {
             }
             continue;
         }
-        if c.is_uppercase() && i > 0 && chars[i - 1].is_lowercase() {
-            if !cur.is_empty() {
-                words.push(std::mem::take(&mut cur));
-            }
-        }
-        if c.is_ascii_digit() && i > 0 && chars[i - 1].is_alphabetic() {
-            if !cur.is_empty() {
-                words.push(std::mem::take(&mut cur));
-            }
+        let camel_boundary = c.is_uppercase() && i > 0 && chars[i - 1].is_lowercase();
+        let digit_boundary = c.is_ascii_digit() && i > 0 && chars[i - 1].is_alphabetic();
+        if (camel_boundary || digit_boundary) && !cur.is_empty() {
+            words.push(std::mem::take(&mut cur));
         }
         cur.push(c.to_ascii_lowercase());
     }
@@ -164,11 +171,14 @@ mod tests {
         let v = json!({"ticket": {"messages": [{"text": "hi"}, {"text": "bye"}], "amount": 12.5, "paid": false, "note": null}});
         let f = flatten_state(&v);
         let paths: Vec<&str> = f.iter().map(|x| x.path.as_str()).collect();
-        assert_eq!(paths, vec!["ticket.messages[0].text", "ticket.messages[1].text", "ticket.amount", "ticket.paid", "ticket.note"]);
-        assert_eq!(f[2].number, Some(12.5));
-        assert_eq!(f[3].boolean, Some(false));
-        assert_eq!(f[4].kind, FieldKind::Null);
-        assert_eq!(f[0].key, "text");
+        assert_eq!(
+            paths,
+            vec!["ticket.amount", "ticket.messages[0].text", "ticket.messages[1].text", "ticket.note", "ticket.paid"]
+        );
+        assert_eq!(f[0].number, Some(12.5));
+        assert_eq!(f[4].boolean, Some(false));
+        assert_eq!(f[3].kind, FieldKind::Null);
+        assert_eq!(f[1].key, "text");
         let direct = flatten_state(&json!({"tags": ["a", "b"]}));
         assert_eq!(direct[1].array_index, Some(1));
         assert_eq!(direct[1].key, "tags");

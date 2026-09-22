@@ -10,7 +10,7 @@
 
 use crate::api::QuestionKind;
 use crate::features::{FeatureMatrix, F};
-use crate::question::{Family, QuestionView};
+use crate::question::QuestionView;
 use crate::state::flatten::FieldKind;
 use crate::state::index::StateIndex;
 use crate::text::numbers::NumKind;
@@ -69,7 +69,12 @@ fn parse_comparison(text: &str) -> Option<(Cmp, f64, NumKind, Option<String>)> {
     let mut value = 0.0f64;
     let mut kind = NumKind::Plain;
     for (i, t) in toks.iter().enumerate() {
-        if matches!(t.kind, crate::text::tokenize::TokenKind::Number | crate::text::tokenize::TokenKind::Currency | crate::text::tokenize::TokenKind::Percent) {
+        if matches!(
+            t.kind,
+            crate::text::tokenize::TokenKind::Number
+                | crate::text::tokenize::TokenKind::Currency
+                | crate::text::tokenize::TokenKind::Percent
+        ) {
             if let Some(p) = crate::text::numbers::parse_number(&t.text, t.kind) {
                 if p.kind == NumKind::Ordinal {
                     continue;
@@ -83,7 +88,21 @@ fn parse_comparison(text: &str) -> Option<(Cmp, f64, NumKind, Option<String>)> {
             if let Some(v) = crate::text::numbers::number_word(&t.text) {
                 // only when preceded by a comparator word
                 let prev: Vec<&str> = toks[..i].iter().rev().take(3).map(|x| x.text.as_str()).collect();
-                if prev.iter().any(|w| matches!(*w, "than" | "least" | "most" | "over" | "under" | "above" | "below" | "exceed" | "exceeds" | "exactly")) {
+                if prev.iter().any(|w| {
+                    matches!(
+                        *w,
+                        "than"
+                            | "least"
+                            | "most"
+                            | "over"
+                            | "under"
+                            | "above"
+                            | "below"
+                            | "exceed"
+                            | "exceeds"
+                            | "exactly"
+                    )
+                }) {
                     num_idx = Some(i);
                     value = v;
                     break;
@@ -95,13 +114,37 @@ fn parse_comparison(text: &str) -> Option<(Cmp, f64, NumKind, Option<String>)> {
     let before: Vec<&str> = toks[..ni].iter().map(|t| t.text.as_str()).collect();
     let joined = before.join(" ");
     let has = |p: &str| joined.ends_with(p) || joined.contains(&format!("{p} ")) || joined.contains(p);
-    let cmp = if has("greater than") || has("more than") || has("larger than") || has("higher than") || has("bigger than") || has("longer than") || has("over") || has("above") || has("exceed") || has("exceeds") || has("exceeding") {
+    let cmp = if has("greater than")
+        || has("more than")
+        || has("larger than")
+        || has("higher than")
+        || has("bigger than")
+        || has("longer than")
+        || has("over")
+        || has("above")
+        || has("exceed")
+        || has("exceeds")
+        || has("exceeding")
+    {
         Cmp::Gt
     } else if has("at least") || has("minimum of") || has("no less than") || has("not less than") || has("or more") {
         Cmp::Ge
-    } else if has("less than") || has("fewer than") || has("lower than") || has("smaller than") || has("shorter than") || has("under") || has("below") {
+    } else if has("less than")
+        || has("fewer than")
+        || has("lower than")
+        || has("smaller than")
+        || has("shorter than")
+        || has("under")
+        || has("below")
+    {
         Cmp::Lt
-    } else if has("at most") || has("no more than") || has("not more than") || has("up to") || has("maximum of") || has("within") {
+    } else if has("at most")
+        || has("no more than")
+        || has("not more than")
+        || has("up to")
+        || has("maximum of")
+        || has("within")
+    {
         Cmp::Le
     } else if has("exactly") || has("equal to") || has("equals") {
         Cmp::Eq
@@ -109,7 +152,14 @@ fn parse_comparison(text: &str) -> Option<(Cmp, f64, NumKind, Option<String>)> {
         return None;
     };
     // unit word after the number ("units", "items", "days")
-    let unit = toks.get(ni + 1).filter(|t| t.kind == crate::text::tokenize::TokenKind::Word && !crate::text::stem::is_function_word(&t.text) && !matches!(t.text.as_str(), "or" | "and" | "of" | "in" | "per" | "total")).map(|t| t.text.clone());
+    let unit = toks
+        .get(ni + 1)
+        .filter(|t| {
+            t.kind == crate::text::tokenize::TokenKind::Word
+                && !crate::text::stem::is_function_word(&t.text)
+                && !matches!(t.text.as_str(), "or" | "and" | "of" | "in" | "per" | "total")
+        })
+        .map(|t| t.text.clone());
     Some((cmp, value, kind, unit))
 }
 
@@ -172,7 +222,12 @@ fn numeric_comparison(q: &QuestionView, state: &StateIndex) -> Option<Resolved> 
         if let Some(us) = &unit_stem {
             if !neighbor_matches(us) {
                 // synonyms of the unit word (units ≈ items ≈ pieces)
-                let syn_ok = matches!(us.as_str(), "unit" | "item" | "piec" | "articl" | "product") && (neighbor_matches("unit") || neighbor_matches("item") || neighbor_matches("quantiti") || neighbor_matches("qty") || neighbor_matches("piec"));
+                let syn_ok = matches!(us.as_str(), "unit" | "item" | "piec" | "articl" | "product")
+                    && (neighbor_matches("unit")
+                        || neighbor_matches("item")
+                        || neighbor_matches("quantiti")
+                        || neighbor_matches("qty")
+                        || neighbor_matches("piec"));
                 if !syn_ok {
                     continue;
                 }
@@ -258,7 +313,11 @@ fn date_comparison(q: &QuestionView, state: &StateIndex) -> Option<Resolved> {
     } else {
         return None;
     };
-    let inclusive = before_words.iter().any(|w| matches!(*w, "by" | "until")) || q.text.contains("or before") || q.text.contains("or after") || q.text.contains("or later") || q.text.contains("or earlier");
+    let inclusive = before_words.iter().any(|w| matches!(*w, "by" | "until"))
+        || q.text.contains("or before")
+        || q.text.contains("or after")
+        || q.text.contains("or later")
+        || q.text.contains("or earlier");
     let focus = &q.focus_fields;
     let mut outcomes = Vec::new();
     let mut notes = Vec::new();
@@ -269,11 +328,26 @@ fn date_comparison(q: &QuestionView, state: &StateIndex) -> Option<Resolved> {
         }
         let (a, b) = (ds.date.days_from_epoch(), qdate.days_from_epoch());
         let r = match cmp {
-            Cmp::Lt => if inclusive { a <= b } else { a < b },
-            Cmp::Gt => if inclusive { a >= b } else { a > b },
+            Cmp::Lt => {
+                if inclusive {
+                    a <= b
+                } else {
+                    a < b
+                }
+            }
+            Cmp::Gt => {
+                if inclusive {
+                    a >= b
+                } else {
+                    a > b
+                }
+            }
             _ => a == b,
         };
-        notes.push(format!("{}-{:02}-{:02} {:?} {}-{:02}-{:02} → {}", ds.date.year, ds.date.month, ds.date.day, cmp, qdate.year, qdate.month, qdate.day, r));
+        notes.push(format!(
+            "{}-{:02}-{:02} {:?} {}-{:02}-{:02} → {}",
+            ds.date.year, ds.date.month, ds.date.day, cmp, qdate.year, qdate.month, qdate.day, r
+        ));
         outcomes.push(r);
     }
     if outcomes.is_empty() {
@@ -292,7 +366,7 @@ fn date_comparison(q: &QuestionView, state: &StateIndex) -> Option<Resolved> {
 /// Exact enum extraction: options are literal values; the longest option
 /// literal that appears verbatim in the (focused) state wins.
 fn enum_extraction(q: &QuestionView, _state: &StateIndex, feats: &FeatureMatrix) -> Option<Resolved> {
-    if !(q.literal_options || q.family == Family::EnumExtraction) || !q.literal_options {
+    if !q.literal_options {
         return None;
     }
     let mut best_len = 0.0f32;
@@ -309,7 +383,8 @@ fn enum_extraction(q: &QuestionView, _state: &StateIndex, feats: &FeatureMatrix)
     if hits.is_empty() {
         return None;
     }
-    let winners: Vec<usize> = hits.iter().filter(|(_, l, _)| (*l - best_len).abs() < 1e-6).map(|(i, _, _)| *i).collect();
+    let winners: Vec<usize> =
+        hits.iter().filter(|(_, l, _)| (*l - best_len).abs() < 1e-6).map(|(i, _, _)| *i).collect();
     if winners.len() != 1 {
         return None;
     }
@@ -318,7 +393,11 @@ fn enum_extraction(q: &QuestionView, _state: &StateIndex, feats: &FeatureMatrix)
     for (i, len, _) in &hits {
         logits[*i] = if *i == w { STRONG } else { PARTIAL * (len / best_len) };
     }
-    Some(Resolved { name: "enum_extraction", logits, notes: vec![format!("option `{}` appears verbatim as the longest literal match", q.criteria[w].key)] })
+    Some(Resolved {
+        name: "enum_extraction",
+        logits,
+        notes: vec![format!("option `{}` appears verbatim as the longest literal match", q.criteria[w].key)],
+    })
 }
 
 /// Numeric level/option ranges: pick the criterion whose range contains the
@@ -409,7 +488,11 @@ fn numeric_levels(q: &QuestionView, state: &StateIndex) -> Option<Resolved> {
             -PARTIAL
         };
     }
-    Some(Resolved { name: "numeric_range", logits, notes: vec![format!("value {v} falls in level `{}`", q.criteria[c].key)] })
+    Some(Resolved {
+        name: "numeric_range",
+        logits,
+        notes: vec![format!("value {v} falls in level `{}`", q.criteria[c].key)],
+    })
 }
 
 fn scalar_literals(v: &Value, out: &mut Vec<String>, depth: usize) {
@@ -442,9 +525,26 @@ fn scalar_literals(v: &Value, out: &mut Vec<String>, depth: usize) {
 /// they match / appear in the state. Specific values (with digits or ≥ 4
 /// chars) present verbatim → true; absent → false.
 fn reference_equality(q: &QuestionView, state: &StateIndex) -> Option<Resolved> {
-    let asks_match = ["match", "matches", "same", "equal", "equals", "correct", "appear", "appears", "contain", "contains", "present", "mention", "mentioned", "consistent", "identical", "found"]
-        .iter()
-        .any(|w| q.text.split(|c: char| !c.is_alphanumeric()).any(|t| t == *w));
+    let asks_match = [
+        "match",
+        "matches",
+        "same",
+        "equal",
+        "equals",
+        "correct",
+        "appear",
+        "appears",
+        "contain",
+        "contains",
+        "present",
+        "mention",
+        "mentioned",
+        "consistent",
+        "identical",
+        "found",
+    ]
+    .iter()
+    .any(|w| q.text.split(|c: char| !c.is_alphanumeric()).any(|t| t == *w));
     if !asks_match {
         return None;
     }
@@ -528,5 +628,9 @@ fn boolean_field(q: &QuestionView, state: &StateIndex) -> Option<Resolved> {
     }
     let (fi, val) = matches[0];
     let logit = if val != q.question_negated { STRONG * 0.8 } else { -STRONG * 0.8 };
-    Some(Resolved { name: "boolean_field", logits: vec![logit], notes: vec![format!("field `{}` is {}", state.fields[fi as usize].path, val)] })
+    Some(Resolved {
+        name: "boolean_field",
+        logits: vec![logit],
+        notes: vec![format!("field `{}` is {}", state.fields[fi as usize].path, val)],
+    })
 }

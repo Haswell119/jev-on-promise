@@ -53,10 +53,14 @@ impl Record {
             "split" => self.split.clone(),
             "synthetic" => self.synthetic.to_string(),
             "transformation" => self.transformation.clone(),
-            other => self.extra.get(other).map(|v| match v {
-                Value::String(s) => s.clone(),
-                v => v.to_string(),
-            }).unwrap_or_default(),
+            other => self
+                .extra
+                .get(other)
+                .map(|v| match v {
+                    Value::String(s) => s.clone(),
+                    v => v.to_string(),
+                })
+                .unwrap_or_default(),
         }
     }
 }

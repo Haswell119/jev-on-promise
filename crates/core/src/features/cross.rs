@@ -84,7 +84,13 @@ pub fn referenced_pair(q: &QuestionView, state: &StateIndex) -> Option<(Vec<u32>
         }
     }
     if groups.len() < 2 && !state.is_plain_text {
-        let text_fields: Vec<u32> = state.fields.iter().enumerate().filter(|(_, f)| f.kind == crate::state::flatten::FieldKind::Text && f.text.split_whitespace().count() >= 3).map(|(i, _)| i as u32).collect();
+        let text_fields: Vec<u32> = state
+            .fields
+            .iter()
+            .enumerate()
+            .filter(|(_, f)| f.kind == crate::state::flatten::FieldKind::Text && f.text.split_whitespace().count() >= 3)
+            .map(|(i, _)| i as u32)
+            .collect();
         if text_fields.len() == 2 && groups.is_empty() {
             groups.push(vec![text_fields[0]]);
             groups.push(vec![text_fields[1]]);
@@ -153,7 +159,11 @@ pub fn cross_field(q: &QuestionView, state: &StateIndex, res: &Resources) -> Cro
     let union = a.terms.len() + b.terms.len() - inter;
     let ga = char_grams(&a.text);
     let gb = char_grams(&b.text);
-    let gram = if ga.is_empty() || gb.is_empty() { 0.0 } else { 2.0 * sorted_intersection(&ga, &gb) as f32 / (ga.len() + gb.len()) as f32 };
+    let gram = if ga.is_empty() || gb.is_empty() {
+        0.0
+    } else {
+        2.0 * sorted_intersection(&ga, &gb) as f32 / (ga.len() + gb.len()) as f32
+    };
     let num_conflict = if a.numbers.is_empty() || b.numbers.is_empty() {
         0.0
     } else {

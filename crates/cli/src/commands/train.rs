@@ -60,11 +60,10 @@ struct HeadParams {
 
 impl HeadParams {
     fn new(n_fam: usize) -> Self {
-        HeadParams { base: vec![0.0; N_FEATURES], deltas: vec![vec![0.0; N_FEATURES]; n_fam], active: vec![false; n_fam] }
-    }
-    fn weights_for(&self, slot: usize, out: &mut [f32]) {
-        for j in 0..N_FEATURES {
-            out[j] = self.base[j] + if self.active[slot] { self.deltas[slot][j] } else { 0.0 };
+        HeadParams {
+            base: vec![0.0; N_FEATURES],
+            deltas: vec![vec![0.0; N_FEATURES]; n_fam],
+            active: vec![false; n_fam],
         }
     }
 }
@@ -81,11 +80,11 @@ fn targets(ex: &Example) -> Vec<f32> {
     if ex.kind == QuestionKind::Score && k >= 3 {
         // ordinal smoothing toward neighbours
         let mut s = vec![0.0f32; k];
-        for i in 0..k {
+        for (i, v) in s.iter_mut().enumerate() {
             if i == ex.gold {
-                s[i] += 1.0 - ORDINAL_SMOOTH * (((i > 0) as u8) + ((i + 1 < k) as u8)) as f32;
+                *v += 1.0 - ORDINAL_SMOOTH * (((i > 0) as u8) + ((i + 1 < k) as u8)) as f32;
             } else if i + 1 == ex.gold || i == ex.gold + 1 {
-                s[i] += ORDINAL_SMOOTH;
+                *v += ORDINAL_SMOOTH;
             }
         }
         return s;
@@ -94,7 +93,12 @@ fn targets(ex: &Example) -> Vec<f32> {
 }
 
 /// Train a multinomial head. Returns (params, final loss).
+///
+/// Deterministic parallelism: examples are split into fixed chunks, each chunk
+/// produces its own gradient/loss, and chunks are reduced sequentially in a
+/// fixed order (floating-point results do not depend on thread scheduling).
 fn train_multinomial(examples: &[&Example], epochs: usize, l2: f32, family_l2: f32, use_families: bool, lr: f32) -> (HeadParams, f32) {
+    use rayon::prelude::*;
     let n_fam = Family::all().len();
     let mut p = HeadParams::new(n_fam);
     let mut counts = vec![0usize; n_fam];
@@ -102,44 +106,76 @@ fn train_multinomial(examples: &[&Example], epochs: usize, l2: f32, family_l2: f
         counts[family_slot(e.family)] += 1;
     }
     if use_families {
-        for s in 0..n_fam {
-            p.active[s] = counts[s] >= MIN_FAMILY_EXAMPLES;
+        for (a, c) in p.active.iter_mut().zip(counts.iter()) {
+            *a = *c >= MIN_FAMILY_EXAMPLES;
         }
     }
     let n_params = N_FEATURES * (1 + n_fam);
     let mut adam = Adam::new(n_params, lr);
     let mut grad = vec![0.0f32; n_params];
-    let mut w = vec![0.0f32; N_FEATURES];
     let mut flat = vec![0.0f32; n_params];
     let mut loss = 0.0f32;
     let n = examples.len().max(1) as f32;
+    // Pre-resolve the target distributions once.
+    let targets_all: Vec<Vec<f32>> = examples.iter().map(|e| targets(e)).collect();
+    let chunks: Vec<(usize, usize)> = (0..examples.len()).step_by(256).map(|s| (s, (s + 256).min(examples.len()))).collect();
     for _epoch in 0..epochs {
-        for g in grad.iter_mut() {
-            *g = 0.0;
-        }
-        loss = 0.0;
-        for e in examples {
-            let slot = family_slot(e.family);
-            p.weights_for(slot, &mut w);
-            let z: Vec<f32> = e.rows.iter().map(|r| r.dot(&w)).collect();
-            let m = z.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
-            let ex: Vec<f32> = z.iter().map(|v| (v - m).exp()).collect();
-            let s: f32 = ex.iter().sum();
-            let probs: Vec<f32> = ex.iter().map(|v| v / s).collect();
-            let t = targets(e);
-            for k in 0..probs.len() {
-                if t[k] > 0.0 {
-                    loss -= t[k] * probs[k].max(1e-9).ln();
-                }
-                let coef = (probs[k] - t[k]) / n;
-                for j in 0..N_FEATURES {
-                    let g = coef * e.rows[k].0[j];
-                    grad[j] += g;
-                    if p.active[slot] {
-                        grad[N_FEATURES * (1 + slot) + j] += g;
+        let active = &p.active;
+        let base = &p.base;
+        let deltas = &p.deltas;
+        let partials: Vec<(Vec<f32>, f32)> = chunks
+            .par_iter()
+            .map(|&(s, e)| {
+                let mut g = vec![0.0f32; n_params];
+                let mut l = 0.0f32;
+                let mut w = vec![0.0f32; N_FEATURES];
+                let mut z: Vec<f32> = Vec::with_capacity(64);
+                for idx in s..e {
+                    let ex = examples[idx];
+                    let slot = family_slot(ex.family);
+                    for j in 0..N_FEATURES {
+                        w[j] = base[j] + if active[slot] { deltas[slot][j] } else { 0.0 };
+                    }
+                    z.clear();
+                    z.extend(ex.rows.iter().map(|r| r.dot(&w)));
+                    let m = z.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+                    let mut sum = 0.0f32;
+                    for v in z.iter_mut() {
+                        *v = (*v - m).exp();
+                        sum += *v;
+                    }
+                    let t = &targets_all[idx];
+                    for k in 0..z.len() {
+                        let prob = z[k] / sum;
+                        if t[k] > 0.0 {
+                            l -= t[k] * prob.max(1e-9).ln();
+                        }
+                        let coef = (prob - t[k]) / n;
+                        if coef == 0.0 {
+                            continue;
+                        }
+                        let row = &ex.rows[k].0;
+                        for j in 0..N_FEATURES {
+                            let gv = coef * row[j];
+                            g[j] += gv;
+                            if active[slot] {
+                                g[N_FEATURES * (1 + slot) + j] += gv;
+                            }
+                        }
                     }
                 }
+                (g, l)
+            })
+            .collect();
+        for v in grad.iter_mut() {
+            *v = 0.0;
+        }
+        loss = 0.0;
+        for (g, l) in &partials {
+            for (a, b) in grad.iter_mut().zip(g.iter()) {
+                *a += b;
             }
+            loss += l;
         }
         loss /= n;
         // L2
@@ -177,16 +213,31 @@ struct NoulParams {
     active: Vec<bool>,
 }
 
-fn train_noul(examples: &[&Example], epochs: usize, l2: f32, family_l2: f32, use_families: bool, lr: f32) -> (NoulParams, f32) {
+fn train_noul(
+    examples: &[&Example],
+    epochs: usize,
+    l2: f32,
+    family_l2: f32,
+    use_families: bool,
+    lr: f32,
+) -> (NoulParams, f32) {
     let n_fam = Family::all().len();
-    let mut p = NoulParams { diff: vec![0.0; N_FEATURES], yes: vec![0.0; N_FEATURES], bias: 0.0, fam_diff: vec![vec![0.0; N_FEATURES]; n_fam], fam_yes: vec![vec![0.0; N_FEATURES]; n_fam], fam_bias: vec![0.0; n_fam], active: vec![false; n_fam] };
+    let mut p = NoulParams {
+        diff: vec![0.0; N_FEATURES],
+        yes: vec![0.0; N_FEATURES],
+        bias: 0.0,
+        fam_diff: vec![vec![0.0; N_FEATURES]; n_fam],
+        fam_yes: vec![vec![0.0; N_FEATURES]; n_fam],
+        fam_bias: vec![0.0; n_fam],
+        active: vec![false; n_fam],
+    };
     let mut counts = vec![0usize; n_fam];
     for e in examples {
         counts[family_slot(e.family)] += 1;
     }
     if use_families {
-        for s in 0..n_fam {
-            p.active[s] = counts[s] >= MIN_FAMILY_EXAMPLES;
+        for (a, c) in p.active.iter_mut().zip(counts.iter()) {
+            *a = *c >= MIN_FAMILY_EXAMPLES;
         }
     }
     // layout: diff[N], yes[N], bias, then per family: diff[N], yes[N], bias
@@ -272,7 +323,12 @@ fn train_noul(examples: &[&Example], epochs: usize, l2: f32, family_l2: f32, use
 }
 
 fn to_map(v: &[f32]) -> IndexMap<String, f32> {
-    FEATURE_NAMES.iter().zip(v.iter()).filter(|(_, w)| **w != 0.0).map(|(n, w)| (n.to_string(), (*w * 10000.0).round() / 10000.0)).collect()
+    FEATURE_NAMES
+        .iter()
+        .zip(v.iter())
+        .filter(|(_, w)| **w != 0.0)
+        .map(|(n, w)| (n.to_string(), (*w * 10000.0).round() / 10000.0))
+        .collect()
 }
 
 fn head_to_artifact(p: &HeadParams) -> Head {
@@ -285,7 +341,16 @@ fn head_to_artifact(p: &HeadParams) -> Head {
     Head { base: to_map(&p.base), families }
 }
 
-pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, seed: u64, l2: f32, family_l2: f32, epochs: usize, no_families: bool, drop_features: Option<String>) -> i32 {
+pub fn run(
+    inputs: Vec<PathBuf>,
+    out_dir: PathBuf,
+    seed: u64,
+    l2: f32,
+    family_l2: f32,
+    epochs: usize,
+    no_families: bool,
+    drop_features: Option<String>,
+) -> i32 {
     let _ = seed; // full-batch training is deterministic; the seed is recorded for provenance only
     let records = match load_records(&inputs) {
         Ok(r) => r,
@@ -298,12 +363,24 @@ pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, seed: u64, l2: f32, family_l2
     let drop = parse_drop(&drop_features);
     let t0 = std::time::Instant::now();
     let (examples, skipped) = extract_examples(&records, &res, &drop);
-    eprintln!("extracted {} examples from {} records ({} skipped) in {:.1}s", examples.len(), records.len(), skipped, t0.elapsed().as_secs_f64());
+    eprintln!(
+        "extracted {} examples from {} records ({} skipped) in {:.1}s",
+        examples.len(),
+        records.len(),
+        skipped,
+        t0.elapsed().as_secs_f64()
+    );
     let semantic: Vec<&Example> = examples.iter().filter(|e| e.symbolic.is_none()).collect();
     let choice: Vec<&Example> = semantic.iter().copied().filter(|e| e.kind == QuestionKind::Choice).collect();
     let score: Vec<&Example> = semantic.iter().copied().filter(|e| e.kind == QuestionKind::Score).collect();
     let noul: Vec<&Example> = semantic.iter().copied().filter(|e| e.kind == QuestionKind::Noul).collect();
-    eprintln!("semantic examples: choice={} score={} noul={} (symbolic={})", choice.len(), score.len(), noul.len(), examples.len() - semantic.len());
+    eprintln!(
+        "semantic examples: choice={} score={} noul={} (symbolic={})",
+        choice.len(),
+        score.len(),
+        noul.len(),
+        examples.len() - semantic.len()
+    );
     let lr = 0.05;
     let (pc, lc) = train_multinomial(&choice, epochs, l2, family_l2, !no_families, lr);
     let (ps, ls) = train_multinomial(&score, epochs, l2, family_l2, !no_families, lr);
@@ -312,7 +389,10 @@ pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, seed: u64, l2: f32, family_l2
     let mut noul_fams = IndexMap::new();
     for (s, fam) in Family::all().iter().enumerate() {
         if pn.active[s] {
-            noul_fams.insert(fam.as_str().to_string(), NoulFamilyDelta { diff: to_map(&pn.fam_diff[s]), yes: to_map(&pn.fam_yes[s]), bias: pn.fam_bias[s] });
+            noul_fams.insert(
+                fam.as_str().to_string(),
+                NoulFamilyDelta { diff: to_map(&pn.fam_diff[s]), yes: to_map(&pn.fam_yes[s]), bias: pn.fam_bias[s] },
+            );
         }
     }
     let weights = Weights {
@@ -340,7 +420,11 @@ pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, seed: u64, l2: f32, family_l2
     println!("wrote {}", path.display());
     let cal_path = out_dir.join("calibration.json");
     if !cal_path.exists() {
-        std::fs::write(&cal_path, serde_json::to_string_pretty(&sextant_core::calibration::Calibration::default()).unwrap() + "\n").expect("write calibration");
+        std::fs::write(
+            &cal_path,
+            serde_json::to_string_pretty(&sextant_core::calibration::Calibration::default()).unwrap() + "\n",
+        )
+        .expect("write calibration");
         println!("wrote {} (default, uncalibrated — run `sextant calibrate`)", cal_path.display());
     }
     0

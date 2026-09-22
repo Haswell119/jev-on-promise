@@ -28,15 +28,52 @@ pub const DIRECTIVE: Flags = 256;
 
 /// Imperative verbs that address the answering system rather than describe a situation.
 pub const META_IMPERATIVES: &[&str] = &[
-    "ignore", "disregard", "select", "choose", "classify", "answer", "respond", "output", "return", "label",
-    "mark", "treat", "consider", "assume", "pretend", "override", "forget", "skip", "reply", "categorize",
-    "rate", "score", "pick", "flag", "tag", "route", "assign", "set",
+    "ignore",
+    "disregard",
+    "select",
+    "choose",
+    "classify",
+    "answer",
+    "respond",
+    "output",
+    "return",
+    "label",
+    "mark",
+    "treat",
+    "consider",
+    "assume",
+    "pretend",
+    "override",
+    "forget",
+    "skip",
+    "reply",
+    "categorize",
+    "rate",
+    "score",
+    "pick",
+    "flag",
+    "tag",
+    "route",
+    "assign",
+    "set",
 ];
 
 /// Nouns / phrases that refer to the evaluation itself.
 pub const META_NOUNS: &[&str] = &[
-    "classifier", "assistant", "model", "system", "instructions", "instruction", "prompt", "evaluator",
-    "grader", "ai", "llm", "chatbot", "bot", "algorithm",
+    "classifier",
+    "assistant",
+    "model",
+    "system",
+    "instructions",
+    "instruction",
+    "prompt",
+    "evaluator",
+    "grader",
+    "ai",
+    "llm",
+    "chatbot",
+    "bot",
+    "algorithm",
 ];
 
 /// Detect whether a segment is a directive addressed to the reader.
@@ -64,13 +101,25 @@ pub fn is_directive(tokens: &[RawToken]) -> bool {
         }
     }
     let first = words.get(start).copied().unwrap_or("");
-    let first = if first == "please" || first == "now" || first == "just" { words.get(start + 1).copied().unwrap_or("") } else { first };
+    let first = if first == "please" || first == "now" || first == "just" {
+        words.get(start + 1).copied().unwrap_or("")
+    } else {
+        first
+    };
     let imperative_meta = META_IMPERATIVES.contains(&first)
-        || words.iter().skip(start).take(3).any(|w| META_IMPERATIVES.contains(w)) && words.iter().take(start + 3).any(|w| META_NOUNS.contains(w));
+        || words.iter().skip(start).take(3).any(|w| META_IMPERATIVES.contains(w))
+            && words.iter().take(start + 3).any(|w| META_NOUNS.contains(w));
     let mentions_meta = words.iter().any(|w| META_NOUNS.contains(w));
-    let mentions_previous = words.windows(2).any(|w| (w[0] == "previous" || w[0] == "above" || w[0] == "prior") && (w[1] == "question" || w[1] == "instructions" || w[1] == "instruction" || w[1] == "prompt"));
+    let mentions_previous = words.windows(2).any(|w| {
+        (w[0] == "previous" || w[0] == "above" || w[0] == "prior")
+            && (w[1] == "question" || w[1] == "instructions" || w[1] == "instruction" || w[1] == "prompt")
+    });
     let regardless = words.windows(2).any(|w| w[0] == "regardless" && w[1] == "of");
-    let correct_is = words.windows(3).any(|w| w[0] == "correct" && matches!(w[1], "answer" | "option" | "department" | "label" | "category" | "choice" | "team") && w[2] == "is");
+    let correct_is = words.windows(3).any(|w| {
+        w[0] == "correct"
+            && matches!(w[1], "answer" | "option" | "department" | "label" | "category" | "choice" | "team")
+            && w[2] == "is"
+    });
     let first_person = words.iter().any(|w| matches!(*w, "i" | "my" | "me" | "we" | "our" | "us"));
     (imperative_meta && (mentions_meta || mentions_previous || regardless || correct_is || !first_person))
         || (mentions_meta && (imperative_meta || regardless || correct_is || mentions_previous))
@@ -88,17 +137,118 @@ pub const EXC_WINDOW: usize = 2;
 /// Content-bearing cues ("failed", "refuse", "possible", "want") open a scope
 /// but stay evidence tokens, so they are never flagged `CUE`.
 pub const HARD_CUES: &[&str] = &[
-    "not", "no", "never", "none", "nobody", "nothing", "nowhere", "neither", "nor", "without", "cannot", "hardly",
-    "barely", "scarcely", "seldom", "rarely", "haven", "hasn", "hadn", "didn", "doesn", "don", "won", "isn", "aren",
-    "wasn", "weren", "couldn", "wouldn", "shouldn", "mustn", "needn", "ain", "whether", "if", "maybe", "perhaps",
-    "might", "may", "suppose", "supposing", "assuming", "assume", "hypothetically", "please", "kindly", "pls", "plz",
-    "must", "except", "excepting", "unless", "excluding", "aside", "apart", "besides", "save", "bar", "barring",
-    "notwithstanding", "regardless", "very", "extremely", "really", "so", "incredibly", "absolutely", "totally",
-    "completely", "utterly", "highly", "deeply", "seriously", "terribly", "awfully", "insanely", "super", "truly",
-    "especially", "particularly", "exceptionally", "remarkably", "hugely", "massively", "severely", "strongly",
-    "badly", "entirely", "thoroughly", "immensely", "beyond", "outrageously", "slightly", "somewhat", "bit", "little",
-    "mildly", "fairly", "rather", "kind", "sort", "marginally", "partially", "moderately", "relatively", "minimally",
-    "lightly", "tad", "wonder", "wondering", "wondered", "wonders",
+    "not",
+    "no",
+    "never",
+    "none",
+    "nobody",
+    "nothing",
+    "nowhere",
+    "neither",
+    "nor",
+    "without",
+    "cannot",
+    "hardly",
+    "barely",
+    "scarcely",
+    "seldom",
+    "rarely",
+    "haven",
+    "hasn",
+    "hadn",
+    "didn",
+    "doesn",
+    "don",
+    "won",
+    "isn",
+    "aren",
+    "wasn",
+    "weren",
+    "couldn",
+    "wouldn",
+    "shouldn",
+    "mustn",
+    "needn",
+    "ain",
+    "whether",
+    "if",
+    "maybe",
+    "perhaps",
+    "might",
+    "may",
+    "suppose",
+    "supposing",
+    "assuming",
+    "assume",
+    "hypothetically",
+    "please",
+    "kindly",
+    "pls",
+    "plz",
+    "must",
+    "except",
+    "excepting",
+    "unless",
+    "excluding",
+    "aside",
+    "apart",
+    "besides",
+    "save",
+    "bar",
+    "barring",
+    "notwithstanding",
+    "regardless",
+    "very",
+    "extremely",
+    "really",
+    "so",
+    "incredibly",
+    "absolutely",
+    "totally",
+    "completely",
+    "utterly",
+    "highly",
+    "deeply",
+    "seriously",
+    "terribly",
+    "awfully",
+    "insanely",
+    "super",
+    "truly",
+    "especially",
+    "particularly",
+    "exceptionally",
+    "remarkably",
+    "hugely",
+    "massively",
+    "severely",
+    "strongly",
+    "badly",
+    "entirely",
+    "thoroughly",
+    "immensely",
+    "beyond",
+    "outrageously",
+    "slightly",
+    "somewhat",
+    "bit",
+    "little",
+    "mildly",
+    "fairly",
+    "rather",
+    "kind",
+    "sort",
+    "marginally",
+    "partially",
+    "moderately",
+    "relatively",
+    "minimally",
+    "lightly",
+    "tad",
+    "wonder",
+    "wondering",
+    "wondered",
+    "wonders",
 ];
 
 #[inline]
@@ -111,14 +261,85 @@ fn cue_flag(word: &str) -> Flags {
 }
 
 pub const NEGATORS: &[&str] = &[
-    "not", "no", "never", "none", "nobody", "nothing", "nowhere", "neither", "nor", "without", "cannot", "hardly",
-    "barely", "scarcely", "seldom", "rarely", "lack", "lacks", "lacked", "lacking", "unable", "absent", "absence",
-    "refuse", "refused", "refuses", "refusing", "deny", "denies", "denied", "denying", "fail", "failed", "fails",
-    "failing", "decline", "declined", "declines", "declining", "missing", "impossible", "unlikely", "zero",
-    "stop", "stopped", "stops", "prevent", "prevented", "prevents", "avoid", "avoided", "avoids", "forgot",
-    "forget", "forgets", "haven", "hasn", "hadn", "didn", "doesn", "don", "won", "isn", "aren", "wasn", "weren",
-    "couldn", "wouldn", "shouldn", "mustn", "needn", "ain", "unsuccessful", "unsuccessfully", "incorrect",
-    "incorrectly", "false", "falsely", "untrue",
+    "not",
+    "no",
+    "never",
+    "none",
+    "nobody",
+    "nothing",
+    "nowhere",
+    "neither",
+    "nor",
+    "without",
+    "cannot",
+    "hardly",
+    "barely",
+    "scarcely",
+    "seldom",
+    "rarely",
+    "lack",
+    "lacks",
+    "lacked",
+    "lacking",
+    "unable",
+    "absent",
+    "absence",
+    "refuse",
+    "refused",
+    "refuses",
+    "refusing",
+    "deny",
+    "denies",
+    "denied",
+    "denying",
+    "fail",
+    "failed",
+    "fails",
+    "failing",
+    "decline",
+    "declined",
+    "declines",
+    "declining",
+    "missing",
+    "impossible",
+    "unlikely",
+    "zero",
+    "stop",
+    "stopped",
+    "stops",
+    "prevent",
+    "prevented",
+    "prevents",
+    "avoid",
+    "avoided",
+    "avoids",
+    "forgot",
+    "forget",
+    "forgets",
+    "haven",
+    "hasn",
+    "hadn",
+    "didn",
+    "doesn",
+    "don",
+    "won",
+    "isn",
+    "aren",
+    "wasn",
+    "weren",
+    "couldn",
+    "wouldn",
+    "shouldn",
+    "mustn",
+    "needn",
+    "ain",
+    "unsuccessful",
+    "unsuccessfully",
+    "incorrect",
+    "incorrectly",
+    "false",
+    "falsely",
+    "untrue",
 ];
 
 /// Two-token negation phrases (first, second).
@@ -152,23 +373,101 @@ pub const NON_NEGATING: &[(&str, &str)] = &[
 ];
 
 pub const EXCEPTION_CUES: &[&str] = &[
-    "except", "excepting", "unless", "excluding", "excluded", "exclude", "excludes", "aside", "apart", "besides",
-    "save", "bar", "barring", "notwithstanding", "regardless",
+    "except",
+    "excepting",
+    "unless",
+    "excluding",
+    "excluded",
+    "exclude",
+    "excludes",
+    "aside",
+    "apart",
+    "besides",
+    "save",
+    "bar",
+    "barring",
+    "notwithstanding",
+    "regardless",
 ];
 
 pub const HYPOTHETICAL_CUES: &[&str] = &[
-    "whether", "if", "wonder", "wondering", "wondered", "wonders", "possible", "possibly", "possibility",
-    "maybe", "perhaps", "hypothetically", "hypothetical", "considering", "consider", "contemplating", "might",
-    "may", "potentially", "potential", "eventually", "someday", "curious", "unsure", "suppose", "supposing",
-    "assuming", "assume", "thinking", "planning", "plan", "plans", "intend", "intends", "hoping", "hope",
-    "option", "options", "eligible", "eligibility", "allowed", "able", "possibility", "chance", "likely",
+    "whether",
+    "if",
+    "wonder",
+    "wondering",
+    "wondered",
+    "wonders",
+    "possible",
+    "possibly",
+    "possibility",
+    "maybe",
+    "perhaps",
+    "hypothetically",
+    "hypothetical",
+    "considering",
+    "consider",
+    "contemplating",
+    "might",
+    "may",
+    "potentially",
+    "potential",
+    "eventually",
+    "someday",
+    "curious",
+    "unsure",
+    "suppose",
+    "supposing",
+    "assuming",
+    "assume",
+    "thinking",
+    "planning",
+    "plan",
+    "plans",
+    "intend",
+    "intends",
+    "hoping",
+    "hope",
+    "option",
+    "options",
+    "eligible",
+    "eligibility",
+    "allowed",
+    "able",
+    "possibility",
+    "chance",
+    "likely",
 ];
 
 /// Cues that mark a clear request / demand for action.
 pub const REQUEST_CUES: &[&str] = &[
-    "please", "want", "wants", "wanted", "need", "needs", "needed", "require", "requires", "required",
-    "requesting", "request", "requested", "demand", "demands", "demanded", "expect", "expects", "expecting",
-    "insist", "insists", "kindly", "pls", "plz", "must", "asap", "immediately", "urgently",
+    "please",
+    "want",
+    "wants",
+    "wanted",
+    "need",
+    "needs",
+    "needed",
+    "require",
+    "requires",
+    "required",
+    "requesting",
+    "request",
+    "requested",
+    "demand",
+    "demands",
+    "demanded",
+    "expect",
+    "expects",
+    "expecting",
+    "insist",
+    "insists",
+    "kindly",
+    "pls",
+    "plz",
+    "must",
+    "asap",
+    "immediately",
+    "urgently",
 ];
 
 /// (first, second) request bigrams: "can you", "would like", "give me" …
@@ -217,27 +516,91 @@ pub const INQUIRY_BIGRAMS: &[(&str, &str)] = &[
 ];
 
 pub const INTENSIFIERS: &[&str] = &[
-    "very", "extremely", "really", "so", "incredibly", "absolutely", "totally", "completely", "utterly",
-    "highly", "deeply", "seriously", "terribly", "awfully", "insanely", "super", "truly", "especially",
-    "particularly", "exceptionally", "remarkably", "hugely", "massively", "severely", "strongly", "badly",
-    "entirely", "thoroughly", "immensely", "beyond", "outrageously",
+    "very",
+    "extremely",
+    "really",
+    "so",
+    "incredibly",
+    "absolutely",
+    "totally",
+    "completely",
+    "utterly",
+    "highly",
+    "deeply",
+    "seriously",
+    "terribly",
+    "awfully",
+    "insanely",
+    "super",
+    "truly",
+    "especially",
+    "particularly",
+    "exceptionally",
+    "remarkably",
+    "hugely",
+    "massively",
+    "severely",
+    "strongly",
+    "badly",
+    "entirely",
+    "thoroughly",
+    "immensely",
+    "beyond",
+    "outrageously",
 ];
 
 pub const DIMINISHERS: &[&str] = &[
-    "slightly", "somewhat", "bit", "little", "mildly", "fairly", "rather", "kind", "sort", "marginally",
-    "partially", "moderately", "barely", "hardly", "relatively", "minor", "minimally", "lightly", "tad",
+    "slightly",
+    "somewhat",
+    "bit",
+    "little",
+    "mildly",
+    "fairly",
+    "rather",
+    "kind",
+    "sort",
+    "marginally",
+    "partially",
+    "moderately",
+    "barely",
+    "hardly",
+    "relatively",
+    "minor",
+    "minimally",
+    "lightly",
+    "tad",
 ];
 
 pub const CLAUSE_TERMINATORS: &[&str] = &[
-    "but", "however", "although", "though", "whereas", "yet", "because", "since", "so", "then", "until",
-    "while", "unless", "except", "therefore", "hence", "thus", "nevertheless", "nonetheless", "otherwise",
-    "meanwhile", "afterwards", "instead",
+    "but",
+    "however",
+    "although",
+    "though",
+    "whereas",
+    "yet",
+    "because",
+    "since",
+    "so",
+    "then",
+    "until",
+    "while",
+    "unless",
+    "except",
+    "therefore",
+    "hence",
+    "thus",
+    "nevertheless",
+    "nonetheless",
+    "otherwise",
+    "meanwhile",
+    "afterwards",
+    "instead",
 ];
 
 pub const WH_WORDS: &[&str] = &["what", "which", "who", "whom", "whose", "where", "when", "why", "how"];
 pub const AUX_VERBS: &[&str] = &[
-    "is", "are", "am", "was", "were", "do", "does", "did", "can", "could", "would", "will", "should", "shall",
-    "may", "might", "have", "has", "had", "must",
+    "is", "are", "am", "was", "were", "do", "does", "did", "can", "could", "would", "will", "should", "shall", "may",
+    "might", "have", "has", "had", "must",
 ];
 
 use rustc_hash::FxHashSet;
@@ -267,7 +630,12 @@ fn cues() -> &'static CueSets {
         for list in [NEGATORS, EXCEPTION_CUES, HYPOTHETICAL_CUES, REQUEST_CUES, INTENSIFIERS, DIMINISHERS] {
             any_word.extend(list.iter().copied());
         }
-        for (a, _) in NEGATOR_BIGRAMS.iter().chain(NON_NEGATING.iter()).chain(REQUEST_BIGRAMS.iter()).chain(INQUIRY_BIGRAMS.iter()) {
+        for (a, _) in NEGATOR_BIGRAMS
+            .iter()
+            .chain(NON_NEGATING.iter())
+            .chain(REQUEST_BIGRAMS.iter())
+            .chain(INQUIRY_BIGRAMS.iter())
+        {
             any_word.insert(a);
         }
         CueSets {
@@ -290,7 +658,8 @@ fn cues() -> &'static CueSets {
 
 #[inline]
 fn is_terminator_punct(t: &RawToken) -> bool {
-    t.kind == TokenKind::Punct && matches!(t.text.as_str(), "," | ";" | "." | "!" | "?" | ":" | "(" | ")" | "\"" | "[" | "]")
+    t.kind == TokenKind::Punct
+        && matches!(t.text.as_str(), "," | ";" | "." | "!" | "?" | ":" | "(" | ")" | "\"" | "[" | "]")
 }
 
 #[inline]
@@ -465,7 +834,9 @@ pub fn annotate(tokens: &[RawToken]) -> Vec<Flags> {
                         sc.req = Some(Scope { flag: REQUEST, remaining: REQ_WINDOW });
                         sc.hyp = None;
                     }
-                    Cue::Inquiry | Cue::Hypothetical => sc.hyp = Some(Scope { flag: HYPOTHETICAL, remaining: HYP_WINDOW }),
+                    Cue::Inquiry | Cue::Hypothetical => {
+                        sc.hyp = Some(Scope { flag: HYPOTHETICAL, remaining: HYP_WINDOW })
+                    }
                     Cue::Intensifier => sc.intens = Some((INTENSIFIED, 2)),
                     Cue::Diminisher => sc.intens = Some((DIMINISHED, 2)),
                 }
@@ -486,7 +857,12 @@ mod tests {
         let f = annotate(&toks);
         toks.iter()
             .zip(f)
-            .filter(|(t, f)| f & flag != 0 && f & CUE == 0 && t.kind == TokenKind::Word && !super::super::stem::is_function_word(&t.text))
+            .filter(|(t, f)| {
+                f & flag != 0
+                    && f & CUE == 0
+                    && t.kind == TokenKind::Word
+                    && !super::super::stem::is_function_word(&t.text)
+            })
             .map(|(t, _)| t.text.clone())
             .collect()
     }
@@ -539,7 +915,10 @@ mod tests {
 
     #[test]
     fn exception_and_intensity() {
-        assert_eq!(flagged("all items except perishables are returnable", EXCEPTION), vec!["perishables", "returnable"]);
+        assert_eq!(
+            flagged("all items except perishables are returnable", EXCEPTION),
+            vec!["perishables", "returnable"]
+        );
         assert_eq!(flagged("all items except for perishables, are returnable", EXCEPTION), vec!["perishables"]);
         assert_eq!(flagged("I am very angry", INTENSIFIED), vec!["angry"]);
         assert_eq!(flagged("slightly annoyed", DIMINISHED), vec!["annoyed"]);

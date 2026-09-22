@@ -10,7 +10,17 @@ use serde_json::json;
 use std::path::PathBuf;
 use std::time::Instant;
 
-pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, raw_out: Option<PathBuf>, out: Option<PathBuf>, group_by: &str, limit: usize, show_failures: bool, filter: Option<String>) -> i32 {
+pub fn run(
+    model_dir: Option<PathBuf>,
+    threads: usize,
+    inputs: Vec<PathBuf>,
+    raw_out: Option<PathBuf>,
+    out: Option<PathBuf>,
+    group_by: &str,
+    limit: usize,
+    show_failures: bool,
+    filter: Option<String>,
+) -> i32 {
     let engine = match build_engine(model_dir, threads) {
         Ok(e) => e,
         Err(e) => {
@@ -50,10 +60,24 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, raw
                         let o = score_answer(&rec.id, qid, ans, gold, gp);
                         if show_failures && !o.correct {
                             let ex = ans.explain();
-                            eprintln!("FAIL {} [{}] {}: predicted={} gold={} p_gold={:.3} path={} family={}", rec.id, rec.field(group_by), qid, o.predicted, o.gold, o.p_gold, ex.map(|e| e.path.as_str()).unwrap_or("-"), ex.map(|e| e.family.as_str()).unwrap_or("-"));
+                            eprintln!(
+                                "FAIL {} [{}] {}: predicted={} gold={} p_gold={:.3} path={} family={}",
+                                rec.id,
+                                rec.field(group_by),
+                                qid,
+                                o.predicted,
+                                o.gold,
+                                o.p_gold,
+                                ex.map(|e| e.path.as_str()).unwrap_or("-"),
+                                ex.map(|e| e.family.as_str()).unwrap_or("-")
+                            );
                             if let Some(e) = ex {
                                 for ev in e.top_evidence.iter().take(2) {
-                                    eprintln!("     evidence[{}]: {}", ev.path, ev.text.chars().take(160).collect::<String>());
+                                    eprintln!(
+                                        "     evidence[{}]: {}",
+                                        ev.path,
+                                        ev.text.chars().take(160).collect::<String>()
+                                    );
                                 }
                                 let mut rs: Vec<(&String, &f64)> = e.raw_scores.iter().collect();
                                 rs.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
@@ -100,16 +124,45 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, raw
     println!("{:<28} {:>6} {:>8} {:>7} {:>7} {:>7} {:>7}", group_by, "n", "acc", "nll", "brier", "ece", "valid");
     for k in keys {
         let s = summarize(&groups[&k]);
-        println!("{:<28} {:>6} {:>8.4} {:>7.3} {:>7.3} {:>7.3} {:>7.3}", k, s.n, s.accuracy, s.nll, s.brier, s.ece, s.schema_validity);
+        println!(
+            "{:<28} {:>6} {:>8.4} {:>7.3} {:>7.3} {:>7.3} {:>7.3}",
+            k, s.n, s.accuracy, s.nll, s.brier, s.ece, s.schema_validity
+        );
         by_group.insert(k, s);
     }
-    println!("{:<28} {:>6} {:>8.4} {:>7.3} {:>7.3} {:>7.3} {:>7.3}", "ALL", overall.n, overall.accuracy, overall.nll, overall.brier, overall.ece, overall.schema_validity);
+    println!(
+        "{:<28} {:>6} {:>8.4} {:>7.3} {:>7.3} {:>7.3} {:>7.3}",
+        "ALL", overall.n, overall.accuracy, overall.nll, overall.brier, overall.ece, overall.schema_validity
+    );
     for (k, s) in &by_kind {
-        println!("{:<28} {:>6} {:>8.4} {:>7.3} {:>7.3} {:>7.3} {:>7.3}", format!("kind:{k}"), s.n, s.accuracy, s.nll, s.brier, s.ece, s.schema_validity);
+        println!(
+            "{:<28} {:>6} {:>8.4} {:>7.3} {:>7.3} {:>7.3} {:>7.3}",
+            format!("kind:{k}"),
+            s.n,
+            s.accuracy,
+            s.nll,
+            s.brier,
+            s.ece,
+            s.schema_validity
+        );
     }
     latencies.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    let pct = |p: f64| -> f64 { if latencies.is_empty() { 0.0 } else { latencies[(((latencies.len() - 1) as f64) * p).round() as usize] } };
-    println!("records={} questions={} errors={} p50={:.2}ms p95={:.2}ms total={:.1}s", records.len(), outcomes.len(), errors, pct(0.5), pct(0.95), total_s);
+    let pct = |p: f64| -> f64 {
+        if latencies.is_empty() {
+            0.0
+        } else {
+            latencies[(((latencies.len() - 1) as f64) * p).round() as usize]
+        }
+    };
+    println!(
+        "records={} questions={} errors={} p50={:.2}ms p95={:.2}ms total={:.1}s",
+        records.len(),
+        outcomes.len(),
+        errors,
+        pct(0.5),
+        pct(0.95),
+        total_s
+    );
     // Paraphrase / permutation stability over groups.
     let mut group_answers: IndexMap<String, Vec<(String, f64)>> = IndexMap::new();
     for (ri, o) in &outcomes {
@@ -124,7 +177,10 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, raw
                 Some(sextant_core::Question::Score(sc)) => format!("score{}", sc.criteria.len()),
                 _ => "noul".to_string(),
             };
-            group_answers.entry(format!("{g}#{}#{labels}", o.question_id)).or_default().push((o.predicted.clone(), o.p_max));
+            group_answers
+                .entry(format!("{g}#{}#{labels}", o.question_id))
+                .or_default()
+                .push((o.predicted.clone(), o.p_max));
         }
     }
     let mut stable = 0usize;
@@ -141,7 +197,13 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, raw
         let mean = v.iter().map(|(_, p)| p).sum::<f64>() / v.len() as f64;
         prob_dist += v.iter().map(|(_, p)| (p - mean).abs()).sum::<f64>() / v.len() as f64;
     }
-    let stability = if n_groups > 0 { Some(json!({"groups": n_groups, "same_answer_rate": stable as f64 / n_groups as f64, "mean_prob_distance": prob_dist / n_groups as f64})) } else { None };
+    let stability = if n_groups > 0 {
+        Some(
+            json!({"groups": n_groups, "same_answer_rate": stable as f64 / n_groups as f64, "mean_prob_distance": prob_dist / n_groups as f64}),
+        )
+    } else {
+        None
+    };
     if let Some(s) = &stability {
         println!("group stability: {}", s);
     }

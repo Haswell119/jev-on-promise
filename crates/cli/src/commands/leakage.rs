@@ -94,13 +94,31 @@ fn extract(row: &Value) -> Option<(String, String, String)> {
     })?;
     if let Some(req) = row.get("request") {
         let state = req.get("state").map(text_of).unwrap_or_default();
-        let instr = req.get("questions").map(|qs| qs.as_object().map(|o| o.values().map(|q| text_of(q.get("instructions").unwrap_or(&Value::Null)) + " " + &text_of(q.get("criteria").unwrap_or(&Value::Null))).collect::<Vec<_>>().join(" ")).unwrap_or_default()).unwrap_or_default();
+        let instr = req
+            .get("questions")
+            .map(|qs| {
+                qs.as_object()
+                    .map(|o| {
+                        o.values()
+                            .map(|q| {
+                                text_of(q.get("instructions").unwrap_or(&Value::Null))
+                                    + " "
+                                    + &text_of(q.get("criteria").unwrap_or(&Value::Null))
+                            })
+                            .collect::<Vec<_>>()
+                            .join(" ")
+                    })
+                    .unwrap_or_default()
+            })
+            .unwrap_or_default();
         return Some((id, state, instr));
     }
     if let Some(state) = row.get("state") {
         let state_v = decode_maybe_json_string(state);
         let q = row.get("question").map(decode_maybe_json_string).unwrap_or(Value::Null);
-        let instr = text_of(q.get("instructions").unwrap_or(&Value::Null)) + " " + &text_of(q.get("criteria").unwrap_or(&Value::Null));
+        let instr = text_of(q.get("instructions").unwrap_or(&Value::Null))
+            + " "
+            + &text_of(q.get("criteria").unwrap_or(&Value::Null));
         return Some((id, text_of(&state_v), instr));
     }
     None
@@ -129,10 +147,10 @@ impl Hasher128 {
     fn minhash(&self, shingles: &FxHashSet<u64>) -> Vec<u64> {
         let mut sig = vec![u64::MAX; N_PERM];
         for &s in shingles {
-            for i in 0..N_PERM {
-                let v = self.a[i].wrapping_mul(s).wrapping_add(self.b[i]);
-                if v < sig[i] {
-                    sig[i] = v;
+            for ((sv, a), b) in sig.iter_mut().zip(self.a.iter()).zip(self.b.iter()) {
+                let v = a.wrapping_mul(s).wrapping_add(*b);
+                if v < *sv {
+                    *sv = v;
                 }
             }
         }

@@ -5,6 +5,7 @@
 //! * `wn_lemmas.tsv`:  `lemma<TAB>synset_id[,synset_id...]` (sense order)
 //! * `wn_synsets.tsv`: `synset_id<TAB>lemma|lemma...<TAB>hypernym_id,...<TAB>similar_id,...`
 //! * `wn_antonyms.tsv`: `lemma<TAB>antonym_lemma`
+//!
 //! Synset ids are arbitrary strings (e.g. `n02084071`); they are re-indexed
 //! to dense u32 ids on load. Multi-word lemmas use underscores.
 
@@ -156,9 +157,9 @@ impl LexGraph {
         let n = self.synset_lemmas.len();
         let mut depth = vec![u8::MAX; n];
         // Iterative relaxation (graph is a DAG in practice; bounded passes guard against cycles).
-        for s in 0..n {
+        for (s, d) in depth.iter_mut().enumerate() {
             if self.synset_hypernyms[s].is_empty() {
-                depth[s] = 0;
+                *d = 0;
             }
         }
         for _ in 0..24 {

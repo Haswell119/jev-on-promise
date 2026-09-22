@@ -122,11 +122,7 @@ fn push_word(out: &mut Vec<RawToken>, text: &str, start: usize, end: usize) {
         return;
     }
     if !base.is_empty() {
-        let kind = if base.chars().all(|c| c.is_ascii_digit()) {
-            TokenKind::Number
-        } else {
-            TokenKind::Word
-        };
+        let kind = if base.chars().all(|c| c.is_ascii_digit()) { TokenKind::Number } else { TokenKind::Word };
         out.push(RawToken { start, end, text: base.to_string(), kind, capitalized });
     }
     if let Some(s) = suffix {
@@ -148,7 +144,8 @@ fn tokenize_plain(out: &mut Vec<RawToken>, text: &str, offset: usize) {
             if c.is_whitespace() {
                 continue;
             }
-            let kind = if c.is_ascii_punctuation() || c.is_alphanumeric() { TokenKind::Punct } else { TokenKind::Other };
+            let kind =
+                if c.is_ascii_punctuation() || c.is_alphanumeric() { TokenKind::Punct } else { TokenKind::Other };
             let kind = if c.is_ascii_punctuation() { TokenKind::Punct } else { kind };
             out.push(RawToken {
                 start: offset + i,
@@ -180,8 +177,16 @@ pub fn tokenize(text: &str) -> Vec<RawToken> {
         let mut start_pos = m.start();
         let raw_full = &text[m.start()..m.end()];
         // "3-5": a leading minus glued to a preceding word char is a dash, not a sign.
-        if raw_full.starts_with('-') && text[..m.start()].chars().next_back().map(|c| c.is_alphanumeric()).unwrap_or(false) {
-            out.push(RawToken { start: m.start(), end: m.start() + 1, text: "-".into(), kind: TokenKind::Punct, capitalized: false });
+        if raw_full.starts_with('-')
+            && text[..m.start()].chars().next_back().map(|c| c.is_alphanumeric()).unwrap_or(false)
+        {
+            out.push(RawToken {
+                start: m.start(),
+                end: m.start() + 1,
+                text: "-".into(),
+                kind: TokenKind::Punct,
+                capitalized: false,
+            });
             start_pos += 1;
         }
         let raw = &text[start_pos..m.end()];

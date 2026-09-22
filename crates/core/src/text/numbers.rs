@@ -89,8 +89,13 @@ pub fn parse_number(text: &str, kind: TokenKind) -> Option<ParsedNumber> {
     match kind {
         TokenKind::Number => {
             if let Some(v) = numeric_core(text) {
-                let ordinal = text.ends_with("st") || text.ends_with("nd") || text.ends_with("rd") || text.ends_with("th");
-                Some(ParsedNumber { value: v, kind: if ordinal { NumKind::Ordinal } else { NumKind::Plain }, currency: None })
+                let ordinal =
+                    text.ends_with("st") || text.ends_with("nd") || text.ends_with("rd") || text.ends_with("th");
+                Some(ParsedNumber {
+                    value: v,
+                    kind: if ordinal { NumKind::Ordinal } else { NumKind::Plain },
+                    currency: None,
+                })
             } else {
                 None
             }

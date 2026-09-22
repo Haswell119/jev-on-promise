@@ -56,12 +56,15 @@ pub struct DenseHead {
     pub families: Vec<Option<Vec<f32>>>,
 }
 
+/// Per-family Noul expert: (diff weights, yes weights, bias).
+pub type NoulExpert = (Vec<f32>, Vec<f32>, f32);
+
 #[derive(Debug, Clone)]
 pub struct DenseNoul {
     pub diff: Vec<f32>,
     pub yes: Vec<f32>,
     pub bias: f32,
-    pub families: Vec<Option<(Vec<f32>, Vec<f32>, f32)>>,
+    pub families: Vec<Option<NoulExpert>>,
 }
 
 #[derive(Debug, Clone)]
@@ -119,7 +122,7 @@ impl NoulHead {
     pub fn dense(&self) -> DenseNoul {
         let diff = to_dense(&self.diff);
         let yes = to_dense(&self.yes);
-        let mut families: Vec<Option<(Vec<f32>, Vec<f32>, f32)>> = vec![None; Family::all().len()];
+        let mut families: Vec<Option<NoulExpert>> = vec![None; Family::all().len()];
         for (fam, delta) in &self.families {
             if let Some(i) = family_index(fam) {
                 let dd = to_dense(&delta.diff);

@@ -6,14 +6,14 @@
 
 use super::flatten::{flatten_state_with_arrays, split_key_words, ArrayInfo, FieldKind, FlatField};
 use super::vocab::{TermId, Vocab};
+use crate::lexicon::graph::SynId;
 use crate::lexicon::Resources;
 use crate::text::dates::{parse_date_token, parse_textual_date, Date};
-use crate::lexicon::graph::SynId;
-use crate::text::negation::{self, Flags, CUE, NEGATED};
+use crate::text::negation::{self, Flags, CUE, DIRECTIVE, NEGATED};
+use crate::text::normalize::normalize_nfkc;
 use crate::text::numbers::{parse_number, NumKind};
 use crate::text::segment::segment_ranges;
 use crate::text::tokenize::{tokenize, TokenKind};
-use crate::text::normalize::normalize_nfkc;
 use rustc_hash::{FxHashMap, FxHasher};
 use serde_json::Value;
 use std::hash::{Hash, Hasher};
@@ -49,10 +49,12 @@ impl Token {
     pub fn is_content(&self) -> bool {
         self.kind.is_content() && self.attrs & ATTR_STOP == 0 && self.flags & CUE == 0
     }
-    /// Content for evidence purposes: not a pure function word / cue / punctuation.
+    /// Content for evidence purposes: not a pure function word / cue /
+    /// punctuation, and not inside a directive segment (text addressing the
+    /// classifier is data, never evidence).
     #[inline]
     pub fn is_evidence(&self) -> bool {
-        self.kind.is_content() && self.attrs & ATTR_FUNC == 0 && self.flags & CUE == 0
+        self.kind.is_content() && self.attrs & ATTR_FUNC == 0 && self.flags & (CUE | DIRECTIVE) == 0
     }
 }
 
@@ -191,6 +193,8 @@ pub struct StateIndex {
     pub is_plain_text: bool,
     /// term → token indexes (all occurrences, evidence tokens only).
     pub term_tokens: FxHashMap<TermId, Vec<u32>>,
+    /// term → number of occurrences inside directive segments (not evidence).
+    pub directive_tokens: FxHashMap<TermId, u32>,
     /// Lowercase concatenation of all field texts separated by `\n` (for literal search).
     pub lower_text: String,
     /// (byte offset in `lower_text`, field index) sorted by offset.
@@ -297,6 +301,7 @@ impl StateIndex {
             token_count: 0,
             is_plain_text,
             term_tokens: FxHashMap::default(),
+            directive_tokens: FxHashMap::default(),
             lower_text: String::new(),
             field_offsets: Vec::new(),
             global_grams: Vec::new(),
@@ -309,7 +314,8 @@ impl StateIndex {
             idx.add_field(f, res);
         }
         for a in arrays {
-            let key_terms: Vec<TermId> = split_key_words(&a.key).into_iter().map(|w| idx.vocab.intern(&w, res)).collect();
+            let key_terms: Vec<TermId> =
+                split_key_words(&a.key).into_iter().map(|w| idx.vocab.intern(&w, res)).collect();
             idx.arrays.push(ArrayEntry { path: a.path, key_terms, len: a.len });
         }
         idx.finish(res);
@@ -376,7 +382,16 @@ impl StateIndex {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn push_segment(&mut self, field: u32, start: usize, end: usize, key_words: &[String], text: &str, falsey: bool, res: &Resources) {
+    fn push_segment(
+        &mut self,
+        field: u32,
+        start: usize,
+        end: usize,
+        key_words: &[String],
+        text: &str,
+        falsey: bool,
+        res: &Resources,
+    ) {
         let seg_idx = self.segments.len() as u32;
         let tok_start = self.tokens.len() as u32;
         // Lowercase text for literal search (key words first so `status: shipped` is searchable).
@@ -444,6 +459,9 @@ impl StateIndex {
                 end: (start + rt.end) as u32,
             };
             flags_any |= flags[i];
+            if flags[i] & DIRECTIVE != 0 && tok.kind.is_content() && tok.attrs & ATTR_FUNC == 0 {
+                *self.directive_tokens.entry(term).or_insert(0) += 1;
+            }
             if tok.is_evidence() {
                 *tf.entry(term).or_insert(0) += 1;
                 content_len += 1;
@@ -480,7 +498,7 @@ impl StateIndex {
                     }
                     let mut v = v;
                     if flags[i] & NEGATED != 0 {
-                        v = -0.74 * v;
+                        v *= -0.74;
                     }
                     if flags[i] & negation::INTENSIFIED != 0 {
                         v *= 1.3;
@@ -496,13 +514,27 @@ impl StateIndex {
             match rt.kind {
                 TokenKind::Number | TokenKind::Currency | TokenKind::Percent => {
                     if let Some(p) = parse_number(&rt.text, rt.kind) {
-                        self.numbers.push(NumberSpan { token: tok_idx, seg: seg_idx, value: p.value, kind: p.kind, currency: p.currency, from_word: false });
+                        self.numbers.push(NumberSpan {
+                            token: tok_idx,
+                            seg: seg_idx,
+                            value: p.value,
+                            kind: p.kind,
+                            currency: p.currency,
+                            from_word: false,
+                        });
                     }
                 }
                 TokenKind::Word => {
                     if let Some(p) = parse_number(&rt.text, rt.kind) {
                         // number words: only when not part of an idiom like "one of"
-                        self.numbers.push(NumberSpan { token: tok_idx, seg: seg_idx, value: p.value, kind: NumKind::Plain, currency: None, from_word: true });
+                        self.numbers.push(NumberSpan {
+                            token: tok_idx,
+                            seg: seg_idx,
+                            value: p.value,
+                            kind: NumKind::Plain,
+                            currency: None,
+                            from_word: true,
+                        });
                     }
                 }
                 TokenKind::Date => {
@@ -518,12 +550,19 @@ impl StateIndex {
         let words: Vec<&str> = raw.iter().map(|t| t.text.as_str()).collect();
         let mut i = 0usize;
         while i < words.len() {
-            if crate::text::dates::month_from_name(words[i]).is_some() || (words[i].chars().all(|c| c.is_ascii_digit()) && i + 1 < words.len()) {
+            if crate::text::dates::month_from_name(words[i]).is_some()
+                || (words[i].chars().all(|c| c.is_ascii_digit()) && i + 1 < words.len())
+            {
                 if let Some((d, n)) = parse_textual_date(&words, i, 2000) {
                     // Only accept forms that contain a month name (pure numbers handled above).
                     let has_month = words[i..i + n].iter().any(|w| crate::text::dates::month_from_name(w).is_some());
                     if has_month {
-                        self.dates.push(DateSpan { token: tok_start + key_count + i as u32, seg: seg_idx, ntokens: n as u8, date: d });
+                        self.dates.push(DateSpan {
+                            token: tok_start + key_count + i as u32,
+                            seg: seg_idx,
+                            ntokens: n as u8,
+                            date: d,
+                        });
                         i += n;
                         continue;
                     }
@@ -542,16 +581,38 @@ impl StateIndex {
             let Some(ud) = unit_days(words[i + 1]) else { continue };
             let after: Vec<&str> = words[i + 2..(i + 5).min(words.len())].to_vec();
             let before: Vec<&str> = words[i.saturating_sub(3)..i].to_vec();
-            let kind = if after.first().map(|w| *w == "ago" || *w == "earlier" || *w == "before" || *w == "prior").unwrap_or(false) {
+            let kind = if after
+                .first()
+                .map(|w| *w == "ago" || *w == "earlier" || *w == "before" || *w == "prior")
+                .unwrap_or(false)
+            {
                 DurationKind::Ago
-            } else if (after.first() == Some(&"from") && after.get(1) == Some(&"now")) || after.first() == Some(&"later") || before.last() == Some(&"in") || after.first() == Some(&"hence") {
+            } else if (after.first() == Some(&"from") && after.get(1) == Some(&"now"))
+                || after.first() == Some(&"later")
+                || before.last() == Some(&"in")
+                || after.first() == Some(&"hence")
+            {
                 DurationKind::Later
-            } else if before.iter().any(|w| matches!(*w, "within" | "for" | "up" | "last" | "past" | "next" | "every" | "after" | "exceeding" | "over")) || after.first().map(|w| matches!(*w, "window" | "period" | "limit" | "deadline" | "term" | "notice")).unwrap_or(false) {
+            } else if before.iter().any(|w| {
+                matches!(
+                    *w,
+                    "within" | "for" | "up" | "last" | "past" | "next" | "every" | "after" | "exceeding" | "over"
+                )
+            }) || after
+                .first()
+                .map(|w| matches!(*w, "window" | "period" | "limit" | "deadline" | "term" | "notice"))
+                .unwrap_or(false)
+            {
                 DurationKind::Window
             } else {
                 DurationKind::Plain
             };
-            self.durations.push(DurationSpan { token: tok_start + key_count + i as u32, seg: seg_idx, days: n * ud, kind });
+            self.durations.push(DurationSpan {
+                token: tok_start + key_count + i as u32,
+                seg: seg_idx,
+                days: n * ud,
+                kind,
+            });
         }
         // Reference date: "today is <date>", "current date: <date>", "as of <date>", "date: <date>".
         if self.reference_date.is_none() {
@@ -561,7 +622,16 @@ impl StateIndex {
                 }
                 let local = (ds.token - tok_start - key_count) as usize;
                 let before: Vec<&str> = words[local.saturating_sub(4)..local.min(words.len())].to_vec();
-                let cue = before.windows(2).any(|w| (w[0] == "today" && (w[1] == "is" || w[1] == ":")) || (w[0] == "as" && w[1] == "of") || (w[0] == "current" && w[1] == "date") || (w[0] == "todays" && w[1] == "date")) || before.last() == Some(&"today") || (before.len() >= 2 && before[before.len() - 2] == "date" && before[before.len() - 1] == ":") || key_words.iter().any(|k| matches!(k.as_str(), "today" | "now" | "current_date" | "as_of" | "date"));
+                let cue = before.windows(2).any(|w| {
+                    (w[0] == "today" && (w[1] == "is" || w[1] == ":"))
+                        || (w[0] == "as" && w[1] == "of")
+                        || (w[0] == "current" && w[1] == "date")
+                        || (w[0] == "todays" && w[1] == "date")
+                }) || before.last() == Some(&"today")
+                    || (before.len() >= 2 && before[before.len() - 2] == "date" && before[before.len() - 1] == ":")
+                    || key_words
+                        .iter()
+                        .any(|k| matches!(k.as_str(), "today" | "now" | "current_date" | "as_of" | "date"));
                 if cue {
                     self.reference_date = Some(ds.date);
                     break;
@@ -738,7 +808,13 @@ impl StateIndex {
         let mut out = Vec::new();
         for (i, f) in self.fields.iter().enumerate() {
             let fp = f.path.to_ascii_lowercase();
-            if fp == lower || fp.ends_with(&format!(".{lower}")) || fp.starts_with(&format!("{lower}.")) || fp.starts_with(&format!("{lower}[")) || fp.contains(&format!(".{lower}[")) || fp.contains(&format!(".{lower}.")) {
+            if fp == lower
+                || fp.ends_with(&format!(".{lower}"))
+                || fp.starts_with(&format!("{lower}."))
+                || fp.starts_with(&format!("{lower}["))
+                || fp.contains(&format!(".{lower}["))
+                || fp.contains(&format!(".{lower}."))
+            {
                 out.push(i as u32);
             }
         }
@@ -754,7 +830,10 @@ mod tests {
     #[test]
     fn builds_index_from_json() {
         let res = Resources::empty();
-        let idx = StateIndex::build(&json!({"ticket": {"text": "I did not get a refund. Please help!", "refund_requested": false, "amount": 42}}), &res);
+        let idx = StateIndex::build(
+            &json!({"ticket": {"text": "I did not get a refund. Please help!", "refund_requested": false, "amount": 42}}),
+            &res,
+        );
         assert_eq!(idx.fields.len(), 3);
         assert!(idx.segments.len() >= 3);
         // key tokens for refund_requested are negated because the value is false

@@ -33,10 +33,14 @@ fn lorem(n_sentences: usize, seed: u64) -> String {
 
 fn choice_q(k: usize) -> Value {
     let mut criteria = serde_json::Map::new();
-    let topics = ["billing", "shipping", "returns", "account", "technical", "sales", "legal", "privacy", "fraud", "feedback"];
+    let topics =
+        ["billing", "shipping", "returns", "account", "technical", "sales", "legal", "privacy", "fraud", "feedback"];
     for i in 0..k {
         let t = topics[i % topics.len()];
-        criteria.insert(format!("{t}_{i}"), json!(format!("Questions about {t}, variant {i}: charges, delivery, access or product issues")));
+        criteria.insert(
+            format!("{t}_{i}"),
+            json!(format!("Questions about {t}, variant {i}: charges, delivery, access or product issues")),
+        );
     }
     json!({"type": "choice", "instructions": "Which team should handle this request?", "criteria": criteria})
 }
@@ -46,8 +50,12 @@ fn typical_request(n_questions: usize, sentences: usize, k: usize) -> SystemOneR
     for i in 0..n_questions {
         let q = match i % 3 {
             0 => choice_q(k),
-            1 => json!({"type": "noul", "instructions": "Did the customer request a refund?", "criteria": {"true": "The customer explicitly asks for money back", "false": "No refund request"}}),
-            _ => json!({"type": "score", "instructions": "How frustrated is the customer?", "criteria": ["Calm", "Slightly annoyed", "Frustrated", "Very angry"]}),
+            1 => {
+                json!({"type": "noul", "instructions": "Did the customer request a refund?", "criteria": {"true": "The customer explicitly asks for money back", "false": "No refund request"}})
+            }
+            _ => {
+                json!({"type": "score", "instructions": "How frustrated is the customer?", "criteria": ["Calm", "Slightly annoyed", "Frustrated", "Very angry"]})
+            }
         };
         questions.insert(format!("q{i}"), q);
     }
@@ -95,7 +103,13 @@ fn percentile(sorted: &[f64], p: f64) -> f64 {
     sorted[idx.min(sorted.len() - 1)]
 }
 
-pub fn run(model_dir: Option<PathBuf>, threads: usize, iters: usize, out: Option<PathBuf>, filter: Option<String>) -> i32 {
+pub fn run(
+    model_dir: Option<PathBuf>,
+    threads: usize,
+    iters: usize,
+    out: Option<PathBuf>,
+    filter: Option<String>,
+) -> i32 {
     let engine = match build_engine(model_dir, threads) {
         Ok(e) => e,
         Err(e) => {
@@ -115,7 +129,11 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, iters: usize, out: Option
         for _ in 0..3 {
             let _ = engine.evaluate(&sc.req);
         }
-        let n = if sc.name.starts_with("questions_512") || sc.name.starts_with("large") { iters.min(40).max(5) } else { iters.max(5) };
+        let n = if sc.name.starts_with("questions_512") || sc.name.starts_with("large") {
+            iters.clamp(5, 40)
+        } else {
+            iters.max(5)
+        };
         let mut lat = Vec::with_capacity(n);
         let t0 = Instant::now();
         for _ in 0..n {

@@ -9,9 +9,9 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use serde::{Deserialize, Serialize};
 use sextant_core::api::{validate::MODEL_ID, ApiError, SystemOneRequest};
 use sextant_core::Engine;
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Instant;
 use tower_http::limit::RequestBodyLimitLayer;
@@ -95,17 +95,24 @@ async fn openapi() -> Response {
     r
 }
 
-async fn systemone(State(st): State<AppState>, Query(q): Query<EvalQuery>, body: Bytes) -> Result<Json<sextant_core::SystemOneResponse>, AppError> {
+async fn systemone(
+    State(st): State<AppState>,
+    Query(q): Query<EvalQuery>,
+    body: Bytes,
+) -> Result<Json<sextant_core::SystemOneResponse>, AppError> {
     if body.is_empty() {
         return Err(AppError(ApiError::invalid("body", "empty request body")));
     }
-    let mut req: SystemOneRequest = serde_json::from_slice(&body).map_err(|e| AppError(ApiError::invalid("body", format!("malformed JSON body: {e}"))))?;
+    let mut req: SystemOneRequest = serde_json::from_slice(&body)
+        .map_err(|e| AppError(ApiError::invalid("body", format!("malformed JSON body: {e}"))))?;
     if q.explain == Some(true) {
         req.explain = Some(true);
     }
     let engine = st.engine.clone();
     // CPU-bound work runs on the blocking pool so the async runtime keeps serving.
-    let resp = tokio::task::spawn_blocking(move || engine.evaluate(&req)).await.map_err(|e| AppError(ApiError::internal(format!("worker panicked: {e}"))))?;
+    let resp = tokio::task::spawn_blocking(move || engine.evaluate(&req))
+        .await
+        .map_err(|e| AppError(ApiError::internal(format!("worker panicked: {e}"))))?;
     match resp {
         Ok(r) => Ok(Json(r)),
         Err(e) => Err(AppError(e)),
@@ -113,7 +120,12 @@ async fn systemone(State(st): State<AppState>, Query(q): Query<EvalQuery>, body:
 }
 
 async fn not_found() -> AppError {
-    AppError(ApiError { status: 404, code: "not_found".into(), message: "unknown route; see GET /openapi.yaml".into(), field: None })
+    AppError(ApiError {
+        status: 404,
+        code: "not_found".into(),
+        message: "unknown route; see GET /openapi.yaml".into(),
+        field: None,
+    })
 }
 
 /// Build the router.
@@ -127,7 +139,10 @@ pub fn app(engine: Arc<Engine>, max_body_bytes: usize) -> Router {
         .route("/openapi.yaml", get(openapi))
         .fallback(not_found)
         .layer(RequestBodyLimitLayer::new(max_body_bytes))
-        .layer(tower_http::timeout::TimeoutLayer::with_status_code(StatusCode::REQUEST_TIMEOUT, std::time::Duration::from_secs(60)))
+        .layer(tower_http::timeout::TimeoutLayer::with_status_code(
+            StatusCode::REQUEST_TIMEOUT,
+            std::time::Duration::from_secs(60),
+        ))
         .with_state(state)
 }
 

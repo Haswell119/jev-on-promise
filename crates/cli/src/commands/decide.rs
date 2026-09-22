@@ -30,7 +30,8 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, file: Option<PathBuf>, ex
     };
     match engine.evaluate(&req) {
         Ok(resp) => {
-            let s = if pretty { serde_json::to_string_pretty(&resp) } else { serde_json::to_string(&resp) }.expect("serialize");
+            let s = if pretty { serde_json::to_string_pretty(&resp) } else { serde_json::to_string(&resp) }
+                .expect("serialize");
             println!("{s}");
             0
         }
@@ -52,7 +53,10 @@ pub fn validate(file: Option<PathBuf>) -> i32 {
     let req: SystemOneRequest = match serde_json::from_str(&text) {
         Ok(r) => r,
         Err(e) => {
-            println!("{}", serde_json::json!({"valid": false, "error": {"status": 422, "code": "invalid_request", "message": format!("malformed request JSON: {e}")}}));
+            println!(
+                "{}",
+                serde_json::json!({"valid": false, "error": {"status": 422, "code": "invalid_request", "message": format!("malformed request JSON: {e}")}})
+            );
             return 1;
         }
     };

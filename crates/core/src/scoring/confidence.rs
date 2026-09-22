@@ -42,7 +42,11 @@ pub fn shape(p: &[f64]) -> (f64, f64) {
 
 pub fn confidence(p: &[f64], evidence: f64, ood: f64, params: &ConfidenceParams) -> f64 {
     let (conc, margin) = shape(p);
-    let x = params.a_concentration * conc + params.b_margin * margin + params.c_evidence * evidence + params.d_ood * ood + params.bias;
+    let x = params.a_concentration * conc
+        + params.b_margin * margin
+        + params.c_evidence * evidence
+        + params.d_ood * ood
+        + params.bias;
     sigmoid(x).clamp(0.0, 1.0)
 }
 

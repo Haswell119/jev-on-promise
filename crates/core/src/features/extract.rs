@@ -189,7 +189,10 @@ fn literal_search(state: &StateIndex, lit: &str, focus: &[u32]) -> (u32, bool, V
         let abs = start + pos;
         let end = abs + lit.len();
         if is_word_boundary(text, abs, end) {
-            let in_directive = state.segment_at_lower_offset(abs).map(|s| state.segments[s as usize].flags_any & DIRECTIVE != 0).unwrap_or(false);
+            let in_directive = state
+                .segment_at_lower_offset(abs)
+                .map(|s| state.segments[s as usize].flags_any & DIRECTIVE != 0)
+                .unwrap_or(false);
             if in_directive {
                 directive += 1;
             } else {
@@ -215,11 +218,13 @@ fn literal_search(state: &StateIndex, lit: &str, focus: &[u32]) -> (u32, bool, V
 fn window_check(state: &StateIndex, focus: &[u32]) -> f32 {
     use crate::state::index::DurationKind;
     let in_focus = |seg: u32| focus.is_empty() || focus.binary_search(&state.segments[seg as usize].field).is_ok();
-    let windows: Vec<f64> = state.durations.iter().filter(|d| d.kind == DurationKind::Window && in_focus(d.seg)).map(|d| d.days).collect();
+    let windows: Vec<f64> =
+        state.durations.iter().filter(|d| d.kind == DurationKind::Window && in_focus(d.seg)).map(|d| d.days).collect();
     if windows.is_empty() {
         return 0.0;
     }
-    let mut elapsed: Vec<f64> = state.durations.iter().filter(|d| d.kind == DurationKind::Ago && in_focus(d.seg)).map(|d| d.days).collect();
+    let mut elapsed: Vec<f64> =
+        state.durations.iter().filter(|d| d.kind == DurationKind::Ago && in_focus(d.seg)).map(|d| d.days).collect();
     if elapsed.is_empty() {
         if let Some(reference) = state.reference_date {
             let base = reference.days_from_epoch();
@@ -274,7 +279,8 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
         let neg_w = c.neg_weight.max(1e-6);
         let (mut cov_w, mut cov_rare, mut rare_w) = (0.0f32, 0.0f32, 0.0f32);
         let (mut syn_cov, mut ant_hits) = (0.0f32, 0.0f32);
-        let (mut neg_agree, mut neg_conflict, mut hyp_conflict, mut req_agree, mut hyp_state) = (0.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
+        let (mut neg_agree, mut neg_conflict, mut hyp_conflict, mut req_agree, mut hyp_state) =
+            (0.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
         let (mut focus_cov, mut matched_w) = (0.0f32, 0.0f32);
         let mut matched_occ = 0u32;
         let (mut directive_w, mut ant_neg) = (0.0f32, 0.0f32);
@@ -311,6 +317,10 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
             if t.idf >= 0.6 {
                 rare_w += t.weight;
             }
+            if present.is_none() && state.directive_tokens.contains_key(&t.term) {
+                directive_w += t.weight;
+                matched_w += t.weight;
+            }
             if let Some(tf) = present {
                 cov_w += t.weight;
                 if t.idf >= 0.6 {
@@ -328,7 +338,8 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
                 matched_occ += o.n;
                 matched_w += t.weight;
                 let neg_frac = o.negated as f32 / n;
-                directive_w += t.weight * (o.directive as f32 / n);
+                let dir_n = state.directive_tokens.get(&t.term).copied().unwrap_or(0) as f32;
+                directive_w += t.weight * (dir_n / (dir_n + n));
                 let crit_neg = if t.negated { 1.0 } else { 0.0 };
                 let agree = 1.0 - (crit_neg - neg_frac).abs();
                 neg_agree += t.weight * agree;
@@ -465,8 +476,16 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
             }
             q_cov_best = q_cov_best.max(scratch.qcov[seg as usize] / q_w);
         }
-        let gram_cov = if c.grams.is_empty() { 0.0 } else { sorted_intersection(&c.grams, &state.global_grams) as f32 / c.grams.len() as f32 };
-        let bigram_hits = if c.bigrams.is_empty() { 0.0 } else { c.bigrams.iter().filter(|b| state.bigrams.contains_key(b)).count() as f32 / c.bigrams.len() as f32 };
+        let gram_cov = if c.grams.is_empty() {
+            0.0
+        } else {
+            sorted_intersection(&c.grams, &state.global_grams) as f32 / c.grams.len() as f32
+        };
+        let bigram_hits = if c.bigrams.is_empty() {
+            0.0
+        } else {
+            c.bigrams.iter().filter(|b| state.bigrams.contains_key(b)).count() as f32 / c.bigrams.len() as f32
+        };
 
         // Literals.
         let mut lit_hit = 0.0f32;
@@ -502,13 +521,25 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
                 continue;
             }
             let present = p.terms.iter().filter(|t| state.contains_term(**t)).count() as f32 / p.terms.len() as f32;
-            let g = if p.grams.is_empty() { 0.0 } else { sorted_intersection(&p.grams, &state.global_grams) as f32 / p.grams.len() as f32 };
-            let b = if p.bigrams.is_empty() { present } else { p.bigrams.iter().filter(|b| state.bigrams.contains_key(b)).count() as f32 / p.bigrams.len() as f32 };
+            let g = if p.grams.is_empty() {
+                0.0
+            } else {
+                sorted_intersection(&p.grams, &state.global_grams) as f32 / p.grams.len() as f32
+            };
+            let b = if p.bigrams.is_empty() {
+                present
+            } else {
+                p.bigrams.iter().filter(|b| state.bigrams.contains_key(b)).count() as f32 / p.bigrams.len() as f32
+            };
             phrase_scores.push(0.4 * present + 0.3 * g + 0.3 * b);
         }
         phrase_scores.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
         let example_max = phrase_scores.first().copied().unwrap_or(0.0);
-        let example_mean = if phrase_scores.is_empty() { 0.0 } else { phrase_scores.iter().take(2).sum::<f32>() / phrase_scores.iter().take(2).count() as f32 };
+        let example_mean = if phrase_scores.is_empty() {
+            0.0
+        } else {
+            phrase_scores.iter().take(2).sum::<f32>() / phrase_scores.iter().take(2).count() as f32
+        };
 
         // Numeric ranges.
         let (mut range_hit, mut range_dist) = (0.0f32, 0.0f32);
@@ -627,9 +658,13 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
             let num: f32 = x.iter().zip(y).map(|(a, b)| (a - mx) * (b - my)).sum();
             let dx: f32 = x.iter().map(|a| (a - mx).powi(2)).sum::<f32>().sqrt();
             let dy: f32 = y.iter().map(|b| (b - my).powi(2)).sum::<f32>().sqrt();
-            if dx < 1e-6 || dy < 1e-6 { 0.0 } else { num / (dx * dy) }
+            if dx < 1e-6 || dy < 1e-6 {
+                0.0
+            } else {
+                num / (dx * dy)
+            }
         };
-        let has_int = q.criteria.iter().filter(|c| c.has_intensity).count() >= (k + 1) / 2 && fhas_int;
+        let has_int = q.criteria.iter().filter(|c| c.has_intensity).count() >= k.div_ceil(2) && fhas_int;
         let c_int = if has_int { corr(&idx, &ints) } else { 0.0 };
         let c_val = corr(&idx, &vals);
         let mut positions: Vec<f32> = Vec::new();

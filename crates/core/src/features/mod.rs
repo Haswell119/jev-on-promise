@@ -114,11 +114,7 @@ impl FeatureVec {
     #[inline]
     pub fn dot(&self, w: &[f32]) -> f32 {
         debug_assert_eq!(w.len(), N_FEATURES);
-        let mut s = 0.0f32;
-        for i in 0..N_FEATURES {
-            s += self.0[i] * w[i];
-        }
-        s
+        self.0.iter().zip(w.iter()).map(|(a, b)| a * b).sum()
     }
     pub fn named(&self) -> indexmap::IndexMap<String, f64> {
         FEATURE_NAMES.iter().zip(self.0.iter()).map(|(n, v)| (n.to_string(), *v as f64)).collect()

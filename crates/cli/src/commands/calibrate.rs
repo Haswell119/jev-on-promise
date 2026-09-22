@@ -47,9 +47,9 @@ fn nll_multi(items: &[&Multi], t: f64, lambda: f64, ordinal: bool) -> f64 {
         if ordinal {
             p = ordinal_smooth(&p, lambda);
         }
-        for k in 0..p.len() {
-            if it.target[k] > 0.0 {
-                s -= it.target[k] * p[k].max(1e-12).ln();
+        for (pk, tk) in p.iter().zip(it.target.iter()) {
+            if *tk > 0.0 {
+                s -= tk * pk.max(1e-12).ln();
             }
         }
     }
@@ -135,7 +135,10 @@ fn ece_binary(pairs: &[(f64, f64)]) -> f64 {
         cnt[b] += 1;
     }
     let n = pairs.len().max(1) as f64;
-    (0..bins).filter(|&b| cnt[b] > 0).map(|b| cnt[b] as f64 / n * (sum_y[b] / cnt[b] as f64 - sum_c[b] / cnt[b] as f64).abs()).sum()
+    (0..bins)
+        .filter(|&b| cnt[b] > 0)
+        .map(|b| cnt[b] as f64 / n * (sum_y[b] / cnt[b] as f64 - sum_c[b] / cnt[b] as f64).abs())
+        .sum()
 }
 
 /// Pool-adjacent-violators isotonic regression: returns (thresholds, values).
@@ -193,7 +196,6 @@ fn fit_confidence(rows: &[(Vec<f64>, bool)]) -> ConfidenceParams {
     ConfidenceParams { a_concentration: w[0], b_margin: w[1], c_evidence: w[2], d_ood: w[3], bias: w[4] }
 }
 
-
 fn to_multi(e: &Example, model: &Model) -> Multi {
     let head = if e.kind == QuestionKind::Choice { &model.dense.choice } else { &model.dense.score };
     let z: Vec<f32> = match &e.symbolic {
@@ -215,7 +217,10 @@ fn to_multi(e: &Example, model: &Model) -> Multi {
 }
 
 pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, compare_isotonic: bool) -> i32 {
-    let model = match std::fs::read_to_string(out_dir.join("weights.json")).map_err(|e| e.to_string()).and_then(|w| serde_json::from_str::<sextant_core::scoring::Weights>(&w).map_err(|e| e.to_string())) {
+    let model = match std::fs::read_to_string(out_dir.join("weights.json"))
+        .map_err(|e| e.to_string())
+        .and_then(|w| serde_json::from_str::<sextant_core::scoring::Weights>(&w).map_err(|e| e.to_string()))
+    {
         Ok(w) => Model::from_parts(w, Calibration::default(), &out_dir.display().to_string()),
         Err(e) => {
             eprintln!("error: weights.json: {e} (run `sextant train` first)");
@@ -232,19 +237,34 @@ pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, compare_isotonic: bool) -> i3
     let res = Resources::embedded();
     let (examples, skipped) = extract_examples(&records, &res, &[]);
     eprintln!("calibration examples: {} ({} skipped)", examples.len(), skipped);
-    let mut cal = Calibration::default();
-    cal.version = format!("calibrated-{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0));
+    let mut cal = Calibration {
+        version: format!(
+            "calibrated-{}",
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
+        ),
+        ..Default::default()
+    };
     let mut report: Vec<String> = Vec::new();
 
     for kind in [QuestionKind::Choice, QuestionKind::Score] {
         let ordinal = kind == QuestionKind::Score;
-        let sem: Vec<Multi> = examples.iter().filter(|e| e.kind == kind && e.symbolic.is_none()).map(|e| to_multi(e, &model)).collect();
-        let sym: Vec<Multi> = examples.iter().filter(|e| e.kind == kind && e.symbolic.is_some()).map(|e| to_multi(e, &model)).collect();
+        let sem: Vec<Multi> =
+            examples.iter().filter(|e| e.kind == kind && e.symbolic.is_none()).map(|e| to_multi(e, &model)).collect();
+        let sym: Vec<Multi> =
+            examples.iter().filter(|e| e.kind == kind && e.symbolic.is_some()).map(|e| to_multi(e, &model)).collect();
         let refs: Vec<&Multi> = sem.iter().collect();
         let lambda0 = if ordinal { cal.ordinal_lambda } else { 0.0 };
         let t_global = fit_temperature(&refs, lambda0, ordinal);
         cal.temperature.insert(kind.as_str().into(), t_global);
-        report.push(format!("{}: n_semantic={} n_symbolic={} T_global={:.3} NLL(before)={:.4} NLL(after)={:.4}", kind.as_str(), sem.len(), sym.len(), t_global, nll_multi(&refs, 1.0, lambda0, ordinal), nll_multi(&refs, t_global, lambda0, ordinal)));
+        report.push(format!(
+            "{}: n_semantic={} n_symbolic={} T_global={:.3} NLL(before)={:.4} NLL(after)={:.4}",
+            kind.as_str(),
+            sem.len(),
+            sym.len(),
+            t_global,
+            nll_multi(&refs, 1.0, lambda0, ordinal),
+            nll_multi(&refs, t_global, lambda0, ordinal)
+        ));
         // ordinal lambda
         let mut lambda = lambda0;
         if ordinal && !refs.is_empty() {
@@ -289,10 +309,17 @@ pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, compare_isotonic: bool) -> i3
         // estimate the Laplace-smoothed error rate for uniform mixing.
         let sym_refs: Vec<&Multi> = sym.iter().collect();
         if !sym_refs.is_empty() {
-            let errors = sym_refs.iter().filter(|m| {
-                let pred = m.z.iter().enumerate().fold((0usize, f32::NEG_INFINITY), |acc, (i, v)| if *v > acc.1 { (i, *v) } else { acc }).0;
-                pred != m.gold
-            }).count();
+            let errors = sym_refs
+                .iter()
+                .filter(|m| {
+                    let pred =
+                        m.z.iter()
+                            .enumerate()
+                            .fold((0usize, f32::NEG_INFINITY), |acc, (i, v)| if *v > acc.1 { (i, *v) } else { acc })
+                            .0;
+                    pred != m.gold
+                })
+                .count();
             let eps = (errors as f64 + 1.0) / (sym_refs.len() as f64 + 2.0);
             cal.symbolic_epsilon.insert(kind.as_str().into(), eps);
             report.push(format!("  symbolic: n={} errors={} epsilon={:.4}", sym.len(), errors, eps));
@@ -300,13 +327,21 @@ pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, compare_isotonic: bool) -> i3
         // confidence map on calibrated probabilities
         let mut rows: Vec<(Vec<f64>, bool)> = Vec::new();
         for m in sem.iter().chain(sym.iter()) {
-            let t = if m.z.len() == m.k && sem.iter().any(|x| std::ptr::eq(x, m)) { cal.temperature_for(kind, m.family, m.k) } else { cal.symbolic_temperature_for(kind) };
+            let t = if m.z.len() == m.k && sem.iter().any(|x| std::ptr::eq(x, m)) {
+                cal.temperature_for(kind, m.family, m.k)
+            } else {
+                cal.symbolic_temperature_for(kind)
+            };
             let mut p = softmax_temp(&m.z, t as f32);
             if ordinal {
                 p = ordinal_smooth(&p, lambda);
             }
             let (conc, margin) = shape(&p);
-            let pred = p.iter().enumerate().fold((0usize, f64::NEG_INFINITY), |acc, (i, v)| if *v > acc.1 { (i, *v) } else { acc }).0;
+            let pred = p
+                .iter()
+                .enumerate()
+                .fold((0usize, f64::NEG_INFINITY), |acc, (i, v)| if *v > acc.1 { (i, *v) } else { acc })
+                .0;
             rows.push((vec![conc, margin, m.evidence, m.ood, 1.0], pred == m.gold));
         }
         let cp = fit_confidence(&rows);
@@ -314,7 +349,8 @@ pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, compare_isotonic: bool) -> i3
         let pairs: Vec<(f64, f64)> = rows
             .iter()
             .map(|(x, y)| {
-                let z = cp.a_concentration * x[0] + cp.b_margin * x[1] + cp.c_evidence * x[2] + cp.d_ood * x[3] + cp.bias;
+                let z =
+                    cp.a_concentration * x[0] + cp.b_margin * x[1] + cp.c_evidence * x[2] + cp.d_ood * x[3] + cp.bias;
                 (1.0 / (1.0 + (-z).exp()), if *y { 1.0 } else { 0.0 })
             })
             .collect();
@@ -328,7 +364,11 @@ pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, compare_isotonic: bool) -> i3
     let sem: Vec<Binary> = examples
         .iter()
         .filter(|e| e.kind == QuestionKind::Noul && e.symbolic.is_none())
-        .map(|e| Binary { logit: model.dense.noul.logit(&e.rows[0], &e.rows[1], e.family) as f64, y: e.soft.as_ref().map(|s| s[1]).unwrap_or(e.gold as f64), family: e.family })
+        .map(|e| Binary {
+            logit: model.dense.noul.logit(&e.rows[0], &e.rows[1], e.family) as f64,
+            y: e.soft.as_ref().map(|s| s[1]).unwrap_or(e.gold as f64),
+            family: e.family,
+        })
         .collect();
     let sym: Vec<Binary> = examples
         .iter()
@@ -337,7 +377,15 @@ pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, compare_isotonic: bool) -> i3
         .collect();
     let refs: Vec<&Binary> = sem.iter().collect();
     let platt = fit_platt(&refs);
-    report.push(format!("noul: n_semantic={} n_symbolic={} platt a={:.3} b={:.3} NLL(before)={:.4} NLL(after)={:.4}", sem.len(), sym.len(), platt.a, platt.b, nll_binary(&refs, &PlattParams::default()), nll_binary(&refs, &platt)));
+    report.push(format!(
+        "noul: n_semantic={} n_symbolic={} platt a={:.3} b={:.3} NLL(before)={:.4} NLL(after)={:.4}",
+        sem.len(),
+        sym.len(),
+        platt.a,
+        platt.b,
+        nll_binary(&refs, &PlattParams::default()),
+        nll_binary(&refs, &platt)
+    ));
     cal.noul_platt = platt.clone();
     for fam in Family::all() {
         let sub: Vec<&Binary> = sem.iter().filter(|b| b.family == *fam).collect();
@@ -364,9 +412,14 @@ pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, compare_isotonic: bool) -> i3
             let test: Vec<&Binary> = sem.iter().enumerate().filter(|(i, _)| i % 2 != fold).map(|(_, b)| b).collect();
             let p = fit_platt(&train);
             let iso = isotonic(train.iter().map(|b| (b.logit, b.y)).collect());
-            let platt_pairs: Vec<(f64, f64)> = test.iter().map(|b| (1.0 / (1.0 + (-(p.a * b.logit + p.b)).exp()), b.y)).collect();
-            let iso_pairs: Vec<(f64, f64)> = test.iter().map(|b| (isotonic_predict(&iso, b.logit).clamp(0.01, 0.99), b.y)).collect();
-            let nll = |pairs: &[(f64, f64)]| pairs.iter().map(|(p, y)| -(y * p.max(1e-12).ln() + (1.0 - y) * (1.0 - p).max(1e-12).ln())).sum::<f64>() / pairs.len() as f64;
+            let platt_pairs: Vec<(f64, f64)> =
+                test.iter().map(|b| (1.0 / (1.0 + (-(p.a * b.logit + p.b)).exp()), b.y)).collect();
+            let iso_pairs: Vec<(f64, f64)> =
+                test.iter().map(|b| (isotonic_predict(&iso, b.logit).clamp(0.01, 0.99), b.y)).collect();
+            let nll = |pairs: &[(f64, f64)]| {
+                pairs.iter().map(|(p, y)| -(y * p.max(1e-12).ln() + (1.0 - y) * (1.0 - p).max(1e-12).ln())).sum::<f64>()
+                    / pairs.len() as f64
+            };
             tot[0] += nll(&platt_pairs) / 2.0;
             tot[1] += nll(&iso_pairs) / 2.0;
             tot[2] += ece_binary(&platt_pairs) / 2.0;

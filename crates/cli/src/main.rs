@@ -7,7 +7,11 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(name = "sextant", version, about = "Sextant: non-neural, deterministic, calibrated decision engine (Choice / Score / Noul)")]
+#[command(
+    name = "sextant",
+    version,
+    about = "Sextant: non-neural, deterministic, calibrated decision engine (Choice / Score / Noul)"
+)]
 struct Cli {
     /// Directory holding weights.json + calibration.json (default: embedded artifact).
     #[arg(long, global = true, env = "SEXTANT_MODEL_DIR")]
@@ -129,16 +133,35 @@ enum Cmd {
 }
 
 fn main() {
-    tracing_subscriber::fmt().with_env_filter(tracing_subscriber::EnvFilter::from_default_env().add_directive("info".parse().unwrap())).with_target(false).init();
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env().add_directive("info".parse().unwrap()))
+        .with_target(false)
+        .init();
     let cli = Cli::parse();
     let code = match cli.cmd {
         Cmd::Serve { addr, max_body } => commands::serve::run(cli.model_dir, cli.threads, &addr, max_body),
-        Cmd::Decide { file, explain, pretty } => commands::decide::run(cli.model_dir, cli.threads, file, explain, pretty),
+        Cmd::Decide { file, explain, pretty } => {
+            commands::decide::run(cli.model_dir, cli.threads, file, explain, pretty)
+        }
         Cmd::Validate { file } => commands::decide::validate(file),
         Cmd::Bench { iters, out, filter } => commands::bench::run(cli.model_dir, cli.threads, iters, out, filter),
-        Cmd::Eval { inputs, raw_out, out, group_by, limit, show_failures, filter } => commands::eval::run(cli.model_dir, cli.threads, inputs, raw_out, out, &group_by, limit, show_failures, filter),
-        Cmd::Train { inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features } => commands::train::run(inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features),
-        Cmd::Calibrate { inputs, out_dir, compare_isotonic } => commands::calibrate::run(inputs, out_dir, compare_isotonic),
+        Cmd::Eval { inputs, raw_out, out, group_by, limit, show_failures, filter } => commands::eval::run(
+            cli.model_dir,
+            cli.threads,
+            inputs,
+            raw_out,
+            out,
+            &group_by,
+            limit,
+            show_failures,
+            filter,
+        ),
+        Cmd::Train { inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features } => {
+            commands::train::run(inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features)
+        }
+        Cmd::Calibrate { inputs, out_dir, compare_isotonic } => {
+            commands::calibrate::run(inputs, out_dir, compare_isotonic)
+        }
         Cmd::Leakage { train, eval, out } => commands::leakage::run(train, eval, out),
         Cmd::ExportBootstrap { out_dir } => commands::export::run(out_dir),
     };

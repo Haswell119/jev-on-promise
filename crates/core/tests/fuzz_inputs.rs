@@ -111,9 +111,9 @@ fn check_ok(resp: &SystemOneResponse, req: &SystemOneRequest) -> Result<(), Test
     prop_assert!(all_finite(resp), "non-finite number in response");
     prop_assert_eq!(resp.answers.len(), req.questions.len());
     prop_assert!(resp.answers.keys().eq(req.questions.keys()), "answers keyed and ordered like the questions");
-    let text = serde_json::to_string(resp).map_err(|e| TestCaseError::fail(e.to_string()))?;
-    let back: SystemOneResponse = serde_json::from_str(&text).map_err(|e| TestCaseError::fail(e.to_string()))?;
-    prop_assert_eq!(&back, resp);
+    if let Some(diff) = roundtrip_error(resp) {
+        return Err(TestCaseError::fail(format!("JSON round trip: {diff}")));
+    }
     Ok(())
 }
 
@@ -276,7 +276,8 @@ fn too_many_options_or_levels_are_rejected_with_422() {
 
 #[test]
 fn invalid_model_names_are_rejected() {
-    for m in ["gpt-4", "sextant-2", "SEXTANT-1", "sextant-1 ", " sextant-1", "sextant_1", "\u{1f680}", "sextant-1\u{0}"] {
+    for m in ["gpt-4", "sextant-2", "SEXTANT-1", "sextant-1 ", " sextant-1", "sextant_1", "\u{1f680}", "sextant-1\u{0}"]
+    {
         let e = err_of(json!({ "model": m, "state": "x", "questions": { "q": noul("?") } }));
         assert_eq!((e.status, e.code.as_str(), e.field.as_deref()), (404, "unknown_model", Some("model")), "{m:?}");
     }
@@ -295,7 +296,9 @@ fn invalid_state_shapes_are_rejected() {
         assert_eq!((e.status, e.field.as_deref()), (422, Some("state")), "{state}");
     }
     // Oversized state: rejected with 413 rather than evaluated.
-    let e = err_of(json!({ "model": "sextant-1", "state": "x".repeat(2 * 1024 * 1024 + 1), "questions": { "q": noul("?") } }));
+    let e = err_of(
+        json!({ "model": "sextant-1", "state": "x".repeat(2 * 1024 * 1024 + 1), "questions": { "q": noul("?") } }),
+    );
     assert_eq!((e.status, e.code.as_str()), (413, "payload_too_large"));
     let many: Vec<Value> = vec![json!("leaf"); 50_001];
     let e = err_of(json!({ "model": "sextant-1", "state": many, "questions": { "q": noul("?") } }));
@@ -306,9 +309,12 @@ fn invalid_state_shapes_are_rejected() {
 fn noul_without_instructions_or_criteria_is_rejected() {
     let e = err_of(json!({ "model": "sextant-1", "state": "x", "questions": { "q": { "type": "noul" } } }));
     assert_eq!(e.status, 422);
-    let e = err_of(json!({ "model": "sextant-1", "state": "x", "questions": { "q": { "type": "noul", "instructions": null } } }));
+    let e = err_of(
+        json!({ "model": "sextant-1", "state": "x", "questions": { "q": { "type": "noul", "instructions": null } } }),
+    );
     assert_eq!(e.status, 422);
-    let e = err_of(json!({ "model": "sextant-1", "state": "x", "questions": { "q": { "type": "noul", "criteria": {} } } }));
+    let e =
+        err_of(json!({ "model": "sextant-1", "state": "x", "questions": { "q": { "type": "noul", "criteria": {} } } }));
     assert_eq!(e.status, 422);
     let ok = evaluate(json!({
         "model": "sextant-1",
@@ -321,7 +327,8 @@ fn noul_without_instructions_or_criteria_is_rejected() {
 #[test]
 fn unknown_question_types_do_not_parse() {
     for t in ["regress", "", "CHOICE", "Noul", "score "] {
-        let raw = json!({ "model": "sextant-1", "state": "x", "questions": { "q": { "type": t, "instructions": "?" } } });
+        let raw =
+            json!({ "model": "sextant-1", "state": "x", "questions": { "q": { "type": t, "instructions": "?" } } });
         assert!(serde_json::from_value::<SystemOneRequest>(raw).is_err(), "type {t:?} must not parse");
     }
     let raw = json!({ "model": "sextant-1", "state": "x", "questions": { "q": { "instructions": "?" } } });
@@ -377,7 +384,8 @@ fn unusual_but_valid_requests_evaluate_without_panicking() {
     let n = questions.as_object().unwrap().len();
     for state in states {
         for explain in [false, true] {
-            let resp = evaluate(json!({ "model": "sextant-1", "state": state, "questions": questions, "explain": explain }));
+            let resp =
+                evaluate(json!({ "model": "sextant-1", "state": state, "questions": questions, "explain": explain }));
             assert_eq!(resp.answers.len(), n, "state {state}");
             assert!(all_finite(&resp), "state {state}");
             let dupes = as_choice(&resp.answers["dupes"]);
@@ -389,9 +397,7 @@ fn unusual_but_valid_requests_evaluate_without_panicking() {
             assert_eq!(levels.legend["0"], "");
             assert_eq!(levels.legend["4"], "0");
             assert_eq!(levels.legend["5"], "false");
-            let text = serde_json::to_string(&resp).unwrap();
-            let back: SystemOneResponse = serde_json::from_str(&text).unwrap();
-            assert_eq!(back, resp);
+            assert_eq!(roundtrip_error(&resp), None, "state {state}");
         }
     }
 }

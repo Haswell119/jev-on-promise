@@ -34,7 +34,13 @@ pub struct Outcome {
 fn gold_label_string(gold: &Value) -> String {
     match gold {
         Value::String(s) => s.clone(),
-        Value::Bool(b) => if *b { "yes".into() } else { "no".into() },
+        Value::Bool(b) => {
+            if *b {
+                "yes".into()
+            } else {
+                "no".into()
+            }
+        }
         Value::Number(n) => n.to_string(),
         other => other.to_string(),
     }
@@ -83,12 +89,23 @@ pub fn score_answer(record_id: &str, qid: &str, answer: &Answer, gold: &Value, g
         Answer::Choice(a) => {
             let gold_s = gold_label_string(gold);
             let sum: f64 = a.probabilities.values().sum();
-            let strict = (sum - 1.0).abs() <= 1e-3 && a.probabilities.values().all(|p| (0.0..=1.0).contains(p) && p.is_finite()) && a.probabilities.contains_key(&a.choice);
-            let valid = (sum - 1.0).abs() <= 2e-2 && a.probabilities.values().all(|p| (0.0..=1.0).contains(p) && p.is_finite()) && a.probabilities.contains_key(&a.choice);
+            let strict = (sum - 1.0).abs() <= 1e-3
+                && a.probabilities.values().all(|p| (0.0..=1.0).contains(p) && p.is_finite())
+                && a.probabilities.contains_key(&a.choice);
+            let valid = (sum - 1.0).abs() <= 2e-2
+                && a.probabilities.values().all(|p| (0.0..=1.0).contains(p) && p.is_finite())
+                && a.probabilities.contains_key(&a.choice);
             let p_gold = a.probabilities.get(&gold_s).copied().unwrap_or(0.0);
             let p_max = a.probabilities.values().cloned().fold(0.0, f64::max);
-            let brier: f64 = a.probabilities.iter().map(|(k, p)| (p - if *k == gold_s { 1.0 } else { 0.0 }).powi(2)).sum();
-            let tvd = gold_probs.and_then(|g| g.as_object()).map(|g| 0.5 * a.probabilities.iter().map(|(k, p)| (p - g.get(k).and_then(|v| v.as_f64()).unwrap_or(0.0)).abs()).sum::<f64>());
+            let brier: f64 =
+                a.probabilities.iter().map(|(k, p)| (p - if *k == gold_s { 1.0 } else { 0.0 }).powi(2)).sum();
+            let tvd = gold_probs.and_then(|g| g.as_object()).map(|g| {
+                0.5 * a
+                    .probabilities
+                    .iter()
+                    .map(|(k, p)| (p - g.get(k).and_then(|v| v.as_f64()).unwrap_or(0.0)).abs())
+                    .sum::<f64>()
+            });
             Outcome {
                 record_id: record_id.into(),
                 question_id: qid.into(),
@@ -114,8 +131,10 @@ pub fn score_answer(record_id: &str, qid: &str, answer: &Answer, gold: &Value, g
             let gold_s = gold_label_string(gold);
             let gold_i: f64 = gold_s.parse().unwrap_or(-1.0);
             let sum: f64 = a.probabilities.values().sum();
-            let strict = (sum - 1.0).abs() <= 1e-3 && a.probabilities.values().all(|p| (0.0..=1.0).contains(p) && p.is_finite());
-            let valid = (sum - 1.0).abs() <= 2e-2 && a.probabilities.values().all(|p| (0.0..=1.0).contains(p) && p.is_finite());
+            let strict =
+                (sum - 1.0).abs() <= 1e-3 && a.probabilities.values().all(|p| (0.0..=1.0).contains(p) && p.is_finite());
+            let valid =
+                (sum - 1.0).abs() <= 2e-2 && a.probabilities.values().all(|p| (0.0..=1.0).contains(p) && p.is_finite());
             // argmax with lexicographic tie-break, as JevBench does
             let mut pred = String::new();
             let mut best = f64::NEG_INFINITY;
@@ -126,10 +145,24 @@ pub fn score_answer(record_id: &str, qid: &str, answer: &Answer, gold: &Value, g
                 }
             }
             let p_gold = a.probabilities.get(&gold_s).copied().unwrap_or(0.0);
-            let brier: f64 = a.probabilities.iter().map(|(k, p)| (p - if *k == gold_s { 1.0 } else { 0.0 }).powi(2)).sum();
+            let brier: f64 =
+                a.probabilities.iter().map(|(k, p)| (p - if *k == gold_s { 1.0 } else { 0.0 }).powi(2)).sum();
             let tvd = gold_probs.and_then(|g| match g {
-                Value::Array(arr) => Some(0.5 * a.probabilities.iter().enumerate().map(|(i, (_, p))| (p - arr.get(i).and_then(|v| v.as_f64()).unwrap_or(0.0)).abs()).sum::<f64>()),
-                Value::Object(o) => Some(0.5 * a.probabilities.iter().map(|(k, p)| (p - o.get(k).and_then(|v| v.as_f64()).unwrap_or(0.0)).abs()).sum::<f64>()),
+                Value::Array(arr) => Some(
+                    0.5 * a
+                        .probabilities
+                        .iter()
+                        .enumerate()
+                        .map(|(i, (_, p))| (p - arr.get(i).and_then(|v| v.as_f64()).unwrap_or(0.0)).abs())
+                        .sum::<f64>(),
+                ),
+                Value::Object(o) => Some(
+                    0.5 * a
+                        .probabilities
+                        .iter()
+                        .map(|(k, p)| (p - o.get(k).and_then(|v| v.as_f64()).unwrap_or(0.0)).abs())
+                        .sum::<f64>(),
+                ),
                 _ => None,
             });
             Outcome {
@@ -188,7 +221,10 @@ pub fn ece(outcomes: &[&Outcome], bins: usize) -> f64 {
         count[b] += 1;
     }
     let n = outcomes.len() as f64;
-    (0..bins).filter(|&b| count[b] > 0).map(|b| (count[b] as f64 / n) * ((sum_acc[b] / count[b] as f64) - (sum_conf[b] / count[b] as f64)).abs()).sum()
+    (0..bins)
+        .filter(|&b| count[b] > 0)
+        .map(|b| (count[b] as f64 / n) * ((sum_acc[b] / count[b] as f64) - (sum_conf[b] / count[b] as f64)).abs())
+        .sum()
 }
 
 /// AUROC of `confidence` for predicting correctness (Mann–Whitney).
@@ -201,7 +237,13 @@ fn auroc(pairs: &[(f64, bool)]) -> Option<f64> {
     let mut wins = 0.0f64;
     for p in &pos {
         for q in &neg {
-            wins += if p > q { 1.0 } else if p == q { 0.5 } else { 0.0 };
+            wins += if p > q {
+                1.0
+            } else if p == q {
+                0.5
+            } else {
+                0.0
+            };
         }
     }
     Some(wins / (pos.len() as f64 * neg.len() as f64))

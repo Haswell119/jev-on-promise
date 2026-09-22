@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all --check
+
+  clippy:
+    name: clippy (-D warnings)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+  test:
+    name: cargo test (release)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace --release --locked
+
+  build:
+    name: build + CLI smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked
+      - name: validate the example request
+        run: ./target/release/sextant validate examples/request_basic.json
+      - name: decide the example request (file and stdin)
+        run: |
+          ./target/release/sextant decide examples/request_basic.json --pretty
+          ./target/release/sextant decide < examples/request_basic.json | python3 -c '
+          import json, sys
+          r = json.load(sys.stdin)
+          assert r["model"] == "sextant-1" and set(r["answers"]) == {"department", "is_urgent", "frustration"}, r
+          print("ok:", {k: v["type"] for k, v in r["answers"].items()})'
+      - name: serve + HTTP smoke
+        run: |
+          ./target/release/sextant serve --addr 127.0.0.1:8090 &
+          for i in $(seq 1 100); do curl -fsS http://127.0.0.1:8090/health && break; sleep 0.1; done
+          curl -fsS -X POST http://127.0.0.1:8090/v1/systemone -H 'content-type: application/json' \
+            --data-binary @examples/request_basic.json
+          curl -fsS http://127.0.0.1:8090/v1/models >/dev/null
+          kill %1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sextant-linux-x86_64
+          path: target/release/sextant
+          if-no-files-found: error
+
+  no-network:
+    name: inference without network
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked
+      - name: scripts/test_no_network.sh (when present)
+        run: |
+          if [ -x scripts/test_no_network.sh ]; then
+            scripts/test_no_network.sh
+          else
+            echo "::notice::scripts/test_no_network.sh not present or not executable; skipped"
+          fi
+
+  audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  deny:
+    name: cargo deny (licenses, advisories)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check licenses advisories
+          arguments: --all-features
+
+  docker:
+    name: docker build + run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: sextant:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: CLI via stdin with networking disabled
+        run: |
+          docker run --rm --network none -i sextant:ci validate < examples/request_basic.json
+          docker run --rm --network none -i sextant:ci decide < examples/request_basic.json
+      - name: served endpoint with networking disabled (reached via docker exec)
+        run: |
+          docker run -d --rm --network none --name sextant-ci sextant:ci
+          for i in $(seq 1 100); do docker exec sextant-ci curl -fsS http://127.0.0.1:8080/health && break; sleep 0.1; done
+          docker exec -i sextant-ci curl -fsS -X POST http://127.0.0.1:8080/v1/systemone \
+            -H 'content-type: application/json' --data-binary @- < examples/request_basic.json
+          sleep 6
+          test "$(docker inspect --format '{{.State.Health.Status}}' sextant-ci)" = healthy
+          docker stop sextant-ci

@@ -4,8 +4,8 @@
 
 const ABBREVIATIONS: &[&str] = &[
     "mr", "mrs", "ms", "dr", "prof", "sr", "jr", "st", "vs", "etc", "e.g", "i.e", "eg", "ie", "inc", "ltd", "co",
-    "corp", "no", "fig", "approx", "dept", "est", "u.s", "u.k", "a.m", "p.m", "jan", "feb", "mar", "apr", "jun",
-    "jul", "aug", "sep", "sept", "oct", "nov", "dec", "mt", "ave", "blvd", "rd",
+    "corp", "no", "fig", "approx", "dept", "est", "u.s", "u.k", "a.m", "p.m", "jan", "feb", "mar", "apr", "jun", "jul",
+    "aug", "sep", "sept", "oct", "nov", "dec", "mt", "ave", "blvd", "rd",
 ];
 
 /// Maximum characters per segment before chunking at clause boundaries.
@@ -63,7 +63,13 @@ pub fn segment_ranges(text: &str) -> Vec<(usize, usize)> {
                 while k < n && chars[k].1.is_whitespace() {
                     k += 1;
                 }
-                if k >= n || chars[k].1.is_uppercase() || chars[k].1.is_ascii_digit() || matches!(chars[k].1, '"' | '\'' | '(' | '[' | '-' | '*' | '#') || c != '.' || chars[k].1.is_alphabetic() {
+                if k >= n
+                    || chars[k].1.is_uppercase()
+                    || chars[k].1.is_ascii_digit()
+                    || matches!(chars[k].1, '"' | '\'' | '(' | '[' | '-' | '*' | '#')
+                    || c != '.'
+                    || chars[k].1.is_alphabetic()
+                {
                     boundary = true;
                 }
                 if boundary {
@@ -116,11 +122,8 @@ fn chunk_long(out: &mut Vec<(usize, usize)>, text: &str, start: usize, end: usiz
             cut -= 1;
         }
         let head = &window[..cut];
-        let split_at = head
-            .rfind([';', ':', ','])
-            .map(|p| p + 1)
-            .or_else(|| head.rfind(char::is_whitespace))
-            .unwrap_or(cut);
+        let split_at =
+            head.rfind([';', ':', ',']).map(|p| p + 1).or_else(|| head.rfind(char::is_whitespace)).unwrap_or(cut);
         let split_at = if split_at == 0 { cut } else { split_at };
         let seg_end = s + split_at;
         let piece = &text[s..seg_end];

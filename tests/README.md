@@ -38,8 +38,9 @@ Checked for every generated case:
 * Nothing panics, every number is finite, every response serializes to JSON
   and round-trips through serde unchanged.
 
-Failing cases are minimized by proptest and persisted under
-`crates/core/tests/proptest-regressions/` so they are replayed first.
+Failing cases are minimized by proptest and persisted next to the suite as
+`crates/core/tests/<suite>.proptest-regressions` so they are replayed first
+(commit such a file only when it records a real engine bug).
 
 ## `crates/core/tests/behavior.rs`
 

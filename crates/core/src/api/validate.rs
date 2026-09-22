@@ -72,12 +72,7 @@ fn approx_bytes(v: &Value) -> usize {
         Value::Number(_) => 12,
         Value::String(s) => s.len() + 2,
         Value::Array(a) => 2 + a.iter().map(|x| approx_bytes(x) + 1).sum::<usize>(),
-        Value::Object(o) => {
-            2 + o
-                .iter()
-                .map(|(k, x)| k.len() + 4 + approx_bytes(x))
-                .sum::<usize>()
-        }
+        Value::Object(o) => 2 + o.iter().map(|(k, x)| k.len() + 4 + approx_bytes(x)).sum::<usize>(),
     }
 }
 
@@ -115,19 +110,13 @@ pub fn validate_request(req: &SystemOneRequest, limits: &Limits) -> Result<(), A
         )));
     }
     if leaves(&req.state) > limits.max_state_leaves {
-        return Err(ApiError::too_large(format!(
-            "state has more than {} leaves",
-            limits.max_state_leaves
-        )));
+        return Err(ApiError::too_large(format!("state has more than {} leaves", limits.max_state_leaves)));
     }
     if req.questions.is_empty() {
         return Err(ApiError::invalid("questions", "questions must contain at least one question"));
     }
     if req.questions.len() > limits.max_questions {
-        return Err(ApiError::invalid(
-            "questions",
-            format!("at most {} questions per request", limits.max_questions),
-        ));
+        return Err(ApiError::invalid("questions", format!("at most {} questions per request", limits.max_questions)));
     }
     for (id, q) in &req.questions {
         if id.is_empty() {
@@ -151,7 +140,9 @@ pub fn validate_request(req: &SystemOneRequest, limits: &Limits) -> Result<(), A
                         validate_entry(v, &format!("{base}.criteria.false"), limits)?;
                     }
                 }
-                if n.instructions.is_null() && n.criteria.as_ref().map(|c| c.yes.is_none() && c.no.is_none()).unwrap_or(true) {
+                if n.instructions.is_null()
+                    && n.criteria.as_ref().map(|c| c.yes.is_none() && c.no.is_none()).unwrap_or(true)
+                {
                     return Err(ApiError::invalid(
                         format!("{base}.instructions"),
                         "noul questions need instructions (or true/false criteria)",
@@ -231,28 +222,35 @@ mod tests {
     fn rejects_unknown_model_and_bad_cardinalities() {
         let r = req(json!({"model": "gpt-x", "state": "x", "questions": {"q": {"type": "noul", "instructions": "?"}}}));
         assert_eq!(validate_request(&r, &Limits::default()).unwrap_err().code, "unknown_model");
-        let r = req(json!({"model": "sextant-1", "state": "x", "questions": {"q": {"type": "choice", "instructions": "?", "criteria": {"a": null}}}}));
+        let r = req(
+            json!({"model": "sextant-1", "state": "x", "questions": {"q": {"type": "choice", "instructions": "?", "criteria": {"a": null}}}}),
+        );
         assert_eq!(validate_request(&r, &Limits::default()).unwrap_err().status, 422);
         let levels: Vec<String> = (0..11).map(|i| format!("l{i}")).collect();
-        let r = req(json!({"model": "sextant-1", "state": "x", "questions": {"q": {"type": "score", "instructions": "?", "criteria": levels}}}));
+        let r = req(
+            json!({"model": "sextant-1", "state": "x", "questions": {"q": {"type": "score", "instructions": "?", "criteria": levels}}}),
+        );
         assert_eq!(validate_request(&r, &Limits::default()).unwrap_err().status, 422);
     }
 
     #[test]
     fn rejects_bad_state_and_depth() {
-        let r = req(json!({"model": "sextant-1", "state": 12, "questions": {"q": {"type": "noul", "instructions": "?"}}}));
+        let r =
+            req(json!({"model": "sextant-1", "state": 12, "questions": {"q": {"type": "noul", "instructions": "?"}}}));
         assert!(validate_request(&r, &Limits::default()).is_err());
         let mut v = json!("leaf");
         for _ in 0..70 {
             v = json!([v]);
         }
-        let r = req(json!({"model": "sextant-1", "state": v, "questions": {"q": {"type": "noul", "instructions": "?"}}}));
+        let r =
+            req(json!({"model": "sextant-1", "state": v, "questions": {"q": {"type": "noul", "instructions": "?"}}}));
         assert!(validate_request(&r, &Limits::default()).is_err());
     }
 
     #[test]
     fn unknown_question_type_fails_to_parse() {
-        let v = json!({"model": "sextant-1", "state": "x", "questions": {"q": {"type": "regress", "instructions": "?"}}});
+        let v =
+            json!({"model": "sextant-1", "state": "x", "questions": {"q": {"type": "regress", "instructions": "?"}}});
         assert!(serde_json::from_value::<SystemOneRequest>(v).is_err());
     }
 }

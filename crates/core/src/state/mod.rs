@@ -5,6 +5,6 @@ pub mod flatten;
 pub mod index;
 pub mod vocab;
 
-pub use flatten::{flatten_state, flatten_state_with_arrays, ArrayInfo, FlatField, FieldKind};
-pub use index::{Segment, StateIndex, Token, ATTR_KEY, ATTR_STOP, ATTR_FUNC, ATTR_CAP};
+pub use flatten::{flatten_state, flatten_state_with_arrays, ArrayInfo, FieldKind, FlatField};
+pub use index::{Segment, StateIndex, Token, ATTR_CAP, ATTR_FUNC, ATTR_KEY, ATTR_STOP};
 pub use vocab::{TermId, Vocab, VocabExt};

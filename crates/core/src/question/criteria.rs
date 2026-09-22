@@ -74,38 +74,148 @@ pub struct Criterion {
 }
 
 const NEGATIVE_KEY_MORPHEMES: &[&str] = &[
-    "not", "no", "non", "exclud", "except", "never", "avoid", "negative", "anti", "unless", "without", "dont", "isnt",
-    "wrong", "bad", "counter", "unlike", "differ", "contrast", "mis", "oos", "out_of_scope", "false", "incorrect",
-    "distractor", "reject", "deny", "forbid", "prohibit", "disallow", "unrelated", "irrelevant", "doesnt", "does_not",
-    "is_not", "no_match", "nope", "neg", "opposite", "disqualif", "ineligible", "invalid", "exception",
+    "not",
+    "no",
+    "non",
+    "exclud",
+    "except",
+    "never",
+    "avoid",
+    "negative",
+    "anti",
+    "unless",
+    "without",
+    "dont",
+    "isnt",
+    "wrong",
+    "bad",
+    "counter",
+    "unlike",
+    "differ",
+    "contrast",
+    "mis",
+    "oos",
+    "out_of_scope",
+    "false",
+    "incorrect",
+    "distractor",
+    "reject",
+    "deny",
+    "forbid",
+    "prohibit",
+    "disallow",
+    "unrelated",
+    "irrelevant",
+    "doesnt",
+    "does_not",
+    "is_not",
+    "no_match",
+    "nope",
+    "neg",
+    "opposite",
+    "disqualif",
+    "ineligible",
+    "invalid",
+    "exception",
 ];
 
 const EXAMPLE_KEY_MORPHEMES: &[&str] = &[
-    "example", "sample", "e_g", "eg", "instance", "such_as", "phrase", "utterance", "keyword", "synonym", "trigger",
-    "signal", "cue", "indicator", "pattern", "typical", "like", "e.g", "alias", "variant", "wording",
+    "example",
+    "sample",
+    "e_g",
+    "eg",
+    "instance",
+    "such_as",
+    "phrase",
+    "utterance",
+    "keyword",
+    "synonym",
+    "trigger",
+    "signal",
+    "cue",
+    "indicator",
+    "pattern",
+    "typical",
+    "like",
+    "e.g",
+    "alias",
+    "variant",
+    "wording",
 ];
 
 /// Field names that are pure labels (their words are not evidence).
 const LABEL_KEYS: &[&str] = &[
-    "what", "description", "desc", "definition", "scope", "includes", "include", "covers", "cover", "means", "meaning",
-    "summary", "details", "detail", "notes", "note", "when", "use_when", "criteria", "criterion", "rubric", "text",
-    "value", "name", "label", "title", "info", "instructions", "instruction", "question", "focus", "explanation",
-    "explain", "rationale", "guidance", "hint", "hints", "context", "content", "body", "message", "level",
-    "option", "answer", "type", "id", "key", "positive", "yes", "true", "also", "and", "or", "for", "the",
-    "signals", "indicators", "examples", "example", "keywords", "phrases", "sample", "samples", "definitions",
+    "what",
+    "description",
+    "desc",
+    "definition",
+    "scope",
+    "includes",
+    "include",
+    "covers",
+    "cover",
+    "means",
+    "meaning",
+    "summary",
+    "details",
+    "detail",
+    "notes",
+    "note",
+    "when",
+    "use_when",
+    "criteria",
+    "criterion",
+    "rubric",
+    "text",
+    "value",
+    "name",
+    "label",
+    "title",
+    "info",
+    "instructions",
+    "instruction",
+    "question",
+    "focus",
+    "explanation",
+    "explain",
+    "rationale",
+    "guidance",
+    "hint",
+    "hints",
+    "context",
+    "content",
+    "body",
+    "message",
+    "level",
+    "option",
+    "answer",
+    "type",
+    "id",
+    "key",
+    "positive",
+    "yes",
+    "true",
+    "also",
+    "and",
+    "or",
+    "for",
+    "the",
+    "signals",
+    "indicators",
+    "examples",
+    "example",
+    "keywords",
+    "phrases",
+    "sample",
+    "samples",
+    "definitions",
 ];
 
 pub fn is_negative_key(key: &str) -> bool {
     let k = key.to_ascii_lowercase();
     let words = split_key_words(&k);
     let joined = words.join("_");
-    NEGATIVE_KEY_MORPHEMES.iter().any(|m| {
-        if m.len() <= 3 {
-            words.iter().any(|w| w == m)
-        } else {
-            joined.contains(m)
-        }
-    })
+    NEGATIVE_KEY_MORPHEMES.iter().any(|m| if m.len() <= 3 { words.iter().any(|w| w == m) } else { joined.contains(m) })
 }
 
 pub fn is_example_key(key: &str) -> bool {
@@ -194,11 +304,28 @@ pub fn magnitude(word: &str) -> Option<f32> {
     Some(match word {
         "none" | "never" | "nobody" | "zero" | "nothing" | "worst" => 0.0,
         "negligible" | "trivial" | "cosmetic" | "minimal" | "minimally" | "tiny" | "barely" | "hardly" => 0.08,
-        "slight" | "slightly" | "minor" | "mild" | "mildly" | "low" | "rarely" | "few" | "little" | "small" | "poor" | "weak" | "weakly" | "bad" | "single" | "nonessential" | "optional" | "workaround" | "isolated" => 0.2,
-        "some" | "somewhat" | "partial" | "partially" | "occasionally" | "sometimes" | "several" | "limited" | "fair" | "fairly" | "modest" | "okay" | "ok" | "fine" | "average" | "neutral" | "mixed" | "moderate" | "moderately" | "medium" | "moderate-ly" => 0.5,
-        "often" | "usually" | "mostly" | "many" | "most" | "notable" | "notably" | "considerable" | "considerably" | "significant" | "significantly" | "good" | "strong" | "strongly" | "high" | "major" | "serious" | "seriously" | "large" | "substantial" | "substantially" | "important" | "elevated" | "numerous" | "multiple" | "dozens" | "hundreds" | "thousands" | "millions" | "widely" | "core" | "essential" | "critical-path" => 0.75,
-        "very" | "highly" | "great" | "greatly" | "severe" | "severely" | "critical" | "critically" | "urgent" | "urgently" | "asap" | "immediately" | "heavy" | "heavily" | "intense" | "intensely" | "extensive" | "extensively" | "deeply" | "widespread" | "blocked" | "broken" | "excellent" | "outstanding" | "huge" | "massive" | "massively" | "extreme" | "extremely" => 0.9,
-        "always" | "all" | "every" | "everyone" | "entire" | "entirely" | "complete" | "completely" | "total" | "totally" | "fully" | "full" | "absolute" | "absolutely" | "perfect" | "perfectly" | "best" | "catastrophic" | "fatal" | "irreversible" | "emergency" | "unbearable" | "furious" | "outraged" | "devastating" | "devastated" | "utterly" | "maximum" | "maximal" | "permanent" | "permanently" | "unrecoverable" | "wiped" | "recalled" | "burned" | "injured" | "injury" | "harm" | "death" | "deleted" | "destroyed" | "lost" | "loss" => 1.0,
+        "slight" | "slightly" | "minor" | "mild" | "mildly" | "low" | "rarely" | "few" | "little" | "small"
+        | "poor" | "weak" | "weakly" | "bad" | "single" | "nonessential" | "optional" | "workaround" | "isolated" => {
+            0.2
+        }
+        "some" | "somewhat" | "partial" | "partially" | "occasionally" | "sometimes" | "several" | "limited"
+        | "fair" | "fairly" | "modest" | "okay" | "ok" | "fine" | "average" | "neutral" | "mixed" | "moderate"
+        | "moderately" | "medium" | "moderate-ly" => 0.5,
+        "often" | "usually" | "mostly" | "many" | "most" | "notable" | "notably" | "considerable" | "considerably"
+        | "significant" | "significantly" | "good" | "strong" | "strongly" | "high" | "major" | "serious"
+        | "seriously" | "large" | "substantial" | "substantially" | "important" | "elevated" | "numerous"
+        | "multiple" | "dozens" | "hundreds" | "thousands" | "millions" | "widely" | "core" | "essential"
+        | "critical-path" => 0.75,
+        "very" | "highly" | "great" | "greatly" | "severe" | "severely" | "critical" | "critically" | "urgent"
+        | "urgently" | "asap" | "immediately" | "heavy" | "heavily" | "intense" | "intensely" | "extensive"
+        | "extensively" | "deeply" | "widespread" | "blocked" | "broken" | "excellent" | "outstanding" | "huge"
+        | "massive" | "massively" | "extreme" | "extremely" => 0.9,
+        "always" | "all" | "every" | "everyone" | "entire" | "entirely" | "complete" | "completely" | "total"
+        | "totally" | "fully" | "full" | "absolute" | "absolutely" | "perfect" | "perfectly" | "best"
+        | "catastrophic" | "fatal" | "irreversible" | "emergency" | "unbearable" | "furious" | "outraged"
+        | "devastating" | "devastated" | "utterly" | "maximum" | "maximal" | "permanent" | "permanently"
+        | "unrecoverable" | "wiped" | "recalled" | "burned" | "injured" | "injury" | "harm" | "death" | "deleted"
+        | "destroyed" | "lost" | "loss" => 1.0,
         _ => return None,
     })
 }
@@ -208,13 +335,22 @@ fn is_quantity_word(w: &str) -> bool {
 }
 
 /// Compute valence and intensity for a token sequence (with scope flags).
-pub fn valence_and_intensity(toks: &[crate::text::tokenize::RawToken], flags: &[Flags], res: &Resources) -> (f32, f32, bool) {
+pub fn valence_and_intensity(
+    toks: &[crate::text::tokenize::RawToken],
+    flags: &[Flags],
+    res: &Resources,
+) -> (f32, f32, bool) {
     valence_and_intensity_with(toks, flags, res, |i| crate::text::stem::stem(&toks[i].text))
 }
 
 /// Same as `valence_and_intensity` but with a caller-provided stem lookup
 /// (avoids re-stemming when the tokens are already interned).
-pub fn valence_and_intensity_with(toks: &[crate::text::tokenize::RawToken], flags: &[Flags], res: &Resources, stem_of: impl Fn(usize) -> String) -> (f32, f32, bool) {
+pub fn valence_and_intensity_with(
+    toks: &[crate::text::tokenize::RawToken],
+    flags: &[Flags],
+    res: &Resources,
+    stem_of: impl Fn(usize) -> String,
+) -> (f32, f32, bool) {
     let (mut vs, mut vn) = (0.0f32, 0u32);
     let (mut is, mut inn) = (0.0f32, 0u32);
     for (i, t) in toks.iter().enumerate() {
@@ -230,7 +366,7 @@ pub fn valence_and_intensity_with(toks: &[crate::text::tokenize::RawToken], flag
         let mut v = res.sentiment.valence(&t.text, &st);
         if v != 0.0 {
             if f & NEGATED != 0 {
-                v = -0.74 * v;
+                v *= -0.74;
             }
             if f & negation::INTENSIFIED != 0 {
                 v *= 1.3;
@@ -287,14 +423,23 @@ pub fn normalize_literal(s: &str) -> String {
 impl Criterion {
     /// Build a criterion from a key (option name / level index / hypothesis
     /// name) and its description entry.
-    pub fn build(key: &str, index: usize, entry: &Value, key_is_name: bool, vocab: &mut VocabExt<'_>, res: &Resources) -> Criterion {
+    pub fn build(
+        key: &str,
+        index: usize,
+        entry: &Value,
+        key_is_name: bool,
+        vocab: &mut VocabExt<'_>,
+        res: &Resources,
+    ) -> Criterion {
         let mut col = Collector::default();
         collect(entry, 1, false, false, 0, &mut col);
         let is_null = col.texts.is_empty();
 
         let mut terms: Vec<QueryTerm> = Vec::new();
         let push_term = |t: QueryTerm, terms: &mut Vec<QueryTerm>| {
-            if let Some(existing) = terms.iter_mut().find(|e| e.term == t.term && e.polarity == t.polarity && e.negated == t.negated) {
+            if let Some(existing) =
+                terms.iter_mut().find(|e| e.term == t.term && e.polarity == t.polarity && e.negated == t.negated)
+            {
                 existing.weight = (existing.weight + 0.5 * t.weight).min(existing.idf * 2.0);
                 existing.hypothetical |= t.hypothetical;
                 existing.request |= t.request;
@@ -390,7 +535,11 @@ impl Criterion {
             }
             if *polarity > 0 {
                 for rt in raw.iter() {
-                    pos_term_ids.push(if rt.kind == TokenKind::Word { Some(vocab.intern(&rt.text, res)) } else { None });
+                    pos_term_ids.push(if rt.kind == TokenKind::Word {
+                        Some(vocab.intern(&rt.text, res))
+                    } else {
+                        None
+                    });
                 }
                 pos_toks.extend(raw.iter().cloned());
                 pos_flags.extend(fl.iter().copied());
@@ -425,7 +574,14 @@ impl Criterion {
                     }
                     prev = Some((tid, i));
                 }
-                Phrase { text: norm.clone(), terms: pterms, bigrams: pbig, grams: char_grams(&norm), polarity: *polarity, is_example: *is_example }
+                Phrase {
+                    text: norm.clone(),
+                    terms: pterms,
+                    bigrams: pbig,
+                    grams: char_grams(&norm),
+                    polarity: *polarity,
+                    is_example: *is_example,
+                }
             })
             .collect();
 
@@ -451,7 +607,9 @@ impl Criterion {
 
         let (valence, intensity, has_intensity) = {
             let v = &*vocab;
-            valence_and_intensity_with(&pos_toks, &pos_flags, res, |i| pos_term_ids[i].map(|t| v.info(t).stem.to_string()).unwrap_or_default())
+            valence_and_intensity_with(&pos_toks, &pos_flags, res, |i| {
+                pos_term_ids[i].map(|t| v.info(t).stem.to_string()).unwrap_or_default()
+            })
         };
         let (mut n_content, mut n_neg, mut n_hyp) = (0u32, 0u32, 0u32);
         for (i, t) in pos_toks.iter().enumerate() {
@@ -468,10 +626,17 @@ impl Criterion {
         }
         let neg_share = if n_content > 0 { n_neg as f32 / n_content as f32 } else { 0.0 };
         let hyp_share = if n_content > 0 { n_hyp as f32 / n_content as f32 } else { 0.0 };
-        let has_number = |t: &str| t.chars().any(|c| c.is_ascii_digit()) || t.split(|c: char| !c.is_alphabetic()).any(|w| crate::text::numbers::number_word(w).is_some());
+        let has_number = |t: &str| {
+            t.chars().any(|c| c.is_ascii_digit())
+                || t.split(|c: char| !c.is_alphabetic()).any(|w| crate::text::numbers::number_word(w).is_some())
+        };
         let key_lit = normalize_literal(key);
         let range = if is_null {
-            if has_number(&key_lit) { parse_range(&key_lit) } else { None }
+            if has_number(&key_lit) {
+                parse_range(&key_lit)
+            } else {
+                None
+            }
         } else if has_number(&pos_text) {
             parse_range(&pos_text).or_else(|| if has_number(&key_lit) { parse_range(&key_lit) } else { None })
         } else if has_number(&key_lit) {
@@ -489,7 +654,11 @@ impl Criterion {
         let mut expanded: Vec<(TermId, f32, TermId)> = Vec::new();
         let mut antonyms: Vec<(TermId, f32)> = Vec::new();
         if !res.graph.is_empty() {
-            let pos_terms: Vec<(TermId, f32)> = terms.iter().filter(|t| t.polarity > 0 && !t.negated && !vocab.info(t.term).stop).map(|t| (t.term, t.weight)).collect();
+            let pos_terms: Vec<(TermId, f32)> = terms
+                .iter()
+                .filter(|t| t.polarity > 0 && !t.negated && !vocab.info(t.term).stop)
+                .map(|t| (t.term, t.weight))
+                .collect();
             for (tid, w) in pos_terms {
                 let e = vocab.expansion(tid, res);
                 for &sid in &e.synonyms {

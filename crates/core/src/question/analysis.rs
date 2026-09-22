@@ -56,16 +56,72 @@ pub struct QuestionView<'a> {
 }
 
 const QUESTION_KEYS: &[&str] = &[
-    "question", "questions", "instructions", "instruction", "ask", "prompt", "task", "query", "goal", "rubric",
-    "guidance", "note", "notes", "focus", "criteria", "criterion", "context", "description", "hint", "hints",
-    "decide", "evaluate", "judge", "assess", "compare", "check", "requirement", "requirements", "definition",
-    "scope", "consider", "explanation", "detail", "details", "background", "policy", "rules", "rule",
+    "question",
+    "questions",
+    "instructions",
+    "instruction",
+    "ask",
+    "prompt",
+    "task",
+    "query",
+    "goal",
+    "rubric",
+    "guidance",
+    "note",
+    "notes",
+    "focus",
+    "criteria",
+    "criterion",
+    "context",
+    "description",
+    "hint",
+    "hints",
+    "decide",
+    "evaluate",
+    "judge",
+    "assess",
+    "compare",
+    "check",
+    "requirement",
+    "requirements",
+    "definition",
+    "scope",
+    "consider",
+    "explanation",
+    "detail",
+    "details",
+    "background",
+    "policy",
+    "rules",
+    "rule",
 ];
 
 fn looks_like_question(s: &str) -> bool {
     let t = s.trim().to_ascii_lowercase();
     t.ends_with('?')
-        || t.split_whitespace().next().map(|w| negation::WH_WORDS.contains(&w) || negation::AUX_VERBS.contains(&w) || matches!(w, "rate" | "classify" | "select" | "choose" | "pick" | "decide" | "determine" | "identify" | "evaluate" | "judge" | "assess" | "score" | "estimate")).unwrap_or(false)
+        || t.split_whitespace()
+            .next()
+            .map(|w| {
+                negation::WH_WORDS.contains(&w)
+                    || negation::AUX_VERBS.contains(&w)
+                    || matches!(
+                        w,
+                        "rate"
+                            | "classify"
+                            | "select"
+                            | "choose"
+                            | "pick"
+                            | "decide"
+                            | "determine"
+                            | "identify"
+                            | "evaluate"
+                            | "judge"
+                            | "assess"
+                            | "score"
+                            | "estimate"
+                    )
+            })
+            .unwrap_or(false)
 }
 
 #[derive(Default)]
@@ -112,7 +168,8 @@ fn flatten_instructions(v: &Value, out: &mut Flat, depth: usize) {
         Value::Object(o) => {
             for (k, x) in o {
                 let kl = k.to_ascii_lowercase();
-                let is_q_key = QUESTION_KEYS.contains(&kl.as_str()) || split_key_words(&kl).iter().any(|w| QUESTION_KEYS.contains(&w.as_str()));
+                let is_q_key = QUESTION_KEYS.contains(&kl.as_str())
+                    || split_key_words(&kl).iter().any(|w| QUESTION_KEYS.contains(&w.as_str()));
                 match x {
                     Value::String(s) => {
                         if is_q_key || looks_like_question(s) {
@@ -181,7 +238,8 @@ impl<'a> QuestionView<'a> {
         }
         // Weak refs: bare words equal to state keys.
         if !state.is_plain_text {
-            let words: Vec<&str> = text_norm.split(|c: char| !c.is_alphanumeric() && c != '_').filter(|w| w.len() >= 3).collect();
+            let words: Vec<&str> =
+                text_norm.split(|c: char| !c.is_alphanumeric() && c != '_').filter(|w| w.len() >= 3).collect();
             for f in &state.fields {
                 if f.key.is_empty() {
                     continue;
@@ -195,7 +253,8 @@ impl<'a> QuestionView<'a> {
                 }
             }
         }
-        let mut focus_fields: Vec<u32> = path_refs.iter().filter(|p| !p.weak).flat_map(|p| p.fields.iter().copied()).collect();
+        let mut focus_fields: Vec<u32> =
+            path_refs.iter().filter(|p| !p.weak).flat_map(|p| p.fields.iter().copied()).collect();
         focus_fields.sort_unstable();
         focus_fields.dedup();
         let has_focus = !focus_fields.is_empty();
@@ -208,7 +267,11 @@ impl<'a> QuestionView<'a> {
         let raw_q = tokenize(&text_norm);
         let fl = negation::annotate(&raw_q);
         let (valence, intensity, _) = super::criteria::valence_and_intensity(&raw_q, &fl, res);
-        let add_terms = |raw: &[crate::text::tokenize::RawToken], flags: &[u16], factor: f32, terms: &mut Vec<QueryTerm>, vocab: &mut VocabExt<'a>| {
+        let add_terms = |raw: &[crate::text::tokenize::RawToken],
+                         flags: &[u16],
+                         factor: f32,
+                         terms: &mut Vec<QueryTerm>,
+                         vocab: &mut VocabExt<'a>| {
             for (i, rt) in raw.iter().enumerate() {
                 if !rt.kind.is_content() {
                     continue;
@@ -243,7 +306,21 @@ impl<'a> QuestionView<'a> {
                     question_negated = true;
                 }
             }
-            if fl[i] & REQUEST != 0 || matches!(rt.text.as_str(), "request" | "requests" | "requested" | "requesting" | "ask" | "asks" | "asked" | "asking" | "demand" | "demands") {
+            if fl[i] & REQUEST != 0
+                || matches!(
+                    rt.text.as_str(),
+                    "request"
+                        | "requests"
+                        | "requested"
+                        | "requesting"
+                        | "ask"
+                        | "asks"
+                        | "asked"
+                        | "asking"
+                        | "demand"
+                        | "demands"
+                )
+            {
                 asks_about_request = true;
             }
             if matches!(rt.text.as_str(), "would" | "could" | "eligible" | "hypothetically" | "possible" | "might") {
@@ -251,7 +328,8 @@ impl<'a> QuestionView<'a> {
             }
         }
         if !context_text.is_empty() {
-            let ctx_norm = normalize_nfkc(&flat.context.iter().map(|(_, v)| v.as_str()).collect::<Vec<_>>().join(". ")).to_lowercase();
+            let ctx_norm = normalize_nfkc(&flat.context.iter().map(|(_, v)| v.as_str()).collect::<Vec<_>>().join(". "))
+                .to_lowercase();
             let raw_c = tokenize(&ctx_norm);
             let fl_c = negation::annotate(&raw_c);
             add_terms(&raw_c, &fl_c, 0.5, &mut terms, &mut vocab);
@@ -351,7 +429,10 @@ mod tests {
     #[test]
     fn structured_instructions_and_refs() {
         let res = Resources::empty();
-        let state = StateIndex::build(&json!({"source_text": "Invoice #4471 issued March 3, 2026 to Beaver Dam Logistics", "other": "x"}), &res);
+        let state = StateIndex::build(
+            &json!({"source_text": "Invoice #4471 issued March 3, 2026 to Beaver Dam Logistics", "other": "x"}),
+            &res,
+        );
         let question = q(json!({
             "type": "noul",
             "instructions": {
@@ -375,11 +456,15 @@ mod tests {
     fn choice_families_and_literal_options() {
         let res = Resources::empty();
         let state = StateIndex::build(&json!("Where is my package?"), &res);
-        let question = q(json!({"type": "choice", "instructions": "Which intent does the user's message express?", "criteria": {"track_order": "Wants to know where an order is", "cancel_order": "Wants to cancel an order"}}));
+        let question = q(
+            json!({"type": "choice", "instructions": "Which intent does the user's message express?", "criteria": {"track_order": "Wants to know where an order is", "cancel_order": "Wants to cancel an order"}}),
+        );
         let v = QuestionView::build(&question, &state, &res);
         assert_eq!(v.family, Family::Intent);
         assert!(!v.literal_options);
-        let question = q(json!({"type": "choice", "instructions": "Which option is the value?", "criteria": {"Beaver": null, "Dam": null}}));
+        let question = q(
+            json!({"type": "choice", "instructions": "Which option is the value?", "criteria": {"Beaver": null, "Dam": null}}),
+        );
         let v = QuestionView::build(&question, &state, &res);
         assert!(v.literal_options);
         assert_eq!(v.family, Family::EnumExtraction);

@@ -1,0 +1,56 @@
+# cargo-deny configuration (https://embarkstudios.github.io/cargo-deny/).
+#   cargo deny check licenses advisories      (what CI runs)
+#   cargo deny check                          (also bans + sources)
+
+[graph]
+all-features = true
+
+[output]
+feature-depth = 1
+
+[advisories]
+# RustSec advisory database; vulnerabilities always fail the check.
+db-urls = ["https://github.com/rustsec/advisory-db"]
+yanked = "deny"
+unmaintained = "workspace"
+ignore = [
+  # { id = "RUSTSEC-0000-0000", reason = "..." },
+]
+
+[licenses]
+# Every dependency must be usable under one of these SPDX licenses.
+allow = [
+  "Apache-2.0",
+  "MIT",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+  "Unicode-DFS-2016",
+  "Zlib",
+  "CC0-1.0",
+  "MPL-2.0",
+  "OpenSSL",
+  "Unlicense",
+]
+confidence-threshold = 0.8
+exceptions = [
+  # { allow = ["..."], crate = "..." },
+]
+
+[licenses.private]
+# The workspace crates are Apache-2.0 but not published; skip them.
+ignore = true
+
+[bans]
+multiple-versions = "warn"
+wildcards = "allow"
+highlight = "all"
+deny = [
+  # { crate = "openssl", reason = "inference must not link a TLS stack" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

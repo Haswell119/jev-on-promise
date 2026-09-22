@@ -58,13 +58,9 @@ pub fn to_json(resp: &SystemOneResponse) -> String {
 pub fn all_finite(resp: &SystemOneResponse) -> bool {
     resp.answers.values().all(|a| match a {
         Answer::Noul(n) => n.noul.is_finite(),
-        Answer::Choice(c) => {
-            c.confidence.is_finite() && c.probabilities.values().all(|p| p.is_finite())
-        }
+        Answer::Choice(c) => c.confidence.is_finite() && c.probabilities.values().all(|p| p.is_finite()),
         Answer::Score(s) => {
-            s.score.is_finite()
-                && s.confidence.is_finite()
-                && s.probabilities.values().all(|p| p.is_finite())
+            s.score.is_finite() && s.confidence.is_finite() && s.probabilities.values().all(|p| p.is_finite())
         }
     })
 }
@@ -328,10 +324,7 @@ fn object_of(inner: impl Strategy<Value = Value>) -> impl Strategy<Value = Value
 /// A valid state: string, object or array, nested up to 4 levels.
 pub fn state() -> impl Strategy<Value = Value> {
     let nested = leaf().prop_recursive(3, 32, 5, |inner| {
-        prop_oneof![
-            prop::collection::vec(inner.clone(), 0..5).prop_map(Value::Array),
-            object_of(inner),
-        ]
+        prop_oneof![prop::collection::vec(inner.clone(), 0..5).prop_map(Value::Array), object_of(inner),]
     });
     prop_oneof![
         3 => text().prop_map(Value::String),
@@ -406,14 +399,15 @@ pub fn option_keys(n: usize) -> impl Strategy<Value = Vec<String>> {
 
 /// A Choice question with an option count drawn from `n`.
 pub fn choice_question(n: impl Strategy<Value = usize>) -> impl Strategy<Value = Value> {
-    n.prop_flat_map(|n| (instructions(), option_keys(n), prop::collection::vec(description(), n)))
-        .prop_map(|(ins, keys, descs)| {
+    n.prop_flat_map(|n| (instructions(), option_keys(n), prop::collection::vec(description(), n))).prop_map(
+        |(ins, keys, descs)| {
             let mut criteria = Map::new();
             for (k, d) in keys.into_iter().zip(descs) {
                 criteria.insert(k, d);
             }
             json!({ "type": "choice", "instructions": ins, "criteria": criteria })
-        })
+        },
+    )
 }
 
 /// A Score question with a level count drawn from `k`.
@@ -424,11 +418,8 @@ pub fn score_question(k: impl Strategy<Value = usize>) -> impl Strategy<Value = 
 
 /// A Noul question, optionally with true/false criteria.
 pub fn noul_question() -> impl Strategy<Value = Value> {
-    (
-        instructions(),
-        prop::option::of((prop::option::of(description()), prop::option::of(description()))),
-    )
-        .prop_map(|(ins, criteria)| {
+    (instructions(), prop::option::of((prop::option::of(description()), prop::option::of(description())))).prop_map(
+        |(ins, criteria)| {
             let mut q = json!({ "type": "noul", "instructions": ins });
             if let Some((yes, no)) = criteria {
                 let mut c = Map::new();
@@ -441,7 +432,8 @@ pub fn noul_question() -> impl Strategy<Value = Value> {
                 q["criteria"] = Value::Object(c);
             }
             q
-        })
+        },
+    )
 }
 
 /// A question of any kind.
