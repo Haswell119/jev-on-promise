@@ -62,8 +62,27 @@ features! {
     domain_match,
     antonym_negated,
     directive_frac,
+    xfield_available,
+    xfield_cov_ab,
+    xfield_cov_ba,
+    xfield_jaccard,
+    xfield_cos,
+    xfield_gram,
+    xfield_neg_conflict,
+    xfield_antonym,
+    xfield_num_conflict,
+    x_sim_pos,
+    x_conflict_neg,
+    x_low_neutral,
+    opt_neg_share,
+    opt_hyp_share,
+    ord_pos_int,
+    ord_pos_val,
+    ord_hit,
     bias,
 }
+
+pub mod cross;
 
 impl F {
     #[inline]

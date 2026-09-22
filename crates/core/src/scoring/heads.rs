@@ -207,12 +207,21 @@ impl Weights {
         set(F::domain_match, 0.5);
         set(F::antonym_negated, 1.0);
         set(F::directive_frac, -2.0);
+        set(F::x_sim_pos, 2.0);
+        set(F::x_conflict_neg, 2.0);
+        set(F::x_low_neutral, 1.5);
+        set(F::ord_pos_int, 2.0);
+        set(F::ord_pos_val, 2.0);
+        set(F::ord_hit, 1.0);
         let choice = Head { base: base.clone(), families: IndexMap::new() };
         let score = Head { base: base.clone(), families: IndexMap::new() };
         let mut yes: IndexMap<String, f32> = IndexMap::new();
         yes.insert(FEATURE_NAMES[F::cov_w.idx()].to_string(), 1.0);
         yes.insert(FEATURE_NAMES[F::cov_rare.idx()].to_string(), 1.0);
         yes.insert(FEATURE_NAMES[F::ood.idx()].to_string(), -0.5);
+        yes.insert(FEATURE_NAMES[F::xfield_cov_ba.idx()].to_string(), 2.0);
+        yes.insert(FEATURE_NAMES[F::xfield_neg_conflict.idx()].to_string(), -3.0);
+        yes.insert(FEATURE_NAMES[F::xfield_antonym.idx()].to_string(), -2.0);
         let noul = NoulHead { diff: base, yes, bias: 0.0, families: IndexMap::new() };
         Weights {
             version: "bootstrap".into(),

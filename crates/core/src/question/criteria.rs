@@ -67,6 +67,10 @@ pub struct Criterion {
     pub expanded: Vec<(TermId, f32, TermId)>,
     /// Antonym stems of positive terms (term id of antonym, weight, source term).
     pub antonyms: Vec<(TermId, f32)>,
+    /// Share of positive content tokens under a negation scope (description polarity profile).
+    pub neg_share: f32,
+    /// Share of positive content tokens under a hypothetical/uncertain scope.
+    pub hyp_share: f32,
 }
 
 const NEGATIVE_KEY_MORPHEMES: &[&str] = &[
@@ -436,6 +440,21 @@ impl Criterion {
         }
 
         let (valence, intensity, has_intensity) = valence_and_intensity(&pos_toks, &pos_flags, res);
+        let (mut n_content, mut n_neg, mut n_hyp) = (0u32, 0u32, 0u32);
+        for (i, t) in pos_toks.iter().enumerate() {
+            if !t.kind.is_content() || crate::text::stem::is_function_word(&t.text) || pos_flags[i] & CUE != 0 {
+                continue;
+            }
+            n_content += 1;
+            if pos_flags[i] & NEGATED != 0 {
+                n_neg += 1;
+            }
+            if pos_flags[i] & HYPOTHETICAL != 0 {
+                n_hyp += 1;
+            }
+        }
+        let neg_share = if n_content > 0 { n_neg as f32 / n_content as f32 } else { 0.0 };
+        let hyp_share = if n_content > 0 { n_hyp as f32 / n_content as f32 } else { 0.0 };
         let range = if is_null { parse_range(&normalize_literal(key)) } else { parse_range(&pos_text).or_else(|| parse_range(&normalize_literal(key))) };
 
         let n_pos_terms = terms.iter().filter(|t| t.polarity > 0).count();
@@ -491,6 +510,8 @@ impl Criterion {
             neg_weight,
             expanded,
             antonyms,
+            neg_share,
+            hyp_share,
         }
     }
 }

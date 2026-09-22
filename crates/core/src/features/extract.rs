@@ -217,6 +217,7 @@ fn question_weight(q: &QuestionView) -> f32 {
 /// Extract features for all criteria of a question.
 pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) -> FeatureMatrix {
     let n_seg = state.segments.len();
+    let xf = super::cross::cross_field(q, state, _res);
     let mut scratch = Scratch::new(n_seg);
     let focus = &q.focus_fields;
     let (fvalence, fintensity, fhas_int) = focus_valence(state, focus);
@@ -547,9 +548,79 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
         f.set(F::domain_match, if hyper_den > 0.0 { domain_num / hyper_den } else { 0.0 });
         f.set(F::antonym_negated, ant_neg / pos_w);
         f.set(F::directive_frac, if matched_w > 0.0 { directive_w / matched_w } else { 0.0 });
+        // Cross-field channel: on every row for Choice/Score (crossed with the
+        // option's polarity profile), only on the YES hypothesis for Noul so
+        // that the yes−no difference carries the signal.
+        let apply_xf = xf.available && !(q.kind == crate::api::QuestionKind::Noul && c.index == 1);
+        if apply_xf {
+            let sim = (xf.cov_ab + xf.cov_ba) / 2.0;
+            let conflict = xf.neg_conflict + xf.antonym + 0.5 * xf.num_conflict;
+            let pos_share = (1.0 - c.neg_share - c.hyp_share).max(0.0);
+            f.set(F::xfield_available, 1.0);
+            f.set(F::xfield_cov_ab, xf.cov_ab);
+            f.set(F::xfield_cov_ba, xf.cov_ba);
+            f.set(F::xfield_jaccard, xf.jaccard);
+            f.set(F::xfield_cos, xf.cos);
+            f.set(F::xfield_gram, xf.gram);
+            f.set(F::xfield_neg_conflict, xf.neg_conflict);
+            f.set(F::xfield_antonym, xf.antonym);
+            f.set(F::xfield_num_conflict, xf.num_conflict);
+            f.set(F::x_sim_pos, sim * pos_share);
+            f.set(F::x_conflict_neg, conflict.min(1.0) * c.neg_share);
+            f.set(F::x_low_neutral, (1.0 - sim) * c.hyp_share);
+        }
+        f.set(F::opt_neg_share, c.neg_share);
+        f.set(F::opt_hyp_share, c.hyp_share);
         f.set(F::bias, 1.0);
         rows.push(f);
         evidence.push(ev);
+    }
+    // Ordinal position channel for Score: if the levels' intensity or valence
+    // is monotone in the level index, map the state's intensity/valence onto
+    // the scale and reward levels near that position.
+    if q.kind == crate::api::QuestionKind::Score && q.criteria.len() >= 2 {
+        let k = q.criteria.len();
+        let idx: Vec<f32> = (0..k).map(|i| i as f32 / (k - 1) as f32).collect();
+        let ints: Vec<f32> = q.criteria.iter().map(|c| c.intensity).collect();
+        let vals: Vec<f32> = q.criteria.iter().map(|c| c.valence).collect();
+        let corr = |x: &[f32], y: &[f32]| -> f32 {
+            let n = x.len() as f32;
+            let mx = x.iter().sum::<f32>() / n;
+            let my = y.iter().sum::<f32>() / n;
+            let num: f32 = x.iter().zip(y).map(|(a, b)| (a - mx) * (b - my)).sum();
+            let dx: f32 = x.iter().map(|a| (a - mx).powi(2)).sum::<f32>().sqrt();
+            let dy: f32 = y.iter().map(|b| (b - my).powi(2)).sum::<f32>().sqrt();
+            if dx < 1e-6 || dy < 1e-6 { 0.0 } else { num / (dx * dy) }
+        };
+        let has_int = q.criteria.iter().filter(|c| c.has_intensity).count() >= (k + 1) / 2 && fhas_int;
+        let c_int = if has_int { corr(&idx, &ints) } else { 0.0 };
+        let c_val = corr(&idx, &vals);
+        let mut positions: Vec<f32> = Vec::new();
+        if c_int.abs() >= 0.5 {
+            let p = if c_int > 0.0 { fintensity } else { 1.0 - fintensity };
+            positions.push(p);
+        }
+        if c_val.abs() >= 0.5 && fvalence != 0.0 {
+            let v = (fvalence + 1.0) / 2.0;
+            positions.push(if c_val > 0.0 { v } else { 1.0 - v });
+        }
+        for (i, row) in rows.iter_mut().enumerate() {
+            let level_pos = idx[i];
+            if c_int.abs() >= 0.5 {
+                let p = if c_int > 0.0 { fintensity } else { 1.0 - fintensity };
+                row.set(F::ord_pos_int, 1.0 - (p - level_pos).abs());
+            }
+            if c_val.abs() >= 0.5 && fvalence != 0.0 {
+                let v = (fvalence + 1.0) / 2.0;
+                let p = if c_val > 0.0 { v } else { 1.0 - v };
+                row.set(F::ord_pos_val, 1.0 - (p - level_pos).abs());
+            }
+            if !positions.is_empty() {
+                let p = positions.iter().sum::<f32>() / positions.len() as f32;
+                let nearest = (p * (k - 1) as f32).round() as usize;
+                row.set(F::ord_hit, if nearest == i { 1.0 } else { 0.0 });
+            }
+        }
     }
     FeatureMatrix { rows, evidence }
 }
