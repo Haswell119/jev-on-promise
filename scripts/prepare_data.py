@@ -712,7 +712,7 @@ def build_hwu64(ctx: Ctx, em: Emitter) -> dict:
     path, fprov = ctx.github_file(repo, branch, "AnnotatedData/NLU-Data-Home-Domain-Annotated-All.csv")
     rows, dropped = [], collections.Counter()
     with open(path, encoding="utf-8", newline="") as f:
-        for r in csv.DictReader(f, delimiter=";"):
+        for n, r in enumerate(csv.DictReader(f, delimiter=";")):
             status = (r.get("status") or "").strip().upper()
             intent = f"{r['scenario']}_{r['intent']}"
             text = re.sub(r"\s+", " ", (r.get("answer") or "").strip())
@@ -725,7 +725,8 @@ def build_hwu64(ctx: Ctx, em: Emitter) -> dict:
             if not text:
                 dropped["empty_answer"] += 1
                 continue
-            rows.append({"_src": "annotated_all", "_i": f"{r['userid']}:{r['answerid']}", "_key": norm_key(text), "text": text, "label": intent})
+            # (userid, answerid) is not unique upstream, so the CSV row number identifies the source row
+            rows.append({"_src": "annotated_all", "_i": f"row{n}", "_key": norm_key(text), "text": text, "label": intent})
     splits = make_splits(rows, None, lambda r: r["label"], ctx.caps, ctx.rng("hwu64"))
     all_intents = list(HWU64_INTENTS)
     instructions = "Which intent does this user request to a home assistant express?"

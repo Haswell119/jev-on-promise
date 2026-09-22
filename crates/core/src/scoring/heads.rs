@@ -222,6 +222,7 @@ impl Weights {
         yes.insert(FEATURE_NAMES[F::xfield_cov_ba.idx()].to_string(), 2.0);
         yes.insert(FEATURE_NAMES[F::xfield_neg_conflict.idx()].to_string(), -3.0);
         yes.insert(FEATURE_NAMES[F::xfield_antonym.idx()].to_string(), -2.0);
+        yes.insert(FEATURE_NAMES[F::window_ok.idx()].to_string(), 2.0);
         let noul = NoulHead { diff: base, yes, bias: 0.0, families: IndexMap::new() };
         Weights {
             version: "bootstrap".into(),

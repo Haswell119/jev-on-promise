@@ -210,6 +210,39 @@ fn literal_search(state: &StateIndex, lit: &str, focus: &[u32]) -> (u32, bool, V
     (count, in_focus, hits, directive)
 }
 
+/// +1 when every elapsed duration fits inside every window duration in the
+/// state, −1 when an elapsed duration exceeds a window, 0 when unknown.
+fn window_check(state: &StateIndex, focus: &[u32]) -> f32 {
+    use crate::state::index::DurationKind;
+    let in_focus = |seg: u32| focus.is_empty() || focus.binary_search(&state.segments[seg as usize].field).is_ok();
+    let windows: Vec<f64> = state.durations.iter().filter(|d| d.kind == DurationKind::Window && in_focus(d.seg)).map(|d| d.days).collect();
+    if windows.is_empty() {
+        return 0.0;
+    }
+    let mut elapsed: Vec<f64> = state.durations.iter().filter(|d| d.kind == DurationKind::Ago && in_focus(d.seg)).map(|d| d.days).collect();
+    if elapsed.is_empty() {
+        if let Some(reference) = state.reference_date {
+            let base = reference.days_from_epoch();
+            for ds in &state.dates {
+                let delta = base - ds.date.days_from_epoch();
+                if delta > 0 && in_focus(ds.seg) {
+                    elapsed.push(delta as f64);
+                }
+            }
+        }
+    }
+    if elapsed.is_empty() {
+        return 0.0;
+    }
+    let window = windows.iter().cloned().fold(f64::INFINITY, f64::min);
+    let worst = elapsed.iter().cloned().fold(0.0f64, f64::max);
+    if worst <= window {
+        1.0
+    } else {
+        -1.0
+    }
+}
+
 fn question_weight(q: &QuestionView) -> f32 {
     q.terms.iter().map(|t| t.weight).sum::<f32>().max(1e-6)
 }
@@ -571,6 +604,10 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
         }
         f.set(F::opt_neg_share, c.neg_share);
         f.set(F::opt_hyp_share, c.hyp_share);
+        // Duration window check ("within 30 days" vs "20 days ago" / dated event vs reference date).
+        if q.kind == crate::api::QuestionKind::Noul && c.index == 0 {
+            f.set(F::window_ok, window_check(state, focus));
+        }
         f.set(F::bias, 1.0);
         rows.push(f);
         evidence.push(ev);

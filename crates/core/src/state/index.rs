@@ -125,6 +125,38 @@ pub struct DateSpan {
     pub date: Date,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DurationKind {
+    /// "30 days ago", "3 weeks earlier"
+    Ago,
+    /// "within 30 days", "up to 2 weeks", "for 90 days", "30-day window"
+    Window,
+    /// "in 3 days", "3 days from now", "3 days later"
+    Later,
+    /// bare "3 days"
+    Plain,
+}
+
+/// A duration expression "N days|weeks|months|years" with its role.
+#[derive(Debug, Clone, Copy)]
+pub struct DurationSpan {
+    pub token: u32,
+    pub seg: u32,
+    pub days: f64,
+    pub kind: DurationKind,
+}
+
+fn unit_days(w: &str) -> Option<f64> {
+    Some(match w {
+        "day" | "days" => 1.0,
+        "week" | "weeks" | "wk" | "wks" => 7.0,
+        "month" | "months" | "mo" | "mos" => 30.4375,
+        "year" | "years" | "yr" | "yrs" => 365.25,
+        "hour" | "hours" | "hr" | "hrs" => 1.0 / 24.0,
+        _ => return None,
+    })
+}
+
 #[derive(Debug)]
 pub struct StateIndex {
     pub fields: Vec<Field>,
@@ -138,6 +170,10 @@ pub struct StateIndex {
     pub bigrams: FxHashMap<u64, u32>,
     pub numbers: Vec<NumberSpan>,
     pub dates: Vec<DateSpan>,
+    /// Duration expressions ("30 days ago", "within 14 days").
+    pub durations: Vec<DurationSpan>,
+    /// Reference "today" date when the state states one ("Today is 2026-03-10", "as of March 3, 2026").
+    pub reference_date: Option<Date>,
     /// Exact dotted path → field index.
     pub path_index: FxHashMap<Box<str>, u32>,
     /// Key stem → fields whose last key contains that stem.
@@ -249,6 +285,8 @@ impl StateIndex {
             bigrams: FxHashMap::default(),
             numbers: Vec::new(),
             dates: Vec::new(),
+            durations: Vec::new(),
+            reference_date: None,
             path_index: FxHashMap::default(),
             key_index: FxHashMap::default(),
             total_content: 0,
@@ -493,6 +531,44 @@ impl StateIndex {
             }
             i += 1;
         }
+        // Duration expressions: "<number> <unit> [ago|later|from now]", "within <number> <unit>".
+        for i in 0..words.len().saturating_sub(1) {
+            let n = match raw[i].kind {
+                TokenKind::Number => parse_number(words[i], TokenKind::Number).map(|p| p.value),
+                TokenKind::Word => parse_number(words[i], TokenKind::Word).map(|p| p.value),
+                _ => None,
+            };
+            let Some(n) = n else { continue };
+            let Some(ud) = unit_days(words[i + 1]) else { continue };
+            let after: Vec<&str> = words[i + 2..(i + 5).min(words.len())].to_vec();
+            let before: Vec<&str> = words[i.saturating_sub(3)..i].to_vec();
+            let kind = if after.first().map(|w| *w == "ago" || *w == "earlier" || *w == "before" || *w == "prior").unwrap_or(false) {
+                DurationKind::Ago
+            } else if (after.first() == Some(&"from") && after.get(1) == Some(&"now")) || after.first() == Some(&"later") || before.last() == Some(&"in") || after.first() == Some(&"hence") {
+                DurationKind::Later
+            } else if before.iter().any(|w| matches!(*w, "within" | "for" | "up" | "last" | "past" | "next" | "every" | "after" | "exceeding" | "over")) || after.first().map(|w| matches!(*w, "window" | "period" | "limit" | "deadline" | "term" | "notice")).unwrap_or(false) {
+                DurationKind::Window
+            } else {
+                DurationKind::Plain
+            };
+            self.durations.push(DurationSpan { token: tok_start + key_count + i as u32, seg: seg_idx, days: n * ud, kind });
+        }
+        // Reference date: "today is <date>", "current date: <date>", "as of <date>", "date: <date>".
+        if self.reference_date.is_none() {
+            for (di, ds) in self.dates.iter().enumerate().rev() {
+                if ds.seg != seg_idx {
+                    break;
+                }
+                let local = (ds.token - tok_start - key_count) as usize;
+                let before: Vec<&str> = words[local.saturating_sub(4)..local.min(words.len())].to_vec();
+                let cue = before.windows(2).any(|w| (w[0] == "today" && (w[1] == "is" || w[1] == ":")) || (w[0] == "as" && w[1] == "of") || (w[0] == "current" && w[1] == "date") || (w[0] == "todays" && w[1] == "date")) || before.last() == Some(&"today") || (before.len() >= 2 && before[before.len() - 2] == "date" && before[before.len() - 1] == ":") || key_words.iter().any(|k| matches!(k.as_str(), "today" | "now" | "current_date" | "as_of" | "date"));
+                if cue {
+                    self.reference_date = Some(ds.date);
+                    break;
+                }
+                let _ = di;
+            }
+        }
         let mut tf_vec: Vec<(TermId, u16)> = tf.into_iter().collect();
         tf_vec.sort_unstable_by_key(|(t, _)| *t);
         let mut norm = 0.0f32;
@@ -526,6 +602,23 @@ impl StateIndex {
     }
 
     fn finish(&mut self, _res: &Resources) {
+        // Relative dates ("3 days ago", "in 2 weeks") become absolute dates when the
+        // state states a reference date.
+        if let Some(reference) = self.reference_date {
+            let base = reference.days_from_epoch();
+            let mut extra = Vec::new();
+            for d in &self.durations {
+                let delta = match d.kind {
+                    DurationKind::Ago => -(d.days.round() as i64),
+                    DurationKind::Later => d.days.round() as i64,
+                    _ => continue,
+                };
+                if let Some(date) = crate::text::dates::from_days(base + delta) {
+                    extra.push(DateSpan { token: d.token, seg: d.seg, ntokens: 2, date });
+                }
+            }
+            self.dates.extend(extra);
+        }
         let mut grams: Vec<u32> = self.segments.iter().flat_map(|s| s.grams.iter().copied()).collect();
         grams.sort_unstable();
         grams.dedup();

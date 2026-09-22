@@ -79,6 +79,7 @@ features! {
     ord_pos_int,
     ord_pos_val,
     ord_hit,
+    window_ok,
     bias,
 }
 

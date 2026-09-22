@@ -29,6 +29,21 @@ impl Date {
     }
 }
 
+/// Inverse of `days_from_epoch` (Howard Hinnant's civil_from_days).
+pub fn from_days(z: i64) -> Option<Date> {
+    let z = z + 719468;
+    let era = if z >= 0 { z } else { z - 146096 } / 146097;
+    let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
+    let y = if m <= 2 { y + 1 } else { y };
+    Date::new(y as i32, m, d)
+}
+
 fn is_leap(y: i32) -> bool {
     (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
 }
@@ -180,6 +195,15 @@ mod tests {
         assert_eq!(parse_textual_date(&toks, 1, 2000), Some((Date::new(2026, 3, 3).unwrap(), 3)));
         let toks = ["mar", "3"];
         assert_eq!(parse_textual_date(&toks, 0, 2024), Some((Date::new(2024, 3, 3).unwrap(), 2)));
+    }
+
+    #[test]
+    fn from_days_roundtrip() {
+        for (y, m, d) in [(1970, 1, 1), (2000, 2, 29), (2026, 3, 3), (2024, 12, 31)] {
+            let date = Date::new(y, m, d).unwrap();
+            assert_eq!(from_days(date.days_from_epoch()), Some(date));
+        }
+        assert_eq!(from_days(Date::new(2026, 3, 10).unwrap().days_from_epoch() - 3), Date::new(2026, 3, 7));
     }
 
     #[test]

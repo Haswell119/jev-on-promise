@@ -299,7 +299,8 @@ pub fn description() -> impl Strategy<Value = Value> {
                 }
                 m
             }),
-        1 => prop::collection::vec(sentence(), 0..4).prop_map(Value::Array),
+        1 => prop::collection::vec(sentence(), 0..4)
+            .prop_map(|v| Value::Array(v.into_iter().map(Value::String).collect())),
         1 => (sentence(), any::<bool>(), any::<i32>()).prop_map(|(d, b, n)| json!({
             "description": d,
             "refund": b,
