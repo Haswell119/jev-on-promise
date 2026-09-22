@@ -23,6 +23,10 @@ pub struct Example {
     /// Symbolic logits when a resolver fired.
     pub symbolic: Option<Vec<f32>>,
     pub soft: Option<Vec<f64>>,
+    /// Loss weight (set by the trainer's balancing scheme; 1.0 by default).
+    pub weight: f32,
+    /// Balancing group key (dataset source or synthetic recipe).
+    pub group_key: String,
 }
 
 pub fn gold_index(q: &Question, gold: &Value) -> Option<usize> {
@@ -102,6 +106,7 @@ pub fn extract_examples(records: &[Record], res: &Resources, drop: &[usize]) -> 
                 }
                 let symbolic = resolvers::resolve(&view, &state, &feats).map(|r| r.logits);
                 let soft = soft_labels(q, rec.gold_probs.as_ref().and_then(|m| m.get(qid)));
+                let group_key = if rec.source.is_empty() { rec.family.clone() } else { rec.source.clone() };
                 out.push(Example {
                     record_id: rec.id.clone(),
                     kind: q.kind(),
@@ -110,6 +115,8 @@ pub fn extract_examples(records: &[Record], res: &Resources, drop: &[usize]) -> 
                     gold: gi,
                     symbolic,
                     soft,
+                    weight: 1.0,
+                    group_key,
                 });
             }
             (out, skipped)

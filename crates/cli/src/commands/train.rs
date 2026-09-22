@@ -145,12 +145,13 @@ fn train_multinomial(examples: &[&Example], epochs: usize, l2: f32, family_l2: f
                         sum += *v;
                     }
                     let t = &targets_all[idx];
+                    let ew = ex.weight;
                     for k in 0..z.len() {
                         let prob = z[k] / sum;
                         if t[k] > 0.0 {
-                            l -= t[k] * prob.max(1e-9).ln();
+                            l -= ew * t[k] * prob.max(1e-9).ln();
                         }
-                        let coef = (prob - t[k]) / n;
+                        let coef = ew * (prob - t[k]) / n;
                         if coef == 0.0 {
                             continue;
                         }
@@ -270,8 +271,8 @@ fn train_noul(
                 Some(s) if s.len() == 2 => s[1] as f32,
                 _ => e.gold as f32,
             };
-            loss -= target * prob.max(1e-9).ln() + (1.0 - target) * (1.0 - prob).max(1e-9).ln();
-            let coef = (prob - target) / n;
+            loss -= e.weight * (target * prob.max(1e-9).ln() + (1.0 - target) * (1.0 - prob).max(1e-9).ln());
+            let coef = e.weight * (prob - target) / n;
             grad[2 * N_FEATURES] += coef;
             if p.active[slot] {
                 grad[stride * (1 + slot) + 2 * N_FEATURES] += coef;
@@ -341,6 +342,41 @@ fn head_to_artifact(p: &HeadParams) -> Head {
     Head { base: to_map(&p.base), families }
 }
 
+/// Assign per-example loss weights so that every (primitive, source group)
+/// contributes ∝ sqrt(n) instead of n: large datasets still matter more but
+/// cannot drown small ones. Weights are normalised to mean 1 per primitive.
+fn balance(examples: &mut [Example], scheme: &str) {
+    use std::collections::BTreeMap;
+    if scheme == "none" {
+        return;
+    }
+    let mut counts: BTreeMap<(String, String), usize> = BTreeMap::new();
+    for e in examples.iter() {
+        *counts.entry((e.kind.as_str().to_string(), e.group_key.clone())).or_insert(0) += 1;
+    }
+    for e in examples.iter_mut() {
+        let n = counts[&(e.kind.as_str().to_string(), e.group_key.clone())] as f32;
+        e.weight = match scheme {
+            "full" => 1.0 / n,
+            _ => 1.0 / n.sqrt(),
+        };
+    }
+    for kind in ["choice", "score", "noul"] {
+        let (mut sum, mut cnt) = (0.0f32, 0usize);
+        for e in examples.iter().filter(|e| e.kind.as_str() == kind) {
+            sum += e.weight;
+            cnt += 1;
+        }
+        if cnt > 0 {
+            let mean = sum / cnt as f32;
+            for e in examples.iter_mut().filter(|e| e.kind.as_str() == kind) {
+                e.weight /= mean;
+            }
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 pub fn run(
     inputs: Vec<PathBuf>,
     out_dir: PathBuf,
@@ -350,6 +386,7 @@ pub fn run(
     epochs: usize,
     no_families: bool,
     drop_features: Option<String>,
+    balance_scheme: String,
 ) -> i32 {
     let _ = seed; // full-batch training is deterministic; the seed is recorded for provenance only
     let records = match load_records(&inputs) {
@@ -362,7 +399,8 @@ pub fn run(
     let res = Resources::embedded();
     let drop = parse_drop(&drop_features);
     let t0 = std::time::Instant::now();
-    let (examples, skipped) = extract_examples(&records, &res, &drop);
+    let (mut examples, skipped) = extract_examples(&records, &res, &drop);
+    balance(&mut examples, &balance_scheme);
     eprintln!(
         "extracted {} examples from {} records ({} skipped) in {:.1}s",
         examples.len(),
@@ -398,7 +436,7 @@ pub fn run(
     let weights = Weights {
         version: format!("trained-{}", chrono_like_stamp()),
         description: format!(
-            "Fitted by `sextant train` on {} records / {} semantic examples (choice={}, score={}, noul={}); epochs={epochs} l2={l2} family_l2={family_l2} seed={seed} dropped_features={:?}. Choice/Score: conditional logit; Noul: logistic over (f_yes-f_no, f_yes).",
+            "Fitted by `sextant train` on {} records / {} semantic examples (choice={}, score={}, noul={}); epochs={epochs} l2={l2} family_l2={family_l2} seed={seed} balance={balance_scheme} dropped_features={:?}. Choice/Score: conditional logit; Noul: logistic over (f_yes-f_no, f_yes).",
             records.len(),
             semantic.len(),
             choice.len(),

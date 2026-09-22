@@ -103,6 +103,9 @@ enum Cmd {
         /// Zero these features (ablation), comma separated.
         #[arg(long)]
         drop_features: Option<String>,
+        /// Loss balancing across (primitive, source) groups: sqrt | full | none.
+        #[arg(long, default_value = "sqrt")]
+        balance: String,
     },
     /// Fit calibration (temperatures, Platt, confidence map) on a separate split (writes calibration.json).
     Calibrate {
@@ -156,8 +159,8 @@ fn main() {
             show_failures,
             filter,
         ),
-        Cmd::Train { inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features } => {
-            commands::train::run(inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features)
+        Cmd::Train { inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features, balance } => {
+            commands::train::run(inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features, balance)
         }
         Cmd::Calibrate { inputs, out_dir, compare_isotonic } => {
             commands::calibrate::run(inputs, out_dir, compare_isotonic)
