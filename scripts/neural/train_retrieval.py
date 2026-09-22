@@ -40,7 +40,9 @@ def load(paths, limit=0):
                     names = r["feature_names"]
                 elif r["feature_names"] != names:
                     raise SystemExit(f"{p}: feature names differ from the first file; re-export both")
-                y = torch.tensor(r["labels"], dtype=torch.float32)
+                # Prefer the token-share weights; fall back to binary
+                # labels for exports made before they existed.
+                y = torch.tensor(r.get("label_weights") or r["labels"], dtype=torch.float32)
                 if y.sum() == 0:
                     continue
                 x = torch.tensor(r["features"], dtype=torch.float32)
@@ -48,7 +50,8 @@ def load(paths, limit=0):
                 ys.append(y)
                 ws.append(torch.tensor(r["seg_words"], dtype=torch.float32))
                 ids.append(torch.full((len(y),), nl, dtype=torch.long))
-                meta.append({"kind": r.get("kind", ""), "n_segments": r.get("n_segments", len(y)), "tier": r.get("tier", "")})
+                meta.append({"kind": r.get("kind", ""), "n_segments": r.get("n_segments", len(y)),
+                             "tier": r.get("tier", ""), "template_ids": r.get("template_ids", [])})
                 nl += 1
                 if limit and nl >= limit:
                     break
@@ -80,16 +83,25 @@ def segment_logsumexp(scores, list_id, n_lists, mask=None):
 
 
 def listwise_loss(scores, d):
+    """Cross-entropy against the token-share target distribution.
+
+    The old form, -log of the total mass on the positives, is indifferent
+    between putting that mass on the segment carrying most of the span and
+    the one carrying a sliver of it. Weighting the target by token share
+    makes the loss care about the same thing the suite metric does."""
     logZ = segment_logsumexp(scores, d["list_id"], d["n_lists"])
-    logP = segment_logsumexp(scores, d["list_id"], d["n_lists"], mask=d["y"] > 0)
-    return (logZ - logP).mean()
+    logp = scores - logZ[d["list_id"]]
+    tgt_sum = torch.zeros(d["n_lists"]).index_add_(0, d["list_id"], d["y"]).clamp_min(1e-12)
+    tgt = d["y"] / tgt_sum[d["list_id"]]
+    per_list = torch.zeros(d["n_lists"]).index_add_(0, d["list_id"], -tgt * logp)
+    return per_list.mean()
 
 
 def budget_recall(scores, d, budget):
-    """Fraction of annotated segments that survive a greedy fill of the word
-    budget. This is what the engine actually experiences; a pure ranking
-    metric would hide the fact that a long winning segment can crowd the
-    needle out."""
+    """Share of the annotated span that survives a greedy fill of the word
+    budget. With token-share labels this tracks the suite's token-level
+    recall rather than a count of segments, which is the distinction that
+    sank the first fit."""
     off = d["offsets"]
     got_total, top1 = 0.0, 0.0
     for i in range(d["n_lists"]):

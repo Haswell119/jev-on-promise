@@ -29,6 +29,14 @@ struct Row<'a> {
     seg_index: Vec<u32>,
     features: Vec<Vec<f32>>,
     labels: Vec<u8>,
+    /// Share of the annotated span this segment carries, in [0, 1]. The
+    /// suite metric is token-level containment of the gold string, so a
+    /// segment holding 60% of it is worth more than one holding 5%, and a
+    /// binary label throws that distinction away.
+    label_weights: Vec<f32>,
+    /// Generator templates behind this record, so the selection split can
+    /// be taken by template pool rather than by record.
+    template_ids: Vec<String>,
     feature_names: Vec<&'static str>,
 }
 
@@ -51,6 +59,16 @@ fn normalize(s: &str) -> String {
         }
     }
     out.trim_end().to_string()
+}
+
+fn template_ids(extra: &indexmap::IndexMap<String, Value>) -> Vec<String> {
+    extra
+        .get("meta")
+        .and_then(|m| m.as_object())
+        .and_then(|m| m.get("template_ids"))
+        .and_then(|t| t.as_array())
+        .map(|a| a.iter().filter_map(|v| v.as_str()).map(String::from).collect())
+        .unwrap_or_default()
 }
 
 fn gold_spans(extra: &indexmap::IndexMap<String, Value>) -> Vec<String> {
@@ -133,16 +151,32 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
             // being labelled positive because that word happens to occur in
             // the annotation.
             let padded: Vec<String> = spans.iter().map(|g| format!(" {g} ")).collect();
+            let span_tokens: Vec<usize> = spans.iter().map(|g| g.split_whitespace().count().max(1)).collect();
             let mut positive = vec![false; n_seg];
+            let mut weight = vec![0.0f32; n_seg];
             for i in 0..n_seg {
                 let seg = normalize(state.segment_text(i as u32));
                 if seg.is_empty() {
                     continue;
                 }
                 let pseg = format!(" {seg} ");
-                positive[i] = padded.iter().zip(spans.iter()).any(|(pg, g)| {
-                    (seg.len() >= MIN_SEGMENT_MATCH_CHARS && pg.contains(&pseg)) || pseg.contains(&format!(" {g} "))
-                });
+                let seg_tokens = seg.split_whitespace().count();
+                for (k, g) in spans.iter().enumerate() {
+                    // The whole annotation sits inside this segment: it
+                    // carries all of it. Or the segment is one piece of a
+                    // multi-segment annotation: it carries its token share.
+                    let w = if pseg.contains(&format!(" {g} ")) {
+                        1.0
+                    } else if seg.len() >= MIN_SEGMENT_MATCH_CHARS && padded[k].contains(&pseg) {
+                        seg_tokens as f32 / span_tokens[k] as f32
+                    } else {
+                        0.0
+                    };
+                    if w > weight[i] {
+                        weight[i] = w.min(1.0);
+                    }
+                }
+                positive[i] = weight[i] > 0.0;
             }
             if !positive.iter().any(|p| *p) {
                 no_positive += 1;
@@ -179,6 +213,8 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
                     seg_index: keep.iter().map(|&i| i as u32).collect(),
                     features: keep.iter().map(|&i| feats[i].to_vec()).collect(),
                     labels: keep.iter().map(|&i| u8::from(positive[i])).collect(),
+                    label_weights: keep.iter().map(|&i| weight[i]).collect(),
+                    template_ids: template_ids(&rec.extra),
                     feature_names: sextant_core::retrieval::FEATURE_NAMES.to_vec(),
                 };
                 if let Err(e) = writeln!(w, "{}", serde_json::to_string(&row).expect("serialize")) {
