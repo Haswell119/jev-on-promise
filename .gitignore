@@ -6,6 +6,7 @@ __pycache__/
 *.pyc
 .venv/
 /data/raw/
+/data/processed/
 /data/cache/
 /data/external/
 /benchmarks/jevbench/data/
@@ -14,3 +15,11 @@ __pycache__/
 /node_modules/
 .env
 .env.*
+
+# Benchmark harness checkouts, datasets and virtualenv (fetched by benchmarks/*/fetch.sh)
+/benchmarks/jevbench/harness/
+/benchmarks/jev_bench_hf/data/
+/benchmarks/jev_bench_hf/harness/
+/benchmarks/.venv/
+# Raw per-item responses of benchmark runs (large; the summaries are kept)
+reports/**/raw/

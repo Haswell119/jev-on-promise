@@ -103,7 +103,7 @@ pub const HARD_CUES: &[&str] = &[
 
 #[inline]
 fn cue_flag(word: &str) -> Flags {
-    if HARD_CUES.contains(&word) {
+    if cues().hard.contains(word) {
         CUE
     } else {
         0
@@ -240,6 +240,54 @@ pub const AUX_VERBS: &[&str] = &[
     "may", "might", "have", "has", "had", "must",
 ];
 
+use rustc_hash::FxHashSet;
+use std::sync::OnceLock;
+
+struct CueSets {
+    negators: FxHashSet<&'static str>,
+    negator_bigrams: FxHashSet<(&'static str, &'static str)>,
+    non_negating: FxHashSet<(&'static str, &'static str)>,
+    exceptions: FxHashSet<&'static str>,
+    hypothetical: FxHashSet<&'static str>,
+    request: FxHashSet<&'static str>,
+    request_bigrams: FxHashSet<(&'static str, &'static str)>,
+    inquiry_bigrams: FxHashSet<(&'static str, &'static str)>,
+    intensifiers: FxHashSet<&'static str>,
+    diminishers: FxHashSet<&'static str>,
+    terminators: FxHashSet<&'static str>,
+    hard: FxHashSet<&'static str>,
+    /// Union of every single-word cue: a fast negative check.
+    any_word: FxHashSet<&'static str>,
+}
+
+fn cues() -> &'static CueSets {
+    static C: OnceLock<CueSets> = OnceLock::new();
+    C.get_or_init(|| {
+        let mut any_word: FxHashSet<&'static str> = FxHashSet::default();
+        for list in [NEGATORS, EXCEPTION_CUES, HYPOTHETICAL_CUES, REQUEST_CUES, INTENSIFIERS, DIMINISHERS] {
+            any_word.extend(list.iter().copied());
+        }
+        for (a, _) in NEGATOR_BIGRAMS.iter().chain(NON_NEGATING.iter()).chain(REQUEST_BIGRAMS.iter()).chain(INQUIRY_BIGRAMS.iter()) {
+            any_word.insert(a);
+        }
+        CueSets {
+            negators: NEGATORS.iter().copied().collect(),
+            negator_bigrams: NEGATOR_BIGRAMS.iter().copied().collect(),
+            non_negating: NON_NEGATING.iter().copied().collect(),
+            exceptions: EXCEPTION_CUES.iter().copied().collect(),
+            hypothetical: HYPOTHETICAL_CUES.iter().copied().collect(),
+            request: REQUEST_CUES.iter().copied().collect(),
+            request_bigrams: REQUEST_BIGRAMS.iter().copied().collect(),
+            inquiry_bigrams: INQUIRY_BIGRAMS.iter().copied().collect(),
+            intensifiers: INTENSIFIERS.iter().copied().collect(),
+            diminishers: DIMINISHERS.iter().copied().collect(),
+            terminators: CLAUSE_TERMINATORS.iter().copied().collect(),
+            hard: HARD_CUES.iter().copied().collect(),
+            any_word,
+        }
+    })
+}
+
 #[inline]
 fn is_terminator_punct(t: &RawToken) -> bool {
     t.kind == TokenKind::Punct && matches!(t.text.as_str(), "," | ";" | "." | "!" | "?" | ":" | "(" | ")" | "\"" | "[" | "]")
@@ -247,7 +295,7 @@ fn is_terminator_punct(t: &RawToken) -> bool {
 
 #[inline]
 fn is_terminator_word(t: &RawToken) -> bool {
-    t.kind == TokenKind::Word && CLAUSE_TERMINATORS.contains(&t.text.as_str())
+    t.kind == TokenKind::Word && cues().terminators.contains(t.text.as_str())
 }
 
 struct Scope {
@@ -350,7 +398,7 @@ pub fn annotate(tokens: &[RawToken]) -> Vec<Flags> {
             if is_terminator_word(t) {
                 flags[i] |= CUE;
             }
-            if t.kind == TokenKind::Word && EXCEPTION_CUES.contains(&w) {
+            if t.kind == TokenKind::Word && cues().exceptions.contains(w) {
                 sc.exc = Some(Scope { flag: EXCEPTION, remaining: EXC_WINDOW });
             }
             i += 1;
@@ -362,26 +410,27 @@ pub fn annotate(tokens: &[RawToken]) -> Vec<Flags> {
 
         // Cue detection (bigrams first).
         let mut cue: Option<(Cue, usize)> = None;
-        if is_word {
-            if NON_NEGATING.contains(&(w, nw)) {
+        let cs = cues();
+        if is_word && cs.any_word.contains(w) {
+            if cs.non_negating.contains(&(w, nw)) {
                 cue = Some((Cue::Idiom, 2));
-            } else if NEGATOR_BIGRAMS.contains(&(w, nw)) {
+            } else if cs.negator_bigrams.contains(&(w, nw)) {
                 cue = Some((Cue::Negator, 2));
-            } else if NEGATORS.contains(&w) {
+            } else if cs.negators.contains(w) {
                 cue = Some((Cue::Negator, if nw == "to" { 2 } else { 1 }));
-            } else if EXCEPTION_CUES.contains(&w) {
+            } else if cs.exceptions.contains(w) {
                 cue = Some((Cue::Exception, if nw == "for" || nw == "from" { 2 } else { 1 }));
-            } else if REQUEST_BIGRAMS.contains(&(w, nw)) {
+            } else if cs.request_bigrams.contains(&(w, nw)) {
                 cue = Some((Cue::Request, 2));
-            } else if INQUIRY_BIGRAMS.contains(&(w, nw)) {
+            } else if cs.inquiry_bigrams.contains(&(w, nw)) {
                 cue = Some((Cue::Inquiry, 2));
-            } else if REQUEST_CUES.contains(&w) {
+            } else if cs.request.contains(w) {
                 cue = Some((Cue::Request, 1));
-            } else if HYPOTHETICAL_CUES.contains(&w) {
+            } else if cs.hypothetical.contains(w) {
                 cue = Some((Cue::Hypothetical, 1));
-            } else if INTENSIFIERS.contains(&w) {
+            } else if cs.intensifiers.contains(w) {
                 cue = Some((Cue::Intensifier, 1));
-            } else if DIMINISHERS.contains(&w) {
+            } else if cs.diminishers.contains(w) {
                 cue = Some((Cue::Diminisher, 1));
             }
         }

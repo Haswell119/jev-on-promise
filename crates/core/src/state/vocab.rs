@@ -93,15 +93,25 @@ impl Vocab {
 /// Read-only view over a shared `Vocab` plus a private extension for terms
 /// that only appear in one question. Ids in the extension start at
 /// `base.len()`.
+/// Cached lexical expansion of one term (synonym and antonym term ids).
+#[derive(Debug, Clone, Default)]
+pub struct Expansion {
+    pub synonyms: smallvec::SmallVec<[TermId; 12]>,
+    pub antonyms: smallvec::SmallVec<[TermId; 4]>,
+}
+
 pub struct VocabExt<'a> {
     base: &'a Vocab,
     local_stems: FxHashMap<Box<str>, TermId>,
+    /// surface → term for surfaces seen in this question (avoids re-stemming).
+    local_surface: FxHashMap<Box<str>, TermId>,
     local_terms: Vec<TermInfo>,
+    expansions: FxHashMap<TermId, Expansion>,
 }
 
 impl<'a> VocabExt<'a> {
     pub fn new(base: &'a Vocab) -> Self {
-        VocabExt { base, local_stems: FxHashMap::default(), local_terms: Vec::new() }
+        VocabExt { base, local_stems: FxHashMap::default(), local_surface: FxHashMap::default(), local_terms: Vec::new(), expansions: FxHashMap::default() }
     }
 
     pub fn base(&self) -> &'a Vocab {
@@ -109,24 +119,74 @@ impl<'a> VocabExt<'a> {
     }
 
     pub fn intern(&mut self, surface: &str, res: &Resources) -> TermId {
-        if let Some(id) = self.base.lookup(surface) {
+        if let Some(&id) = self.base.surface_to_term.get(surface) {
+            return id;
+        }
+        if let Some(&id) = self.local_surface.get(surface) {
             return id;
         }
         let st = stem(surface);
-        if let Some(&id) = self.local_stems.get(st.as_str()) {
+        let id = if let Some(id) = self.base.lookup_stem(&st) {
+            id
+        } else if let Some(&id) = self.local_stems.get(st.as_str()) {
+            id
+        } else {
+            let id = (self.base.len() + self.local_terms.len()) as TermId;
+            let idf = res.idf(&st, surface);
+            self.local_terms.push(TermInfo {
+                stem: st.clone().into_boxed_str(),
+                surface: surface.into(),
+                idf,
+                stop: is_stopword(surface) || is_stopword(&st),
+                func: is_function_word(surface),
+            });
+            self.local_stems.insert(st.into_boxed_str(), id);
+            id
+        };
+        self.local_surface.insert(surface.into(), id);
+        id
+    }
+
+    /// Intern an already-stemmed form (e.g. a lexical-graph synonym stem).
+    pub fn intern_stem(&mut self, st: &str, res: &Resources) -> TermId {
+        if let Some(id) = self.base.lookup_stem(st) {
+            return id;
+        }
+        if let Some(&id) = self.local_stems.get(st) {
             return id;
         }
         let id = (self.base.len() + self.local_terms.len()) as TermId;
-        let idf = res.idf(&st, surface);
-        self.local_terms.push(TermInfo {
-            stem: st.clone().into_boxed_str(),
-            surface: surface.into(),
-            idf,
-            stop: is_stopword(surface) || is_stopword(&st),
-            func: is_function_word(surface),
-        });
-        self.local_stems.insert(st.into_boxed_str(), id);
+        let idf = res.idf(st, st);
+        self.local_terms.push(TermInfo { stem: st.into(), surface: st.into(), idf, stop: is_stopword(st), func: is_function_word(st) });
+        self.local_stems.insert(st.into(), id);
         id
+    }
+
+    /// Synonym / antonym expansion of a term, computed once per question.
+    pub fn expansion(&mut self, id: TermId, res: &Resources) -> Expansion {
+        if let Some(e) = self.expansions.get(&id) {
+            return e.clone();
+        }
+        let mut e = Expansion::default();
+        if !res.graph.is_empty() {
+            let st: Box<str> = self.info(id).stem.clone();
+            let syns: smallvec::SmallVec<[&str; 8]> = res.graph.synonym_stems(&st, crate::lexicon::graph::MAX_SENSES);
+            for s in syns.iter().take(12) {
+                let sid = self.intern_stem(s, res);
+                if sid != id && !e.synonyms.contains(&sid) {
+                    e.synonyms.push(sid);
+                }
+            }
+            let ants: smallvec::SmallVec<[&str; 4]> = res.graph.antonym_stems(&st);
+            for a in ants.iter().take(6) {
+                let aid = self.intern_stem(a, res);
+                if aid != id && !e.antonyms.contains(&aid) {
+                    e.antonyms.push(aid);
+                }
+            }
+        }
+        self.expansions.insert(id, e.clone());
+        e
     }
 
     /// True when the term exists in the shared state vocabulary.

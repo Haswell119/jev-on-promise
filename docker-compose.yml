@@ -1,0 +1,41 @@
+# docker compose up --build        -> http://localhost:8080 (GET /health, POST /v1/systemone)
+# docker compose run --rm -T sextant decide < examples/request_basic.json
+services:
+  sextant:
+    build: .
+    image: sextant:dev
+    container_name: sextant
+    ports:
+      - "8080:8080"
+    environment:
+      SEXTANT_ADDR: 0.0.0.0:8080
+      # 0 = one worker thread per CPU
+      SEXTANT_THREADS: "0"
+      # SEXTANT_MAX_BODY: "4194304"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    # The binary never writes to disk and needs no capabilities: lock it down.
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    #
+    # Air-gapped variant. Inference needs no network at all: the model, calibration
+    # and lexicon are compiled into the binary and the engine makes no outbound
+    # calls (GET /health reports "network_required": false). To make that a hard
+    # guarantee at the container level, replace the `ports:` block above with:
+    #
+    #   network_mode: none
+    #
+    # Docker cannot publish ports on a container without a network namespace, so
+    # the HTTP API is then only reachable from inside the container
+    # (`docker compose exec sextant curl -s http://127.0.0.1:8080/health`), which
+    # is the right shape for a sidecar or for the one-shot CLI form:
+    #
+    #   docker compose run --rm -T sextant decide < examples/request_basic.json

@@ -209,6 +209,12 @@ fn is_quantity_word(w: &str) -> bool {
 
 /// Compute valence and intensity for a token sequence (with scope flags).
 pub fn valence_and_intensity(toks: &[crate::text::tokenize::RawToken], flags: &[Flags], res: &Resources) -> (f32, f32, bool) {
+    valence_and_intensity_with(toks, flags, res, |i| crate::text::stem::stem(&toks[i].text))
+}
+
+/// Same as `valence_and_intensity` but with a caller-provided stem lookup
+/// (avoids re-stemming when the tokens are already interned).
+pub fn valence_and_intensity_with(toks: &[crate::text::tokenize::RawToken], flags: &[Flags], res: &Resources, stem_of: impl Fn(usize) -> String) -> (f32, f32, bool) {
     let (mut vs, mut vn) = (0.0f32, 0u32);
     let (mut is, mut inn) = (0.0f32, 0u32);
     for (i, t) in toks.iter().enumerate() {
@@ -220,7 +226,7 @@ pub fn valence_and_intensity(toks: &[crate::text::tokenize::RawToken], flags: &[
             continue;
         }
         let f = flags[i];
-        let st = crate::text::stem::stem(&t.text);
+        let st = if res.sentiment.is_empty() { String::new() } else { stem_of(i) };
         let mut v = res.sentiment.valence(&t.text, &st);
         if v != 0.0 {
             if f & NEGATED != 0 {
@@ -334,6 +340,7 @@ impl Criterion {
         let mut all_text = String::new();
         let mut pos_toks: Vec<crate::text::tokenize::RawToken> = Vec::new();
         let mut pos_flags: Vec<Flags> = Vec::new();
+        let mut pos_term_ids: Vec<Option<TermId>> = Vec::new();
         let mut bigrams: Vec<u64> = Vec::new();
         for (text, polarity, factor) in &col.texts {
             let norm = normalize_nfkc(text);
@@ -382,6 +389,9 @@ impl Criterion {
                 }
             }
             if *polarity > 0 {
+                for rt in raw.iter() {
+                    pos_term_ids.push(if rt.kind == TokenKind::Word { Some(vocab.intern(&rt.text, res)) } else { None });
+                }
                 pos_toks.extend(raw.iter().cloned());
                 pos_flags.extend(fl.iter().copied());
             }
@@ -439,7 +449,10 @@ impl Criterion {
             }
         }
 
-        let (valence, intensity, has_intensity) = valence_and_intensity(&pos_toks, &pos_flags, res);
+        let (valence, intensity, has_intensity) = {
+            let v = &*vocab;
+            valence_and_intensity_with(&pos_toks, &pos_flags, res, |i| pos_term_ids[i].map(|t| v.info(t).stem.to_string()).unwrap_or_default())
+        };
         let (mut n_content, mut n_neg, mut n_hyp) = (0u32, 0u32, 0u32);
         for (i, t) in pos_toks.iter().enumerate() {
             if !t.kind.is_content() || crate::text::stem::is_function_word(&t.text) || pos_flags[i] & CUE != 0 {
@@ -455,33 +468,36 @@ impl Criterion {
         }
         let neg_share = if n_content > 0 { n_neg as f32 / n_content as f32 } else { 0.0 };
         let hyp_share = if n_content > 0 { n_hyp as f32 / n_content as f32 } else { 0.0 };
-        let range = if is_null { parse_range(&normalize_literal(key)) } else { parse_range(&pos_text).or_else(|| parse_range(&normalize_literal(key))) };
+        let has_number = |t: &str| t.chars().any(|c| c.is_ascii_digit()) || t.split(|c: char| !c.is_alphabetic()).any(|w| crate::text::numbers::number_word(w).is_some());
+        let key_lit = normalize_literal(key);
+        let range = if is_null {
+            if has_number(&key_lit) { parse_range(&key_lit) } else { None }
+        } else if has_number(&pos_text) {
+            parse_range(&pos_text).or_else(|| if has_number(&key_lit) { parse_range(&key_lit) } else { None })
+        } else if has_number(&key_lit) {
+            parse_range(&key_lit)
+        } else {
+            None
+        };
 
         let n_pos_terms = terms.iter().filter(|t| t.polarity > 0).count();
         let n_neg_terms = terms.iter().filter(|t| t.polarity < 0).count();
         let pos_weight: f32 = terms.iter().filter(|t| t.polarity > 0).map(|t| t.weight).sum();
         let neg_weight: f32 = terms.iter().filter(|t| t.polarity < 0).map(|t| t.weight).sum();
 
-        // Lexical expansion (synonyms / antonyms) for positive, non-stop terms.
+        // Lexical expansion (synonyms / antonyms) for positive, non-stop terms (cached per question).
         let mut expanded: Vec<(TermId, f32, TermId)> = Vec::new();
         let mut antonyms: Vec<(TermId, f32)> = Vec::new();
         if !res.graph.is_empty() {
-            let pos_terms: Vec<(TermId, f32, bool)> = terms.iter().filter(|t| t.polarity > 0 && !t.negated).map(|t| (t.term, t.weight, vocab.info(t.term).stop)).collect();
-            for (tid, w, stop) in pos_terms {
-                if stop {
-                    continue;
-                }
-                let st = vocab.info(tid).stem.to_string();
-                let syns: Vec<String> = res.graph.synonym_stems(&st, crate::lexicon::graph::MAX_SENSES).iter().map(|s| s.to_string()).collect();
-                for s in syns.iter().take(12) {
-                    let sid = vocab.intern(s, res);
-                    if sid != tid && !terms.iter().any(|t| t.term == sid) {
+            let pos_terms: Vec<(TermId, f32)> = terms.iter().filter(|t| t.polarity > 0 && !t.negated && !vocab.info(t.term).stop).map(|t| (t.term, t.weight)).collect();
+            for (tid, w) in pos_terms {
+                let e = vocab.expansion(tid, res);
+                for &sid in &e.synonyms {
+                    if !terms.iter().any(|t| t.term == sid) {
                         expanded.push((sid, w * 0.6, tid));
                     }
                 }
-                let ants: Vec<String> = res.graph.antonym_stems(&st).iter().map(|s| s.to_string()).collect();
-                for a in ants.iter().take(6) {
-                    let aid = vocab.intern(a, res);
+                for &aid in &e.antonyms {
                     if !terms.iter().any(|t| t.term == aid) {
                         antonyms.push((aid, w));
                     }

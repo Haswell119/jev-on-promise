@@ -1,0 +1,29 @@
+# Only what `cargo build --release --bin sextant` needs goes into the build
+# context: Cargo.toml, Cargo.lock, crates/ (sources + lexicon assets), model/
+# (weights + calibration, compiled in via include_str!) and docs/openapi.yaml
+# (served by the HTTP server).
+target/
+.git/
+.github/
+reports/
+benchmarks/
+clients/
+data/
+examples/
+scripts/
+tests/
+benches/
+node_modules/
+.venv/
+**/__pycache__/
+*.md
+*.swp
+.DS_Store
+.env
+.env.*
+.editorconfig
+docker-compose.yml
+Dockerfile
+.dockerignore
+# The image pins its toolchain through the `FROM rust:<version>` tag.
+rust-toolchain.toml

@@ -1,0 +1,21 @@
+{
+  "adapter": "typesafe",
+  "charged_usd": 0.0,
+  "cost_basis": "local",
+  "dataset_hash": "3cbd0e951fa8059741955ef2bd3273b0bb60aecae8f4a68b89872f55f7376b3d",
+  "delay_s": 0.0,
+  "endpoint": "http://127.0.0.1:52713",
+  "finished_utc": "2026-09-22T14:00:02.892934+00:00",
+  "key_env_used": false,
+  "n_attempted": 48,
+  "n_planned": 48,
+  "price_input_per_m": null,
+  "price_output_per_m": null,
+  "request_options": {},
+  "requested_model": "sextant-1",
+  "resolved_models": [
+    "sextant-1"
+  ],
+  "run_label": "sextant-6c8430b1-20260922",
+  "started_utc": "2026-09-22T14:00:02.261292+00:00"
+}
