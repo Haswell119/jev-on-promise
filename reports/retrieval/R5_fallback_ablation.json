@@ -1,0 +1,54 @@
+{
+  "note": "Ablation: the heuristic with its document-order fallback disabled. Not a clean test of a positional bet: without the fallback the selector uses only segments BM25 scored above zero, so 526 of 1548 rows leave the 140-word budget unspent (mean 104 words against 135). The fallback is mostly spending the budget, not betting on position.",
+  "with_fallback": {
+    "n": 1548,
+    "full": 0.3055555555555556,
+    "partial": 0.19056847545219638,
+    "lost": 0.5038759689922481,
+    "by_bucket": {
+      "64": 0.932193456580657,
+      "128": 0.849721390686172,
+      "256": 0.6670044070031884,
+      "512": 0.5583101279899993,
+      "1024": 0.4575232431939484,
+      "2048": 0.35635075800210214,
+      "4096": 0.3531843857610756,
+      "8192": 0.327292318122983,
+      "16384": 0.3661187941008247
+    },
+    "by_position": {
+      "start": 0.643505645910946,
+      "middle": 0.47746263707144704,
+      "end": 0.44793900895684724,
+      "split": 0.605373979324801
+    }
+  },
+  "without_fallback": {
+    "n": 1548,
+    "full": 0.16020671834625322,
+    "partial": 0.1937984496124031,
+    "lost": 0.6459948320413437,
+    "by_bucket": {
+      "64": 0.8264163043374612,
+      "128": 0.5363987897991956,
+      "256": 0.435604205223412,
+      "512": 0.41119966598625984,
+      "1024": 0.39393219817486824,
+      "2048": 0.2945892801923736,
+      "4096": 0.3255689073089253,
+      "8192": 0.27747304223732466,
+      "16384": 0.33198017094367593
+    },
+    "by_position": {
+      "start": 0.4245472185638342,
+      "middle": 0.4128436772726947,
+      "end": 0.42367032533115506,
+      "split": 0.4478715536828787
+    }
+  },
+  "budget_words_mean_with": 135.2,
+  "budget_words_mean_without": 103.6,
+  "rows_under_100_words_with": 74,
+  "rows_under_100_words_without": 526,
+  "n_rows": 1548
+}

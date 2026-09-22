@@ -12,6 +12,7 @@ RANKER="${1:?usage: measure_retrieval.sh <retrieval.json> <tag>}"
 TAG="${2:?usage: measure_retrieval.sh <retrieval.json> <tag>}"
 SUITE="${SEXTANT_LONGCTX_SET:-data/bench_internal/long_context.jsonl}"
 BUDGET="${SEXTANT_EVIDENCE_WORDS:-140}"
+GLUE="${SEXTANT_NEIGHBOUR_GLUE:-0}"
 BIN=./target/release/sextant
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -28,7 +29,8 @@ python3 scripts/neural/evidence_recall.py --records "$SUITE" --pairs "$WORK/base
 
 echo "== learned ranker"
 $BIN --model-dir "$WORK" --threads 1 export-pairs "$SUITE" --out "$WORK/ranked.jsonl" \
-  --budget-words "$BUDGET" --no-features --local-idf --q-expand >/dev/null 2>&1
+  --budget-words "$BUDGET" --no-features --local-idf --q-expand --neighbour-glue "$GLUE" >/dev/null 2>&1
+cp "$WORK/ranked.jsonl" "reports/retrieval/${TAG}_ranked_pairs.jsonl" 2>/dev/null || true
 python3 scripts/neural/evidence_recall.py --records "$SUITE" --pairs "$WORK/ranked.jsonl" \
   --out "reports/retrieval/${TAG}_ranked.json" > /dev/null
 

@@ -40,6 +40,9 @@ pub struct ScorerConfig {
     /// Retrieval expanded the question query at training time.
     #[serde(default)]
     pub evidence_q_expand: bool,
+    /// Segments taken either side of each ranked pick at training time.
+    #[serde(default)]
+    pub evidence_neighbour_glue: usize,
     /// Number of symbolic features consumed by the head (0 = none).
     #[serde(default)]
     pub n_features: usize,
@@ -76,6 +79,7 @@ impl Default for ScorerConfig {
             evidence_strategy: default_strategy(),
             evidence_local_idf: false,
             evidence_q_expand: false,
+            evidence_neighbour_glue: 0,
             n_features: 0,
             use_symbolic_logit: false,
             encoder: String::new(),

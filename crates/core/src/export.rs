@@ -108,6 +108,12 @@ pub struct EvidenceParams {
     /// Turn it off to measure how much of the heuristic's score is the
     /// ranking and how much is that bet.
     pub doc_order_fallback: bool,
+    /// With a learned ranker, also take this many segments either side of
+    /// each chosen segment when the budget allows. The recall metric, and
+    /// a reader, both need a whole sentence: an annotated span often runs
+    /// across several segments, and a selection that takes the best ones
+    /// individually can return the span in pieces.
+    pub neighbour_glue: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -127,6 +133,7 @@ impl Default for EvidenceParams {
             local_idf: false,
             q_expand: false,
             doc_order_fallback: true,
+            neighbour_glue: 0,
         }
     }
 }
@@ -162,6 +169,11 @@ impl EvidenceParams {
 
     pub fn with_doc_order_fallback(mut self, on: bool) -> Self {
         self.doc_order_fallback = on;
+        self
+    }
+
+    pub fn with_neighbour_glue(mut self, n: usize) -> Self {
+        self.neighbour_glue = n;
         self
     }
 
@@ -312,16 +324,33 @@ pub fn select_evidence_ranked(
         order.sort_by(|a, b| {
             scores[*b as usize].partial_cmp(&scores[*a as usize]).unwrap_or(std::cmp::Ordering::Equal).then(a.cmp(b))
         });
+        let mut taken = vec![false; n_seg];
         let mut chosen: Vec<u32> = Vec::new();
         let mut used = 0usize;
-        for seg in order {
-            let w = state.segment_text(seg).split_whitespace().count();
-            if w == 0 {
-                continue;
+        let mut take = |seg: u32, taken: &mut Vec<bool>, chosen: &mut Vec<u32>, used: &mut usize| {
+            if taken[seg as usize] {
+                return;
             }
-            if used + w <= p.budget_words {
-                chosen.push(seg);
-                used += w;
+            let w = state.segment_text(seg).split_whitespace().count();
+            if w == 0 || *used + w > p.budget_words {
+                return;
+            }
+            taken[seg as usize] = true;
+            chosen.push(seg);
+            *used += w;
+        };
+        for seg in order {
+            take(seg, &mut taken, &mut chosen, &mut used);
+            // Keep the neighbourhood of a chosen segment intact: an
+            // annotated span usually runs across several segments, and
+            // taking only the individually best ones returns it in pieces.
+            for d in 1..=p.neighbour_glue as u32 {
+                if seg >= d {
+                    take(seg - d, &mut taken, &mut chosen, &mut used);
+                }
+                if seg + d < n_seg as u32 {
+                    take(seg + d, &mut taken, &mut chosen, &mut used);
+                }
             }
             if used >= p.budget_words {
                 break;

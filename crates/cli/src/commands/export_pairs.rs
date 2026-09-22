@@ -52,10 +52,11 @@ pub struct Opts {
     pub local_idf: bool,
     pub q_expand: bool,
     pub doc_order_fallback: bool,
+    pub neighbour_glue: usize,
 }
 
 pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out: PathBuf, opts: Opts) -> i32 {
-    let Opts { budget_words, limit, no_features, strategy, adaptive_cap, local_idf, q_expand, doc_order_fallback } = opts;
+    let Opts { budget_words, limit, no_features, strategy, adaptive_cap, local_idf, q_expand, doc_order_fallback, neighbour_glue } = opts;
     let engine = match build_engine(model_dir, threads) {
         Ok(e) => e,
         Err(e) => {
@@ -67,7 +68,8 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
         .with_adaptive_cap(adaptive_cap)
         .with_local_idf(local_idf)
         .with_q_expand(q_expand)
-        .with_doc_order_fallback(doc_order_fallback);
+        .with_doc_order_fallback(doc_order_fallback)
+        .with_neighbour_glue(neighbour_glue);
     let files = expand_jsonl(&inputs);
     if let Some(parent) = out.parent() {
         let _ = std::fs::create_dir_all(parent);
@@ -145,6 +147,7 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
         "local_idf": local_idf,
         "q_expand": q_expand,
         "doc_order_fallback": doc_order_fallback,
+        "neighbour_glue": neighbour_glue,
         "rows": n_rows,
         "records": n_records,
         "engine_version": env!("CARGO_PKG_VERSION"),

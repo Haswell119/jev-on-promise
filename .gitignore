@@ -50,3 +50,4 @@ reports/challengers/*.calib_probe.jsonl
 # Exported retrieval features for fitting the learned ranker (large).
 # Regenerate with: sextant export-retrieval ... (see docs/NEURAL.md)
 /data/retrieval/
+reports/retrieval/*_ranked_pairs.jsonl
