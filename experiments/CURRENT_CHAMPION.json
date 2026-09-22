@@ -32,8 +32,9 @@
     "ece": 0.10709963993540272,
     "schema_validity": 1.0,
     "p50_ms": 5.85239,
-    "memory_mb": 0.0,
-    "n": 3037
+    "memory_mb": 115.7,
+    "n": 3037,
+    "memory_measurement": "peak resident set size of the evaluation process tree, measured with scripts/peak_rss.py"
   },
   "dev_score": 0.5847007376109611,
   "latency_ms": {

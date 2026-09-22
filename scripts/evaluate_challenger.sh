@@ -46,13 +46,30 @@ python3 scripts/neural/fit_fusion.py --pairs "$CALIB_PAIRS" --probe "reports/cha
   --base-calibration model/calibration.json --out "$MODEL/calibration.json"
 
 echo "== 4/5 evaluate on the internal $TAG set through the engine"
-$BIN --model-dir "$MODEL" eval "$EVAL_SET" --group-by difficulty --out "reports/challengers/$RUN_ID.$TAG.json"
+# Measure the evaluation's peak resident set rather than assuming one. The
+# memory term of the dev score is a real cost of shipping a model, and a
+# default silently standing in for a measurement is a fabricated number.
+RSS_LOG="$(mktemp)"
+python3 scripts/peak_rss.py --rss-out "$RSS_LOG" -- \
+  $BIN --model-dir "$MODEL" eval "$EVAL_SET" --group-by difficulty --out "reports/challengers/$RUN_ID.$TAG.json"
+MEASURED_MB=$(cat "$RSS_LOG" 2>/dev/null || true)
+rm -f "$RSS_LOG"
 if [ "${SEXTANT_SKIP_LONGCTX:-0}" != "1" ]; then
   $BIN --model-dir "$MODEL" eval "$LONGCTX_SET" --group-by state_bucket --out "reports/challengers/$RUN_ID.longctx.json" | tail -12
 fi
 
 echo "== 5/5 dev score and verdict"
-python3 scripts/dev_score.py --eval "reports/challengers/$RUN_ID.$TAG.json" --bench reports/bench.json --memory-mb "${SEXTANT_MEM_MB:-900}" --out "reports/challengers/$RUN_ID.score.json" >/dev/null
+MEM_MB="${SEXTANT_MEM_MB:-$MEASURED_MB}"
+if [ -z "$MEM_MB" ]; then
+  echo "warning: peak resident set size was not measured; scoring without a memory term" >&2
+  python3 scripts/dev_score.py --eval "reports/challengers/$RUN_ID.$TAG.json" \
+    --bench reports/bench.json --out "reports/challengers/$RUN_ID.score.json" >/dev/null
+else
+  echo "   peak resident set size during evaluation: ${MEM_MB} MB"
+  python3 scripts/dev_score.py --eval "reports/challengers/$RUN_ID.$TAG.json" \
+    --bench reports/bench.json --memory-mb "$MEM_MB" \
+    --out "reports/challengers/$RUN_ID.score.json" >/dev/null
+fi
 CHAMP_SCORE=$(python3 -c "import json;print(json.load(open('experiments/CURRENT_CHAMPION.json'))['dev_metrics'] and 1)" 2>/dev/null || echo 1)
 python3 - "$RUN_ID" <<'PY'
 import json, sys
