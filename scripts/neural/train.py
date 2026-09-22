@@ -152,6 +152,7 @@ def main():
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--drop-sources", default="", help="comma-separated source substrings to exclude from training")
+    ap.add_argument("--balance", default="sqrt", choices=["sqrt", "full", "none"], help="per-source loss balancing so a large synthetic pool cannot drown the real corpora")
     args = ap.parse_args()
 
     signal.signal(signal.SIGTERM, _sigterm)
@@ -172,6 +173,18 @@ def main():
         train = [g for g in train if not any(d in g.source for d in drops)]
     dev = load_groups(args.dev, limit=args.dev_limit, with_features=need_feats)
     print(f"[train] {len(train)} train groups, {len(dev)} dev groups, loaded in {time.time()-t0:.1f}s", flush=True)
+
+    # Per-source loss weights: a 72k synthetic pool must not drown 18k rows of
+    # real, human-labelled data. sqrt keeps big sources bigger but bounded.
+    weights = {}
+    if args.balance != "none":
+        from collections import Counter
+        counts = Counter(g.source for g in train)
+        raw = {s: (1.0 / c if args.balance == "full" else 1.0 / math.sqrt(c)) for s, c in counts.items()}
+        mean = sum(raw[g.source] for g in train) / max(len(train), 1)
+        weights = {s: v / mean for s, v in raw.items()}
+        top = sorted(counts.items(), key=lambda x: -x[1])[:6]
+        print("[train] balance=" + args.balance + " " + " ".join(f"{s.split('/')[-1]}:n={c},w={weights[s]:.2f}" for s, c in top), flush=True)
 
     n_features = len(train[0].features[0]) if (args.use_features and train and train[0].features and train[0].features[0]) else 0
     model = DecisionScorer(args.encoder, n_features=n_features, use_symbolic_logit=args.use_symbolic_logit, pooling=args.pooling, revision=args.revision).to(device)
@@ -225,10 +238,13 @@ def main():
         inputs, offsets = collate(tok, batch_groups, args.max_len, device, with_features=need_feats)
         logits = model(**inputs)
         loss = 0.0
+        wsum = 0.0
         for g, (a, b) in zip(batch_groups, offsets):
             soft = torch.tensor(g.soft, device=device) if g.soft else None
-            loss = loss + group_loss(logits[a:b], g.gold, g.kind, soft=soft, brier_weight=args.brier_weight, ordinal_smooth=args.ordinal_smooth, label_smooth=args.label_smooth)
-        loss = loss / len(batch_groups)
+            w = weights.get(g.source, 1.0)
+            loss = loss + w * group_loss(logits[a:b], g.gold, g.kind, soft=soft, brier_weight=args.brier_weight, ordinal_smooth=args.ordinal_smooth, label_smooth=args.label_smooth)
+            wsum += w
+        loss = loss / max(wsum, 1e-6)
         loss.backward()
         torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad], 1.0)
         opt.step(); opt.zero_grad(set_to_none=True)

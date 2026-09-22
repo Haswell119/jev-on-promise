@@ -1,0 +1,96 @@
+{
+  "engine_version": "0.1.0",
+  "model": "models/PILOT",
+  "inputs": [
+    "/tmp/claude-0/-home-user-jev-on-promise/fbafe8a5-c730-5f83-9795-d13e58f94c49/scratchpad/dev80.jsonl"
+  ],
+  "records": 80,
+  "questions": 80,
+  "errors": 0,
+  "group_by": "difficulty",
+  "overall": {
+    "n": 80,
+    "accuracy": 0.5,
+    "nll": 1.0719607169099392,
+    "brier": 0.5447249795786833,
+    "ece": 0.10477777704944662,
+    "ece_15": 0.11004475751739667,
+    "schema_validity": 1.0,
+    "schema_validity_strict": 1.0,
+    "mean_tvd": null,
+    "mae": null,
+    "selective_acc_50": 0.775,
+    "confidence_auroc": 0.871875
+  },
+  "by_kind": {
+    "choice": {
+      "n": 80,
+      "accuracy": 0.5,
+      "nll": 1.0719607169099392,
+      "brier": 0.5447249795786833,
+      "ece": 0.10477777704944662,
+      "ece_15": 0.11004475751739667,
+      "schema_validity": 1.0,
+      "schema_validity_strict": 1.0,
+      "mean_tvd": null,
+      "mae": null,
+      "selective_acc_50": 0.775,
+      "confidence_auroc": 0.871875
+    }
+  },
+  "by_group": {
+    "easy": {
+      "n": 14,
+      "accuracy": 0.7857142857142857,
+      "nll": 0.5382461466663829,
+      "brier": 0.25008911279551976,
+      "ece": 0.257622629818109,
+      "ece_15": 0.1894425361756286,
+      "schema_validity": 1.0,
+      "schema_validity_strict": 1.0,
+      "mean_tvd": null,
+      "mae": null,
+      "selective_acc_50": 1.0,
+      "confidence_auroc": 1.0
+    },
+    "hard": {
+      "n": 39,
+      "accuracy": 0.48717948717948717,
+      "nll": 1.076655653894573,
+      "brier": 0.534619542128882,
+      "ece": 0.16360773894490407,
+      "ece_15": 0.1689803647743775,
+      "schema_validity": 1.0,
+      "schema_validity_strict": 1.0,
+      "mean_tvd": null,
+      "mae": null,
+      "selective_acc_50": 0.7894736842105263,
+      "confidence_auroc": 0.8763157894736842
+    },
+    "standard": {
+      "n": 27,
+      "accuracy": 0.37037037037037035,
+      "nll": 1.3419200295399036,
+      "brier": 0.7120958757085555,
+      "ece": 0.13666132184942348,
+      "ece_15": 0.16071557094390335,
+      "schema_validity": 1.0,
+      "schema_validity_strict": 1.0,
+      "mean_tvd": null,
+      "mae": null,
+      "selective_acc_50": 0.5384615384615384,
+      "confidence_auroc": 0.7470588235294118
+    }
+  },
+  "group_stability": {
+    "groups": 14,
+    "same_answer_rate": 0.0,
+    "mean_prob_distance": 0.1520468385631934
+  },
+  "latency_ms": {
+    "p50": 132.550668,
+    "p95": 188.097451,
+    "p99": 235.95359499999998,
+    "total_s": 10.922960441
+  }
+}

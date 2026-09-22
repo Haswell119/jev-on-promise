@@ -40,3 +40,6 @@ reports/leakage_prescan.json
 # data/bench_internal/*.jsonl is already ignored above; MANIFEST.json is committed.
 !/data/bench_internal/MANIFEST.json
 /data/synthetic/bench_train.jsonl
+
+# Per-candidate probe dumps from challenger evaluation (large; summaries kept)
+reports/challengers/*.calib_probe.jsonl
