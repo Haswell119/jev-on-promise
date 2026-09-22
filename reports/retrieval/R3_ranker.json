@@ -1,0 +1,37 @@
+{
+  "out": "/tmp/claude-0/-home-user-jev-on-promise/fbafe8a5-c730-5f83-9795-d13e58f94c49/scratchpad/retrieval_R3.json",
+  "best_step": 200,
+  "dev": {
+    "loss": 0.2872147858142853,
+    "budget_recall": 0.9946375000000016,
+    "top1": 0.841,
+    "n_lists": 2000
+  },
+  "baseline": {
+    "feature": "pooled_rank",
+    "budget_recall": 0.9929250000000008,
+    "top1": 0.836,
+    "n_lists": 2000
+  },
+  "budget_words": 140,
+  "train_lists": 49181,
+  "weights": {
+    "q_z": 0.33114495873451233,
+    "q_rank": -0.017970804125070572,
+    "pooled_z": 0.7654467821121216,
+    "pooled_rank": -0.7717751860618591,
+    "crit_max_z": -0.14684218168258667,
+    "crit_max_rank": 0.46310222148895264,
+    "q_term_coverage": 0.6670124530792236,
+    "crit_term_coverage": 2.905287981033325,
+    "crit_gram_containment": -1.1158627271652222,
+    "len_ratio": 0.1124960407614708,
+    "doc_position": 0.49365851283073425,
+    "focus_field": 9.190317769025569e-07,
+    "has_number": 2.0408122539520264,
+    "has_date": -0.6920092105865479,
+    "has_negation": 1.7260217666625977,
+    "log_n_segments": 1.7041083992808126e-06
+  },
+  "bias": 0.052680693566799164
+}

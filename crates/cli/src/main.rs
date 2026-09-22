@@ -180,8 +180,11 @@ enum Cmd {
         /// Expand the question query with the criteria synonym sets.
         #[arg(long)]
         q_expand: bool,
+        /// Skip questions whose whole state fits in this word budget (0 = keep all).
+        #[arg(long, default_value_t = 140)]
+        budget_words: usize,
         /// Negative segments kept per question (0 = all).
-        #[arg(long, default_value_t = 60)]
+        #[arg(long, default_value_t = 0)]
         max_negatives: usize,
         #[arg(long, default_value_t = 20260923)]
         seed: u64,
@@ -264,12 +267,12 @@ fn main() {
             out,
             commands::export_pairs::Opts { budget_words, limit, no_features, strategy, adaptive_cap, local_idf, q_expand },
         ),
-        Cmd::ExportRetrieval { inputs, out, limit, local_idf, q_expand, max_negatives, seed } => commands::export_retrieval::run(
+        Cmd::ExportRetrieval { inputs, out, limit, budget_words, local_idf, q_expand, max_negatives, seed } => commands::export_retrieval::run(
             cli.model_dir,
             cli.threads,
             inputs,
             out,
-            commands::export_retrieval::Opts { limit, local_idf, q_expand, max_negatives, seed },
+            commands::export_retrieval::Opts { limit, budget_words, local_idf, q_expand, max_negatives, seed },
         ),
         Cmd::NeuralProbe { neural_dir, input, out, limit } => commands::neural_probe::run(neural_dir, input, out, limit),
         Cmd::ExportBootstrap { out_dir } => commands::export::run(out_dir),

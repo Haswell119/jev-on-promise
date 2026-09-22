@@ -65,6 +65,10 @@ fn gold_spans(extra: &indexmap::IndexMap<String, Value>) -> Vec<String> {
 
 pub struct Opts {
     pub limit: usize,
+    /// Word budget the ranker will have to fill. Questions whose whole
+    /// state fits inside it are skipped: retrieval makes no choice there,
+    /// so those lists teach nothing and saturate every metric.
+    pub budget_words: usize,
     pub local_idf: bool,
     pub q_expand: bool,
     pub max_negatives: usize,
@@ -99,6 +103,7 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
     };
     let mut w = std::io::BufWriter::with_capacity(1 << 20, file);
     let (mut n_rows, mut n_records, mut no_gold, mut no_positive) = (0usize, 0usize, 0usize, 0usize);
+    let mut fits_budget = 0usize;
     let t0 = std::time::Instant::now();
     for f in files {
         let recs = match load_records(&[f.clone()]) {
@@ -116,6 +121,11 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
                 continue;
             }
             let state = sextant_core::state::index::StateIndex::build(&rec.request.state, &engine.res);
+            let state_words: usize = state.fields.iter().map(|f| f.text.split_whitespace().count()).sum();
+            if opts.budget_words > 0 && state_words <= opts.budget_words {
+                fits_budget += 1;
+                continue;
+            }
             let n_seg = state.segments.len();
             // Word-boundary containment in either direction: the annotated
             // sentence may be one segment, or span several. A minimum length
@@ -181,8 +191,9 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
     }
     let _ = w.flush();
     eprintln!(
-        "exported {n_rows} rows from {n_records} records in {:.1}s ({no_gold} without evidence annotations, \
-         {no_positive} whose evidence matched no segment) -> {}",
+        "exported {n_rows} rows from {n_records} records in {:.1}s ({no_gold} without evidence \
+         annotations, {fits_budget} whose whole state fits the budget, {no_positive} whose evidence \
+         matched no segment) -> {}",
         t0.elapsed().as_secs_f64(),
         out.display()
     );

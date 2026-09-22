@@ -36,3 +36,11 @@ before starting work. One experiment at a time challenges the champion.
 | H17 | Expanding the question query with the criteria synonym sets reaches needles that paraphrase the question | low-medium | R2: +0.8 points alone, additive with H16 | low | none | low | adopted (R2) |
 | H18 | Boosting segments that reproduce a candidate phrase near-verbatim (char 4-gram containment ≥ 0.7) | none | R2: 0.000 change in every length bucket; code removed | low | none | low | rejected (R2) |
 | H19 | Oracle ranking is the whole game: the gold span is a median 38 words against a 139-word budget, so a perfect ranker would reach ~1.0 recall where BM25 reaches 0.31 | very high | R2 span measurement; bounds the ceiling for H13 | — | — | — | motivates H13 |
+
+## Added after the first ranker fit (R3a, aborted)
+
+| id | hypothesis | gain | evidence | impl | compute | risk | status |
+|---|---|---|---|---|---|---|---|
+| H20 | Any retrieval metric must be computed only over states that exceed the budget; including states that fit reports success regardless of the model | — | R3a: budget recall 0.9946 for the ranker vs 0.9929 for the BM25 baseline, because most training records are under 128 tokens and fit the 140-word budget whole | done | none | — | adopted (`export-retrieval --budget-words`) |
+| H21 | Negative subsampling has to preserve the real competition: capping at 60 segments per list hides the hundreds a 16k state contains | — | R3a, same run | done | none | — | adopted (default `--max-negatives 0`) |
+| H22 | The training pool's long-context split stopped at 1024 tokens while evaluation runs to 16384, so every model extrapolated 16x on the worst axis | high | length histogram of `bench_train.jsonl`: 53128 records at 64 tokens, 790 at 2048, none above | done | low | low | data built and verified (C1); awaits a run that trains on it |

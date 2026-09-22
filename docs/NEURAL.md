@@ -234,3 +234,22 @@ that the bench and train template pools stay disjoint with no state
 leakage in either direction. It is written as a separate file rather than
 folded into `bench_train.jsonl` so that training exports made before it
 existed stay reproducible.
+
+### A saturated metric, and how the ranker avoids it
+
+The first fit of the ranker (experiment R3a) reported budget recall 0.9946
+against a pooled-BM25 baseline of 0.9929 on the held-out slice. That is not
+a small win, it is a broken measurement: most records in the training pool
+are under 128 tokens, so the whole state fits in a 140-word budget and
+retrieval never has to choose. Capping negatives at 60 per list compounded
+it, shortening every list far below the hundreds of segments a real long
+state contains. The run was recorded as ABORT and its weights discarded.
+
+`sextant export-retrieval` therefore takes `--budget-words` and skips any
+question whose entire state fits inside it, and defaults to keeping every
+negative. What remains is exactly the population the ranker exists to
+serve: states where something has to be left out.
+
+The general point is worth stating because it applies to the whole
+research loop. A metric computed over a population that does not contain
+the failure mode will report success no matter what the model does.
