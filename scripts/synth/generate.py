@@ -280,6 +280,33 @@ def recipe_routing(rng, out):
                 inj = msg + " " + local.choice(INJECTIONS)
                 out.append(record(base_id + "-inject", "routing", "routing", "injection", group, inj, {"dept": q}, {"dept": dept}, tier="adversarial"))
                 n += 4
+    # fallback option: "other" wins for off-topic messages, loses otherwise
+    OFFTOPIC = [
+        "Do you know a good recipe for banana bread? My oven runs a little hot.",
+        "What time does the museum open on Sundays? We are visiting next week.",
+        "My neighbor's dog keeps barking at night and I can't sleep.",
+        "Could you recommend a novel similar to the one I read last summer?",
+        "The football match ended in a draw; the referee was terrible.",
+        "Which hiking trails near the lake are open in winter?",
+        "I am learning to play the guitar and my fingers hurt.",
+        "How many calories are in a bowl of oatmeal with honey?",
+    ]
+    for i in range(48):
+        local = random.Random(f"fallback-{i}")
+        depts = local.sample(depts_all, 4)
+        crit = {d: DEPARTMENTS[d]["what"] for d in depts}
+        fb_key, fb_desc = local.choice([("other", "None of the above; unrelated to our products or services"), ("none_of_the_above", "The message does not fit any listed team"), ("unclear", "Cannot be determined from the message"), ("other", None)])
+        crit[fb_key] = fb_desc
+        crit = shuffled(local, crit)
+        q = {"type": "choice", "instructions": "Which team should handle this message? Pick the fallback option if none applies.", "criteria": crit}
+        if i % 2 == 0:
+            msg = local.choice(OFFTOPIC)
+            gold = fb_key
+        else:
+            dept = local.choice(depts)
+            msg = fill(local, local.choice(DEPARTMENTS[dept]["templates"]))
+            gold = dept
+        out.append(record(f"synth-routing-fallback-{i}", "routing", "routing", "fallback_option", f"routing/fallback/{i}", msg, {"dept": q}, {"dept": gold}, tier="fallback"))
     # negated contrast
     for i, (neg, real, tmpl) in enumerate(NEGATED_CONTRAST):
         for rep in range(4):

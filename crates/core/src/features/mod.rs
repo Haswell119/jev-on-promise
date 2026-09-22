@@ -80,6 +80,8 @@ features! {
     ord_pos_val,
     ord_hit,
     window_ok,
+    fallback_opt,
+    fallback_x_lowmax,
     bias,
 }
 

@@ -1,11 +1,11 @@
 {
   "generator": "scripts/synth/generate.py",
   "seed": 20260922,
-  "records": 3151,
+  "records": 3199,
   "splits": {
-    "dev": 675,
-    "train": 1899,
-    "calib": 577
+    "dev": 682,
+    "train": 1933,
+    "calib": 584
   },
   "recipes": [
     "recipe_routing",

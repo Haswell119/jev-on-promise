@@ -71,6 +71,9 @@ pub struct Criterion {
     pub neg_share: f32,
     /// Share of positive content tokens under a hypothetical/uncertain scope.
     pub hyp_share: f32,
+    /// The option means "none of the above / other / unclear": it should win
+    /// when no other option has evidence, not when it has evidence itself.
+    pub is_fallback: bool,
 }
 
 const NEGATIVE_KEY_MORPHEMES: &[&str] = &[
@@ -297,6 +300,16 @@ fn collect(v: &Value, polarity: i8, example: bool, in_array: bool, depth: usize,
             }
         }
     }
+}
+
+/// Detect fallback options ("other", "none of the above", "unclear", "not applicable").
+pub fn is_fallback_option(key: &str, description: &str) -> bool {
+    let k = split_key_words(key).join(" ");
+    let d = description.to_lowercase();
+    let key_hit = matches!(k.as_str(), "other" | "others" | "none" | "neither" | "unknown" | "unclear" | "unrelated" | "n a" | "na" | "not applicable" | "no match" | "misc" | "miscellaneous" | "general" | "fallback" | "default" | "none of the above" | "not sure" | "cannot determine" | "undetermined" | "out of scope" | "oos" | "irrelevant" | "no category" | "uncategorized" | "unspecified");
+    let key_prefix = k.starts_with("other ") || k.starts_with("none ") || k.starts_with("no ") && (k.contains("match") || k.contains("category") || k.contains("applicable"));
+    let desc_hit = ["none of the above", "none of these", "does not fit", "doesn't fit", "not covered", "no other option", "anything else", "not applicable", "cannot be determined", "can't be determined", "unrelated to", "not related to any", "falls outside", "outside the", "any other", "everything else", "all other", "not listed", "unclear or", "is unclear", "no clear", "not enough information", "insufficient information"];
+    key_hit || key_prefix || desc_hit.iter().any(|p| d.contains(p))
 }
 
 /// Words that describe magnitude; used for ordinal intensity matching.
@@ -624,6 +637,7 @@ impl Criterion {
                 n_hyp += 1;
             }
         }
+        let is_fallback = key_is_name && is_fallback_option(key, &pos_text);
         let neg_share = if n_content > 0 { n_neg as f32 / n_content as f32 } else { 0.0 };
         let hyp_share = if n_content > 0 { n_hyp as f32 / n_content as f32 } else { 0.0 };
         let has_number = |t: &str| {
@@ -697,6 +711,7 @@ impl Criterion {
             antonyms,
             neg_share,
             hyp_share,
+            is_fallback,
         }
     }
 }

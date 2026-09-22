@@ -216,6 +216,8 @@ impl Weights {
         set(F::ord_pos_int, 2.0);
         set(F::ord_pos_val, 2.0);
         set(F::ord_hit, 1.0);
+        set(F::fallback_opt, -1.0);
+        set(F::fallback_x_lowmax, 3.0);
         let choice = Head { base: base.clone(), families: IndexMap::new() };
         let score = Head { base: base.clone(), families: IndexMap::new() };
         let mut yes: IndexMap<String, f32> = IndexMap::new();

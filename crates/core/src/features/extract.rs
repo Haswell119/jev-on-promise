@@ -694,6 +694,23 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
             }
         }
     }
+    // Fallback options ("other", "none of the above") win when the OTHER options
+    // lack evidence: cross the flag with (1 − best coverage among non-fallback options).
+    if q.kind == crate::api::QuestionKind::Choice && q.criteria.iter().any(|c| c.is_fallback) {
+        let best_other = q
+            .criteria
+            .iter()
+            .zip(rows.iter())
+            .filter(|(c, _)| !c.is_fallback)
+            .map(|(_, r)| (r.get(F::cov_w) + r.get(F::cos_best) + r.get(F::gram_cov)) / 3.0)
+            .fold(0.0f32, f32::max);
+        for (c, row) in q.criteria.iter().zip(rows.iter_mut()) {
+            if c.is_fallback {
+                row.set(F::fallback_opt, 1.0);
+                row.set(F::fallback_x_lowmax, 1.0 - best_other.min(1.0));
+            }
+        }
+    }
     FeatureMatrix { rows, evidence }
 }
 
