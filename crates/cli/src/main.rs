@@ -93,7 +93,7 @@ enum Cmd {
         #[arg(long, default_value_t = 0.001)]
         l2: f32,
         /// Shrinkage of per-family deltas toward the base expert.
-        #[arg(long, default_value_t = 0.01)]
+        #[arg(long, default_value_t = 0.001)]
         family_l2: f32,
         #[arg(long, default_value_t = 600)]
         epochs: usize,
@@ -104,7 +104,7 @@ enum Cmd {
         #[arg(long)]
         drop_features: Option<String>,
         /// Loss balancing across (primitive, source) groups: sqrt | full | none.
-        #[arg(long, default_value = "sqrt")]
+        #[arg(long, default_value = "full")]
         balance: String,
     },
     /// Fit calibration (temperatures, Platt, confidence map) on a separate split (writes calibration.json).

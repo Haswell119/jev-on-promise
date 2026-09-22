@@ -58,9 +58,11 @@ trap bench_stop_server EXIT
 bench_start_server "$out/server.log"
 
 started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-# The runner sends "Authorization: Bearer $TYPESAFE_API_KEY" (empty here); Sextant
-# ignores it. --records is a root holding data/<source>/test.jsonl.
-TYPESAFE_API_KEY="" "$jevify_run" api \
+# The runner always sends "Authorization: Bearer $TYPESAFE_API_KEY". With an empty key
+# httpx rejects the header ("Illegal header value b'Bearer '") and the runner retries
+# every record six times with backoff, so a placeholder is required; Sextant ignores
+# the header. --records is a root holding data/<source>/test.jsonl.
+TYPESAFE_API_KEY="${TYPESAFE_API_KEY:-local-no-auth}" "$jevify_run" api \
   --records "$HERE" \
   --out "$out/preds.jsonl" \
   --split test \

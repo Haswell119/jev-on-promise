@@ -1,37 +1,81 @@
 {
-  "version": "uncalibrated",
-  "method": "temperature",
+  "version": "calibrated-1790086798",
+  "method": "temperature+platt",
   "temperature": {
-    "choice": 1.0,
-    "score": 1.0
+    "choice": 0.8762676411017098,
+    "score": 1.0386092051422973
   },
-  "family_temperature": {},
-  "bucket_temperature": {},
+  "family_temperature": {
+    "choice": {
+      "generic": 1.1112682217426144,
+      "intent": 0.7905248099701657,
+      "routing": 1.2748300420956398,
+      "topic": 0.7088095236831268,
+      "sentiment": 1.0807258483310005,
+      "compatibility": 0.6292199787685501
+    },
+    "score": {
+      "numeric": 1.1123443240229542
+    }
+  },
+  "bucket_temperature": {
+    "choice": {
+      "2": 0.890519635185843,
+      "3-4": 1.10613258768808,
+      "5-8": 0.8130395857777971,
+      "9-16": 1.027951122599922,
+      "17-64": 1.0815550714591295
+    },
+    "score": {
+      "5-8": 0.9999999999999984
+    }
+  },
   "symbolic_temperature": {
     "choice": 1.0,
     "score": 1.0
   },
+  "symbolic_epsilon": {
+    "choice": 0.03571428571428571,
+    "score": 0.09090909090909091,
+    "noul": 0.008547008547008548
+  },
   "noul_platt": {
+    "a": 0.9952379215427889,
+    "b": -0.11746682431402634
+  },
+  "noul_family_platt": {
+    "factual_yes_no": {
+      "a": 0.7664587697369973,
+      "b": -0.1535366141800604
+    },
+    "sentiment": {
+      "a": 1.073510264404754,
+      "b": 0.004304246961011687
+    },
+    "compatibility": {
+      "a": 1.2059469219483958,
+      "b": 0.05943001863512468
+    }
+  },
+  "noul_symbolic_platt": {
     "a": 1.0,
     "b": 0.0
   },
-  "noul_family_platt": {},
-  "noul_symbolic_platt": null,
-  "ordinal_lambda": 0.2,
+  "ordinal_lambda": 0.1,
   "confidence": {
     "choice": {
-      "a_concentration": 3.0,
-      "b_margin": 2.0,
-      "c_evidence": 0.0,
-      "d_ood": 0.0,
-      "bias": -2.0
+      "a_concentration": 0.8581597427050244,
+      "b_margin": 2.8794484424142497,
+      "c_evidence": -0.5677254412200009,
+      "d_ood": 0.037840843815690514,
+      "bias": -0.7705127013700706
     },
     "score": {
-      "a_concentration": 3.0,
-      "b_margin": 2.0,
-      "c_evidence": 0.0,
-      "d_ood": 0.0,
-      "bias": -2.0
+      "a_concentration": 2.2364044814500113,
+      "b_margin": 1.6161370155034667,
+      "c_evidence": 0.42912453250459487,
+      "d_ood": -1.156978335334911,
+      "bias": 0.023521693693242772
     }
   }
 }
