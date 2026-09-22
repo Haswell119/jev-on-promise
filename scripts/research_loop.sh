@@ -64,10 +64,33 @@ PY
     TRAIN_ARGS=$(python3 -c "import json,sys;print(json.loads(sys.argv[1]).get('train_args',''))" "$SPEC")
     HYP=$(python3 -c "import json,sys;print(json.loads(sys.argv[1])['hypothesis'])" "$SPEC")
     mkdir -p "experiments/runs/$ID"
+
+    # Data preparation the experiment needs before training: re-exporting
+    # pairs under a different retrieval configuration, building a dataset,
+    # and so on. Each entry is a shell command run from the repository root.
+    # They are skipped on a resume, since the data is already there.
+    if [ ! -f "experiments/runs/$ID/checkpoint.pt" ]; then
+      python3 -c "import json,sys;[print(c) for c in json.loads(sys.argv[1]).get('pre_commands',[])]" "$SPEC" \
+      | while IFS= read -r cmd; do
+          [ -n "$cmd" ] || continue
+          echo "== prepare: $cmd"
+          eval "$cmd" || { echo "preparation failed, not training"; exit 1; }
+        done
+    fi
+
+    # Environment the experiment's evaluation needs (which pairs files to
+    # score against, for instance), so the spec stays the single source of
+    # truth instead of the caller remembering to export variables.
+    ENV_ARGS=$(python3 -c "
+import json, shlex, sys
+env = json.loads(sys.argv[1]).get('env', {})
+print(' '.join('%s=%s' % (k, shlex.quote(str(v))) for k, v in env.items()))" "$SPEC")
+
     echo "== training $ID: $HYP"
     # shellcheck disable=SC2086
     python3 scripts/neural/train.py --out "experiments/runs/$ID" --resume $TRAIN_ARGS 2>&1 | tee -a "experiments/runs/$ID/stdout.log" | grep -E "^\[(train|eval)\]" | tail -5
-    scripts/evaluate_challenger.sh "$ID"
+    # shellcheck disable=SC2086
+    env $ENV_ARGS scripts/evaluate_challenger.sh "$ID"
     python3 - "$ID" <<'PY'
 import json, sys
 rid = sys.argv[1]
