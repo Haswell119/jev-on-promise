@@ -207,8 +207,10 @@ hide a long winning segment crowding the needle out.
         --train data/retrieval/train.jsonl --dev data/retrieval/dev.jsonl \
         --out model/retrieval.json --version R3
 
-With no `retrieval.json` present the engine keeps the heuristic pooled
-ordering, so the ranker is strictly additive. When one is loaded the
+**No ranker is currently adopted.** The first one fitted (experiment R3)
+was rejected: see the measurement below. With no `retrieval.json` present
+the engine keeps the heuristic pooled ordering, so the ranker is strictly
+additive and production behaviour is unchanged. When one is loaded the
 document-order fallback disappears: every segment is a candidate and the
 budget is filled greedily by learned score, which also removes the bias
 toward the start of long states that the fallback introduced.
@@ -253,3 +255,37 @@ serve: states where something has to be left out.
 The general point is worth stating because it applies to the whole
 research loop. A metric computed over a population that does not contain
 the failure mode will report success no matter what the model does.
+
+### R3: the ranker was rejected
+
+The first fit on the corrected population beat the pooled-BM25 baseline
+clearly on the metric it was trained for. Budget recall on the held-out
+slice rose from 0.592 to 0.731 and top-1 from 0.601 to 0.712. On the
+frozen long-context suite it was worse:
+
+| | heuristic | ranker |
+|---|---|---|
+| gold span fully retrieved | 0.306 | 0.238 |
+| gold span lost entirely | 0.504 | 0.625 |
+
+Every length bucket from 256 tokens upward regressed, worst at 512 tokens
+(0.558 to 0.342). By evidence position the damage concentrates at the
+start (0.644 to 0.452) and split (0.605 to 0.499), the two positions the
+heuristic's document-order fallback happens to favour.
+
+Two causes, both actionable, both now in the backlog:
+
+- **Metric mismatch.** The fit maximises the fraction of annotated
+  *segments* retrieved; the suite measures token-level containment of the
+  gold *strings*. A ranker can retrieve the right number of segments and
+  the wrong ones. The next attempt optimises the suite's metric directly.
+- **Template-pool shift.** The bench and train template pools are disjoint
+  by construction. A weight of +4.03 on a binary negation flag is exactly
+  the sort of generator artefact that correlates with evidence inside one
+  pool and not the other, and a record-level selection split cannot see
+  it. The next attempt holds out by template pool.
+
+The negative result is worth as much as a positive one here: it says the
+gap between BM25 and a perfect ranker is not closed by better weights over
+these features, and it caught a selection protocol that would have passed
+a bad model through.
