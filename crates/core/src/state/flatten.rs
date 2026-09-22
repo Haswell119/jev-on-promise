@@ -36,21 +36,30 @@ fn push_key(path: &mut String, key: &str) {
     path.push_str(key);
 }
 
-fn walk(v: &Value, path: &mut String, key: &str, depth: u8, array_index: Option<u32>, out: &mut Vec<FlatField>) {
+/// An array in the state: its path, its last key and its length.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArrayInfo {
+    pub path: String,
+    pub key: String,
+    pub len: usize,
+}
+
+fn walk(v: &Value, path: &mut String, key: &str, depth: u8, array_index: Option<u32>, out: &mut Vec<FlatField>, arrays: &mut Vec<ArrayInfo>) {
     match v {
         Value::Object(map) => {
             for (k, child) in map {
                 let saved = path.len();
                 push_key(path, k);
-                walk(child, path, k, depth.saturating_add(1), None, out);
+                walk(child, path, k, depth.saturating_add(1), None, out, arrays);
                 path.truncate(saved);
             }
         }
         Value::Array(items) => {
+            arrays.push(ArrayInfo { path: path.clone(), key: key.to_string(), len: items.len() });
             for (i, child) in items.iter().enumerate() {
                 let saved = path.len();
                 path.push_str(&format!("[{i}]"));
-                walk(child, path, key, depth.saturating_add(1), Some(i as u32), out);
+                walk(child, path, key, depth.saturating_add(1), Some(i as u32), out, arrays);
                 path.truncate(saved);
             }
         }
@@ -103,10 +112,16 @@ fn walk(v: &Value, path: &mut String, key: &str, depth: u8, array_index: Option<
 /// Flatten a state value. A plain string becomes a single field with an
 /// empty path.
 pub fn flatten_state(state: &Value) -> Vec<FlatField> {
+    flatten_state_with_arrays(state).0
+}
+
+/// Flatten and also report every array with its length.
+pub fn flatten_state_with_arrays(state: &Value) -> (Vec<FlatField>, Vec<ArrayInfo>) {
     let mut out = Vec::new();
+    let mut arrays = Vec::new();
     let mut path = String::new();
-    walk(state, &mut path, "", 0, None, &mut out);
-    out
+    walk(state, &mut path, "", 0, None, &mut out, &mut arrays);
+    (out, arrays)
 }
 
 /// Split a JSON key into words: snake_case, kebab-case, camelCase, dotted.

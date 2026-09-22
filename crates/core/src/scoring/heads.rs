@@ -203,6 +203,10 @@ impl Weights {
         set(F::key_match, 2.0);
         set(F::key_negated, -3.0);
         set(F::hyp_state, -0.5);
+        set(F::hyper_match, 1.0);
+        set(F::domain_match, 0.5);
+        set(F::antonym_negated, 1.0);
+        set(F::directive_frac, -2.0);
         let choice = Head { base: base.clone(), families: IndexMap::new() };
         let score = Head { base: base.clone(), families: IndexMap::new() };
         let mut yes: IndexMap<String, f32> = IndexMap::new();

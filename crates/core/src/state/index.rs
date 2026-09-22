@@ -4,10 +4,11 @@
 //! n-grams, BM25 postings, phrase bigrams, numbers, dates, path indexes and
 //! sentiment valence.
 
-use super::flatten::{flatten_state, split_key_words, FieldKind, FlatField};
+use super::flatten::{flatten_state_with_arrays, split_key_words, ArrayInfo, FieldKind, FlatField};
 use super::vocab::{TermId, Vocab};
 use crate::lexicon::Resources;
 use crate::text::dates::{parse_date_token, parse_textual_date, Date};
+use crate::lexicon::graph::SynId;
 use crate::text::negation::{self, Flags, CUE, NEGATED};
 use crate::text::numbers::{parse_number, NumKind};
 use crate::text::segment::segment_ranges;
@@ -92,6 +93,17 @@ pub struct Segment {
     pub has_intensity: bool,
     /// Union of scope flags over tokens (cheap "does this segment contain negation" test).
     pub flags_any: Flags,
+    /// Byte range of this segment's lowercase text inside `StateIndex::lower_text`.
+    pub lower_start: u32,
+    pub lower_end: u32,
+}
+
+/// An array in the state with its key terms and length (for count questions).
+#[derive(Debug, Clone)]
+pub struct ArrayEntry {
+    pub path: String,
+    pub key_terms: Vec<TermId>,
+    pub len: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -101,6 +113,8 @@ pub struct NumberSpan {
     pub value: f64,
     pub kind: NumKind,
     pub currency: Option<&'static str>,
+    /// The number came from a number word ("three"), not digits.
+    pub from_word: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -149,6 +163,12 @@ pub struct StateIndex {
     pub global_grams: Vec<u32>,
     /// Sum over segments of content_len (== total_content) and the sqrt-norm of the global tf-idf vector.
     pub global_norm: f32,
+    /// Arrays in the state (path, key terms, length).
+    pub arrays: Vec<ArrayEntry>,
+    /// Hypernym ancestors of state evidence terms → weight (idf × depth discount); built once per state.
+    pub ancestors: FxHashMap<SynId, f32>,
+    /// Topic domains of state evidence terms → weight.
+    pub domains: FxHashMap<SynId, f32>,
 }
 
 #[inline]
@@ -217,7 +237,7 @@ const FALSEY_WORDS: &[&str] = &["false", "no", "none", "null", "n/a", "na", "nev
 
 impl StateIndex {
     pub fn build(state: &Value, res: &Resources) -> StateIndex {
-        let flat = flatten_state(state);
+        let (flat, arrays): (Vec<FlatField>, Vec<ArrayInfo>) = flatten_state_with_arrays(state);
         let is_plain_text = matches!(state, Value::String(_));
         let mut idx = StateIndex {
             fields: Vec::with_capacity(flat.len()),
@@ -243,9 +263,16 @@ impl StateIndex {
             field_offsets: Vec::new(),
             global_grams: Vec::new(),
             global_norm: 0.0,
+            arrays: Vec::new(),
+            ancestors: FxHashMap::default(),
+            domains: FxHashMap::default(),
         };
         for f in flat {
             idx.add_field(f, res);
+        }
+        for a in arrays {
+            let key_terms: Vec<TermId> = split_key_words(&a.key).into_iter().map(|w| idx.vocab.intern(&w, res)).collect();
+            idx.arrays.push(ArrayEntry { path: a.path, key_terms, len: a.len });
         }
         idx.finish(res);
         idx
@@ -265,12 +292,6 @@ impl StateIndex {
             .collect();
         let seg_start = self.segments.len() as u32;
         self.field_offsets.push((self.lower_text.len(), field_idx));
-        if !f.key.is_empty() {
-            self.lower_text.push_str(&split_key_words(&f.key).join(" "));
-            self.lower_text.push_str(": ");
-        }
-        self.lower_text.push_str(&text.to_lowercase());
-        self.lower_text.push('\n');
         let ranges: Vec<(usize, usize)> = match f.kind {
             FieldKind::Text => segment_ranges(&text),
             _ => vec![(0, text.len())],
@@ -320,6 +341,15 @@ impl StateIndex {
     fn push_segment(&mut self, field: u32, start: usize, end: usize, key_words: &[String], text: &str, falsey: bool, res: &Resources) {
         let seg_idx = self.segments.len() as u32;
         let tok_start = self.tokens.len() as u32;
+        // Lowercase text for literal search (key words first so `status: shipped` is searchable).
+        let lower_start = self.lower_text.len() as u32;
+        if !key_words.is_empty() {
+            self.lower_text.push_str(&key_words.join(" "));
+            self.lower_text.push_str(": ");
+        }
+        self.lower_text.push_str(&text.to_lowercase());
+        let lower_end = self.lower_text.len() as u32;
+        self.lower_text.push('\n');
         // Key tokens first (attr KEY), negated when the value is falsey.
         let raw = tokenize(text);
         let flags = negation::annotate(&raw);
@@ -428,13 +458,13 @@ impl StateIndex {
             match rt.kind {
                 TokenKind::Number | TokenKind::Currency | TokenKind::Percent => {
                     if let Some(p) = parse_number(&rt.text, rt.kind) {
-                        self.numbers.push(NumberSpan { token: tok_idx, seg: seg_idx, value: p.value, kind: p.kind, currency: p.currency });
+                        self.numbers.push(NumberSpan { token: tok_idx, seg: seg_idx, value: p.value, kind: p.kind, currency: p.currency, from_word: false });
                     }
                 }
                 TokenKind::Word => {
                     if let Some(p) = parse_number(&rt.text, rt.kind) {
                         // number words: only when not part of an idiom like "one of"
-                        self.numbers.push(NumberSpan { token: tok_idx, seg: seg_idx, value: p.value, kind: NumKind::Plain, currency: None });
+                        self.numbers.push(NumberSpan { token: tok_idx, seg: seg_idx, value: p.value, kind: NumKind::Plain, currency: None, from_word: true });
                     }
                 }
                 TokenKind::Date => {
@@ -490,6 +520,8 @@ impl StateIndex {
             intensity,
             has_intensity: int_n > 0,
             flags_any,
+            lower_start,
+            lower_end,
         });
     }
 
@@ -523,6 +555,35 @@ impl StateIndex {
         }
         self.has_intensity = inn > 0;
         self.intensity = if inn > 0 { is / inn as f32 } else { 0.5 };
+        // Lexical-graph maps: hypernym ancestors and topic domains of the state's evidence terms.
+        if !_res.graph.is_empty() {
+            let g = &_res.graph;
+            let mut terms: Vec<(TermId, u32)> = self.global_tf.iter().map(|(t, c)| (*t, *c)).collect();
+            terms.sort_unstable();
+            for (t, _c) in terms {
+                let info = self.vocab.info(t);
+                if info.stop || info.func || info.idf < 0.25 || info.stem.len() < 3 {
+                    continue;
+                }
+                let w = info.idf;
+                for sense in g.senses_of_stem(&info.stem, 2) {
+                    let e = self.ancestors.entry(sense).or_insert(0.0);
+                    *e = e.max(w);
+                    for (d, anc) in g.hypernym_closure_with_depth(sense, 3) {
+                        if g.root_depth(anc) < 4 {
+                            continue;
+                        }
+                        let v = w * 0.75f32.powi(d as i32);
+                        let e = self.ancestors.entry(anc).or_insert(0.0);
+                        *e = e.max(v);
+                    }
+                    for &dom in g.domains(sense) {
+                        let e = self.domains.entry(dom).or_insert(0.0);
+                        *e = e.max(w);
+                    }
+                }
+            }
+        }
     }
 
     #[inline]
@@ -547,6 +608,19 @@ impl StateIndex {
     #[inline]
     pub fn contains_term(&self, t: TermId) -> bool {
         self.global_tf.contains_key(&t)
+    }
+
+    /// Segment that owns byte offset `pos` of `lower_text`.
+    pub fn segment_at_lower_offset(&self, pos: usize) -> Option<u32> {
+        let pos = pos as u32;
+        match self.segments.binary_search_by(|s| s.lower_start.cmp(&pos)) {
+            Ok(i) => Some(i as u32),
+            Err(0) => None,
+            Err(i) => {
+                let s = &self.segments[i - 1];
+                (pos < s.lower_end).then_some((i - 1) as u32)
+            }
+        }
     }
 
     /// Field that owns byte offset `pos` of `lower_text`.

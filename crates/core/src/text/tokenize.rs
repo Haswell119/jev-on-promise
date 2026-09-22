@@ -55,7 +55,7 @@ fn special_re() -> &'static Regex {
             r"|(?P<percent>-?\d[\d,]*(?:\.\d+)?\s?(?:%|percent\b|pct\b))",
             r"|(?P<ordinal>\b\d+(?:st|nd|rd|th)\b)",
             r"|(?P<ident>\b[a-z]{1,6}[-_]?\d{2,}[a-z0-9\-_]*\b|\b\d+[-_][a-z0-9\-_]*[a-z][a-z0-9\-_]*\b|#\s?\d+\b|\b[a-z]{2,}\d+[a-z0-9]*\b|\b\d+[a-z]{2,}[a-z0-9]*\b)",
-            r"|(?P<number>-?\d[\d,]*(?:\.\d+)?\b)",
+            r"|(?P<number>-?\b\d[\d,]*(?:\.\d+)?\b)",
         ))
         .expect("tokenizer regex compiles")
     })
@@ -222,6 +222,13 @@ mod tests {
         assert_eq!(find(TokenKind::Url), vec!["https://x.io/a?b=1"]);
         assert_eq!(find(TokenKind::Time), vec!["10:30am"]);
         assert!(find(TokenKind::Number).contains(&"30".to_string()));
+    }
+
+    #[test]
+    fn digits_glued_to_letters_stay_words() {
+        let t = kinds("priority P1 and p2 level3");
+        assert!(t.iter().all(|(_, k)| *k != TokenKind::Number));
+        assert!(t.iter().any(|(s, _)| s == "p1"));
     }
 
     #[test]

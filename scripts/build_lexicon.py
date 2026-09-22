@@ -53,7 +53,7 @@ def build_wordnet(wn_dir, out_dir):
                     i += 2
                 p_cnt = int(body[i])
                 i += 1
-                hyper, similar = [], []
+                hyper, similar, domains = [], [], []
                 sid = ss_type.replace("s", "a") + offset
                 for _ in range(p_cnt):
                     sym, toff, tpos, st = body[i], body[i + 1], body[i + 2], body[i + 3]
@@ -63,11 +63,13 @@ def build_wordnet(wn_dir, out_dir):
                         hyper.append(tid)
                     elif sym in ("&", "+", "\\", "^"):
                         similar.append(tid)
+                    elif sym == ";c":
+                        domains.append(tid)
                     elif sym == "!":
                         src, tgt = int(st[:2], 16), int(st[2:], 16)
                         if 1 <= src <= len(words):
                             antonyms.add((words[src - 1], tid, tgt))
-                synsets[sid] = {"lemmas": words, "hyper": hyper, "similar": similar}
+                synsets[sid] = {"lemmas": words, "hyper": hyper, "similar": similar, "domains": domains}
     # resolve antonym targets to lemma names
     ant_pairs = set()
     for src_word, tid, tgt in antonyms:
@@ -104,12 +106,13 @@ def build_wordnet(wn_dir, out_dir):
             f.write(f"{lemma}\t{','.join(ids)}\n")
             n_lem += 1
     with open(os.path.join(out_dir, "wn_synsets.tsv"), "w", encoding="utf-8") as f:
-        f.write("# Open English WordNet 2024 (CC BY 4.0): id, lemmas, hypernyms, similar/derivational. See THIRD_PARTY.md\n")
+        f.write("# Open English WordNet 2024 (CC BY 4.0): id, lemmas, hypernyms, similar/derivational, topic domains. See THIRD_PARTY.md\n")
         for sid, s in synsets.items():
             lemmas = [w for w in s["lemmas"] if WORD_RE.match(w)]
             hyper = [str(dense[h]) for h in s["hyper"] if h in dense]
             sim = [str(dense[h]) for h in s["similar"] if h in dense]
-            f.write(f"{dense[sid]}\t{'|'.join(lemmas)}\t{','.join(hyper)}\t{','.join(sim)}\n")
+            dom = [str(dense[h]) for h in s["domains"] if h in dense]
+            f.write(f"{dense[sid]}\t{'|'.join(lemmas)}\t{','.join(hyper)}\t{','.join(sim)}\t{','.join(dom)}\n")
             n_syn += 1
     with open(os.path.join(out_dir, "wn_antonyms.tsv"), "w", encoding="utf-8") as f:
         f.write("# Open English WordNet 2024 (CC BY 4.0): antonym lemma pairs. See THIRD_PARTY.md\n")

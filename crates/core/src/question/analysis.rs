@@ -208,7 +208,7 @@ impl<'a> QuestionView<'a> {
         let raw_q = tokenize(&text_norm);
         let fl = negation::annotate(&raw_q);
         let (valence, intensity, _) = super::criteria::valence_and_intensity(&raw_q, &fl, res);
-        let add_terms = |raw: &[crate::text::tokenize::RawToken], flags: &[u8], factor: f32, terms: &mut Vec<QueryTerm>, vocab: &mut VocabExt<'a>| {
+        let add_terms = |raw: &[crate::text::tokenize::RawToken], flags: &[u16], factor: f32, terms: &mut Vec<QueryTerm>, vocab: &mut VocabExt<'a>| {
             for (i, rt) in raw.iter().enumerate() {
                 if !rt.kind.is_content() {
                     continue;

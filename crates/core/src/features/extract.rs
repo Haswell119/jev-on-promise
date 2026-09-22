@@ -8,7 +8,7 @@ use crate::lexicon::Resources;
 use crate::question::{Criterion, QuestionView};
 use crate::state::index::{sorted_intersection, StateIndex, ATTR_KEY};
 use crate::state::vocab::TermId;
-use crate::text::negation::{HYPOTHETICAL, INTERROGATIVE, NEGATED, REQUEST};
+use crate::text::negation::{DIRECTIVE, HYPOTHETICAL, INTERROGATIVE, NEGATED, REQUEST};
 use crate::text::numbers::NumKind;
 
 pub const BM25_K1: f32 = 1.2;
@@ -79,6 +79,7 @@ struct Occ {
     key: u32,
     key_negated: u32,
     in_focus: u32,
+    directive: u32,
 }
 
 fn occurrences(state: &StateIndex, t: TermId, focus: &[u32]) -> Occ {
@@ -95,6 +96,9 @@ fn occurrences(state: &StateIndex, t: TermId, focus: &[u32]) -> Occ {
             }
             if tok.flags & REQUEST != 0 {
                 o.req += 1;
+            }
+            if tok.flags & DIRECTIVE != 0 {
+                o.directive += 1;
             }
             if tok.attrs & ATTR_KEY != 0 {
                 o.key += 1;
@@ -172,8 +176,11 @@ fn focus_valence(state: &StateIndex, focus: &[u32]) -> (f32, f32, bool) {
     (v, i, inn > 0 || state.has_intensity)
 }
 
-fn literal_search(state: &StateIndex, lit: &str, focus: &[u32]) -> (u32, bool, Vec<(usize, usize)>) {
+/// Verbatim literal search. Matches inside directive segments (text that
+/// addresses the classifier) are counted separately and earn no credit.
+fn literal_search(state: &StateIndex, lit: &str, focus: &[u32]) -> (u32, bool, Vec<(usize, usize)>, u32) {
     let mut count = 0u32;
+    let mut directive = 0u32;
     let mut in_focus = false;
     let mut hits = Vec::new();
     let text = &state.lower_text;
@@ -182,12 +189,17 @@ fn literal_search(state: &StateIndex, lit: &str, focus: &[u32]) -> (u32, bool, V
         let abs = start + pos;
         let end = abs + lit.len();
         if is_word_boundary(text, abs, end) {
-            count += 1;
-            if hits.len() < 8 {
-                hits.push((abs, lit.len()));
-            }
-            if !focus.is_empty() && focus.binary_search(&state.field_at_offset(abs)).is_ok() {
-                in_focus = true;
+            let in_directive = state.segment_at_lower_offset(abs).map(|s| state.segments[s as usize].flags_any & DIRECTIVE != 0).unwrap_or(false);
+            if in_directive {
+                directive += 1;
+            } else {
+                count += 1;
+                if hits.len() < 8 {
+                    hits.push((abs, lit.len()));
+                }
+                if !focus.is_empty() && focus.binary_search(&state.field_at_offset(abs)).is_ok() {
+                    in_focus = true;
+                }
             }
         }
         start = end.max(abs + 1);
@@ -195,7 +207,7 @@ fn literal_search(state: &StateIndex, lit: &str, focus: &[u32]) -> (u32, bool, V
             break;
         }
     }
-    (count, in_focus, hits)
+    (count, in_focus, hits, directive)
 }
 
 fn question_weight(q: &QuestionView) -> f32 {
@@ -231,6 +243,8 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
         let (mut neg_agree, mut neg_conflict, mut hyp_conflict, mut req_agree, mut hyp_state) = (0.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
         let (mut focus_cov, mut matched_w) = (0.0f32, 0.0f32);
         let mut matched_occ = 0u32;
+        let (mut directive_w, mut ant_neg) = (0.0f32, 0.0f32);
+        let (mut hyper_num, mut hyper_den, mut domain_num) = (0.0f32, 0.0f32, 0.0f32);
         let (mut name_hit, mut name_n, mut key_match, mut key_neg) = (0.0f32, 0u32, 0.0f32, 0.0f32);
         let mut bm25_global = 0.0f32;
         let mut cos_num = 0.0f32;
@@ -280,6 +294,7 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
                 matched_occ += o.n;
                 matched_w += t.weight;
                 let neg_frac = o.negated as f32 / n;
+                directive_w += t.weight * (o.directive as f32 / n);
                 let crit_neg = if t.negated { 1.0 } else { 0.0 };
                 let agree = 1.0 - (crit_neg - neg_frac).abs();
                 neg_agree += t.weight * agree;
@@ -303,6 +318,44 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
                         key_neg += 1.0;
                     }
                 }
+            }
+        }
+        // Hypernym / topic-domain compatibility for positive terms absent from the state.
+        if !_res.graph.is_empty() && (!state.ancestors.is_empty() || !state.domains.is_empty()) {
+            let g = &_res.graph;
+            for t in &c.terms {
+                if t.polarity < 0 || t.negated {
+                    continue;
+                }
+                let info = q.vocab.info(t.term);
+                if info.stop || info.func || info.stem.len() < 3 {
+                    continue;
+                }
+                hyper_den += t.weight;
+                if state.contains_term(t.term) {
+                    hyper_num += t.weight;
+                    domain_num += t.weight;
+                    continue;
+                }
+                let mut best = 0.0f32;
+                let mut dom_hit = 0.0f32;
+                for sense in g.senses_of_stem(&info.stem, 2) {
+                    if let Some(&w) = state.ancestors.get(&sense) {
+                        best = best.max(w);
+                    }
+                    for (d, anc) in g.hypernym_closure_with_depth(sense, 3) {
+                        if let Some(&w) = state.ancestors.get(&anc) {
+                            best = best.max(w * 0.75f32.powi(d as i32));
+                        }
+                    }
+                    for &dom in g.domains(sense) {
+                        if let Some(&w) = state.domains.get(&dom) {
+                            dom_hit = dom_hit.max(w);
+                        }
+                    }
+                }
+                hyper_num += t.weight * best.min(1.0);
+                domain_num += t.weight * dom_hit.min(1.0);
             }
         }
         // Synonym-only matches for absent terms.
@@ -329,8 +382,9 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
         for &(ant, w) in &c.antonyms {
             if state.contains_term(ant) {
                 let o = occurrences(state, ant, focus);
-                let assert_frac = 1.0 - o.negated as f32 / o.n.max(1) as f32;
-                ant_hits += w * assert_frac;
+                let neg_frac = o.negated as f32 / o.n.max(1) as f32;
+                ant_hits += w * (1.0 - neg_frac);
+                ant_neg += w * neg_frac;
             }
         }
 
@@ -391,7 +445,7 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
             if lit.len() < 3 || (ntoks == 1 && crate::text::stem::is_stopword(lit)) {
                 continue;
             }
-            let (count, in_focus, hits) = literal_search(state, lit, focus);
+            let (count, in_focus, hits, _directive) = literal_search(state, lit, focus);
             if count > 0 {
                 lit_hit = 1.0;
                 lit_count += count;
@@ -489,6 +543,10 @@ pub fn extract_features(q: &QuestionView, state: &StateIndex, _res: &Resources) 
         f.set(F::key_negated, if name_n > 0 { key_neg / name_n as f32 } else { 0.0 });
         f.set(F::hyp_state, if matched_w > 0.0 { hyp_state / matched_w } else { 0.0 });
         f.set(F::null_desc, if c.is_null { 1.0 } else { 0.0 });
+        f.set(F::hyper_match, if hyper_den > 0.0 { hyper_num / hyper_den } else { 0.0 });
+        f.set(F::domain_match, if hyper_den > 0.0 { domain_num / hyper_den } else { 0.0 });
+        f.set(F::antonym_negated, ant_neg / pos_w);
+        f.set(F::directive_frac, if matched_w > 0.0 { directive_w / matched_w } else { 0.0 });
         f.set(F::bias, 1.0);
         rows.push(f);
         evidence.push(ev);

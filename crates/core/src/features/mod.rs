@@ -58,6 +58,10 @@ features! {
     key_negated,
     hyp_state,
     null_desc,
+    hyper_match,
+    domain_match,
+    antonym_negated,
+    directive_frac,
     bias,
 }
 

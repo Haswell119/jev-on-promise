@@ -6,5 +6,5 @@ pub mod heads;
 pub mod softmax;
 
 pub use confidence::{confidence, ConfidenceParams};
-pub use heads::{DenseHead, DenseNoul, DenseWeights, Head, NoulHead, Weights};
+pub use heads::{DenseHead, DenseNoul, DenseWeights, Head, NoulFamilyDelta, NoulHead, Weights};
 pub use softmax::{entropy_normalized, ordinal_smooth, softmax_temp};

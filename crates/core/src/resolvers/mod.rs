@@ -33,8 +33,260 @@ pub fn resolve(q: &QuestionView, state: &StateIndex, feats: &FeatureMatrix) -> O
     match q.kind {
         QuestionKind::Choice => enum_extraction(q, state, feats).or_else(|| numeric_levels(q, state)),
         QuestionKind::Score => numeric_levels(q, state),
-        QuestionKind::Noul => reference_equality(q, state).or_else(|| boolean_field(q, state)),
+        QuestionKind::Noul => reference_equality(q, state)
+            .or_else(|| boolean_field(q, state))
+            .or_else(|| numeric_comparison(q, state))
+            .or_else(|| date_comparison(q, state)),
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Cmp {
+    Gt,
+    Ge,
+    Lt,
+    Le,
+    Eq,
+}
+
+impl Cmp {
+    fn eval(self, v: f64, thr: f64) -> bool {
+        match self {
+            Cmp::Gt => v > thr,
+            Cmp::Ge => v >= thr,
+            Cmp::Lt => v < thr,
+            Cmp::Le => v <= thr,
+            Cmp::Eq => (v - thr).abs() < 1e-9,
+        }
+    }
+}
+
+/// Parse a comparator + threshold out of the question text.
+/// Returns (comparator, threshold, kind, unit word following the number).
+fn parse_comparison(text: &str) -> Option<(Cmp, f64, NumKind, Option<String>)> {
+    let toks = crate::text::tokenize::tokenize(text);
+    let mut num_idx: Option<usize> = None;
+    let mut value = 0.0f64;
+    let mut kind = NumKind::Plain;
+    for (i, t) in toks.iter().enumerate() {
+        if matches!(t.kind, crate::text::tokenize::TokenKind::Number | crate::text::tokenize::TokenKind::Currency | crate::text::tokenize::TokenKind::Percent) {
+            if let Some(p) = crate::text::numbers::parse_number(&t.text, t.kind) {
+                if p.kind == NumKind::Ordinal {
+                    continue;
+                }
+                num_idx = Some(i);
+                value = p.value;
+                kind = p.kind;
+                break;
+            }
+        } else if t.kind == crate::text::tokenize::TokenKind::Word {
+            if let Some(v) = crate::text::numbers::number_word(&t.text) {
+                // only when preceded by a comparator word
+                let prev: Vec<&str> = toks[..i].iter().rev().take(3).map(|x| x.text.as_str()).collect();
+                if prev.iter().any(|w| matches!(*w, "than" | "least" | "most" | "over" | "under" | "above" | "below" | "exceed" | "exceeds" | "exactly")) {
+                    num_idx = Some(i);
+                    value = v;
+                    break;
+                }
+            }
+        }
+    }
+    let ni = num_idx?;
+    let before: Vec<&str> = toks[..ni].iter().map(|t| t.text.as_str()).collect();
+    let joined = before.join(" ");
+    let has = |p: &str| joined.ends_with(p) || joined.contains(&format!("{p} ")) || joined.contains(p);
+    let cmp = if has("greater than") || has("more than") || has("larger than") || has("higher than") || has("bigger than") || has("longer than") || has("over") || has("above") || has("exceed") || has("exceeds") || has("exceeding") {
+        Cmp::Gt
+    } else if has("at least") || has("minimum of") || has("no less than") || has("not less than") || has("or more") {
+        Cmp::Ge
+    } else if has("less than") || has("fewer than") || has("lower than") || has("smaller than") || has("shorter than") || has("under") || has("below") {
+        Cmp::Lt
+    } else if has("at most") || has("no more than") || has("not more than") || has("up to") || has("maximum of") || has("within") {
+        Cmp::Le
+    } else if has("exactly") || has("equal to") || has("equals") {
+        Cmp::Eq
+    } else {
+        return None;
+    };
+    // unit word after the number ("units", "items", "days")
+    let unit = toks.get(ni + 1).filter(|t| t.kind == crate::text::tokenize::TokenKind::Word && !crate::text::stem::is_function_word(&t.text) && !matches!(t.text.as_str(), "or" | "and" | "of" | "in" | "per" | "total")).map(|t| t.text.clone());
+    Some((cmp, value, kind, unit))
+}
+
+/// Numeric comparison: "Is the invoice total greater than $500?",
+/// "Were more than 10 units ordered?", "Does the order contain more than 2
+/// line items?" (array length). Fires only when the referenced quantity is
+/// unambiguous.
+fn numeric_comparison(q: &QuestionView, state: &StateIndex) -> Option<Resolved> {
+    let (cmp, thr, kind, unit) = parse_comparison(&q.text)?;
+    let focus = &q.focus_fields;
+    let unit_stem = unit.as_ref().map(|u| crate::text::stem::stem(u));
+    let mut cands: Vec<(f64, String)> = Vec::new();
+    // 1. Array lengths whose key matches the unit word ("items" → order.items).
+    if let Some(us) = &unit_stem {
+        for a in &state.arrays {
+            let key_match = a.key_terms.iter().any(|t| state.vocab.info(*t).stem.as_ref() == us.as_str());
+            if key_match {
+                cands.push((a.len as f64, format!("len({})", a.path)));
+            }
+        }
+        if !cands.is_empty() {
+            return finish_comparison(q, cmp, thr, cands);
+        }
+    }
+    // 2. Numbers in the state, filtered by kind, focus and adjacent unit word.
+    for ns in &state.numbers {
+        if ns.kind == NumKind::Ordinal || (ns.from_word && ns.value < 2.0) {
+            continue;
+        }
+        let kind_ok = match kind {
+            NumKind::Currency => ns.kind == NumKind::Currency,
+            NumKind::Percent => ns.kind == NumKind::Percent,
+            _ => ns.kind != NumKind::Currency && ns.kind != NumKind::Percent,
+        };
+        if !kind_ok {
+            continue;
+        }
+        let field = state.segments[ns.seg as usize].field;
+        if !focus.is_empty() && focus.binary_search(&field).is_err() {
+            continue;
+        }
+        let toks = state.segment_tokens(ns.seg);
+        let s = &state.segments[ns.seg as usize];
+        let local = (ns.token - s.tok_start) as usize;
+        let neighbor_matches = |us: &str| -> bool {
+            for off in [-2i64, -1, 1, 2] {
+                let j = local as i64 + off;
+                if j < 0 || j as usize >= toks.len() {
+                    continue;
+                }
+                let info = state.vocab.info(toks[j as usize].term);
+                if info.stem.as_ref() == us {
+                    return true;
+                }
+            }
+            // JSON key of the field ("quantity": 12 → unit "units"/"quantity")
+            let f = &state.fields[field as usize];
+            f.key_terms.iter().any(|t| state.vocab.info(*t).stem.as_ref() == us)
+        };
+        if let Some(us) = &unit_stem {
+            if !neighbor_matches(us) {
+                // synonyms of the unit word (units ≈ items ≈ pieces)
+                let syn_ok = matches!(us.as_str(), "unit" | "item" | "piec" | "articl" | "product") && (neighbor_matches("unit") || neighbor_matches("item") || neighbor_matches("quantiti") || neighbor_matches("qty") || neighbor_matches("piec"));
+                if !syn_ok {
+                    continue;
+                }
+            }
+        } else if kind == NumKind::Plain {
+            // plain-number question ("greater than 500") against currency-only states: allow currency
+        }
+        cands.push((ns.value, state.fields[field as usize].path.clone()));
+    }
+    if cands.is_empty() && kind == NumKind::Plain && unit.is_none() {
+        // fall back to currency amounts when the question has a bare number
+        for ns in &state.numbers {
+            if ns.kind == NumKind::Currency {
+                let field = state.segments[ns.seg as usize].field;
+                if focus.is_empty() || focus.binary_search(&field).is_ok() {
+                    cands.push((ns.value, state.fields[field as usize].path.clone()));
+                }
+            }
+        }
+    }
+    if cands.is_empty() {
+        return None;
+    }
+    finish_comparison(q, cmp, thr, cands)
+}
+
+fn finish_comparison(q: &QuestionView, cmp: Cmp, thr: f64, cands: Vec<(f64, String)>) -> Option<Resolved> {
+    let outcomes: Vec<bool> = cands.iter().map(|(v, _)| cmp.eval(*v, thr)).collect();
+    let all_true = outcomes.iter().all(|x| *x);
+    let all_false = outcomes.iter().all(|x| !*x);
+    if !(all_true || all_false) {
+        return None;
+    }
+    let truth = all_true != q.question_negated;
+    let logit = if truth { STRONG * 0.8 } else { -STRONG * 0.8 };
+    let notes = cands.iter().map(|(v, p)| format!("{p}: {v} {:?} {thr} → {}", cmp, cmp.eval(*v, thr))).collect();
+    Some(Resolved { name: "numeric_comparison", logits: vec![logit], notes })
+}
+
+/// Date comparison: "Is the date mentioned before 2026-04-01?",
+/// "Was the order placed after March 3, 2026?". Fires when every date in
+/// the (focused) state agrees on the outcome.
+fn date_comparison(q: &QuestionView, state: &StateIndex) -> Option<Resolved> {
+    use crate::text::dates::{parse_date_token, parse_textual_date};
+    let toks = crate::text::tokenize::tokenize(&q.text);
+    let words: Vec<&str> = toks.iter().map(|t| t.text.as_str()).collect();
+    // find a date in the question
+    let mut qdate = None;
+    let mut date_pos = 0usize;
+    for (i, t) in toks.iter().enumerate() {
+        if t.kind == crate::text::tokenize::TokenKind::Date {
+            if let Some(d) = parse_date_token(&t.text) {
+                qdate = Some(d);
+                date_pos = i;
+                break;
+            }
+        }
+        if t.kind == crate::text::tokenize::TokenKind::Word && crate::text::dates::month_from_name(&t.text).is_some() {
+            if let Some((d, _)) = parse_textual_date(&words, i, 2000) {
+                qdate = Some(d);
+                date_pos = i;
+                break;
+            }
+        }
+        if t.kind == crate::text::tokenize::TokenKind::Number {
+            if let Some((d, _)) = parse_textual_date(&words, i, 2000) {
+                if words.get(i + 1).map(|w| crate::text::dates::month_from_name(w).is_some()).unwrap_or(false) {
+                    qdate = Some(d);
+                    date_pos = i;
+                    break;
+                }
+            }
+        }
+    }
+    let qdate = qdate?;
+    let before_words: Vec<&str> = words[..date_pos].iter().copied().rev().take(4).collect();
+    let cmp = if before_words.iter().any(|w| matches!(*w, "before" | "earlier" | "prior" | "by" | "until")) {
+        Cmp::Lt
+    } else if before_words.iter().any(|w| matches!(*w, "after" | "later" | "since" | "past" | "beyond")) {
+        Cmp::Gt
+    } else if before_words.iter().any(|w| matches!(*w, "on" | "exactly")) {
+        Cmp::Eq
+    } else {
+        return None;
+    };
+    let inclusive = before_words.iter().any(|w| matches!(*w, "by" | "until")) || q.text.contains("or before") || q.text.contains("or after") || q.text.contains("or later") || q.text.contains("or earlier");
+    let focus = &q.focus_fields;
+    let mut outcomes = Vec::new();
+    let mut notes = Vec::new();
+    for ds in &state.dates {
+        let field = state.segments[ds.seg as usize].field;
+        if !focus.is_empty() && focus.binary_search(&field).is_err() {
+            continue;
+        }
+        let (a, b) = (ds.date.days_from_epoch(), qdate.days_from_epoch());
+        let r = match cmp {
+            Cmp::Lt => if inclusive { a <= b } else { a < b },
+            Cmp::Gt => if inclusive { a >= b } else { a > b },
+            _ => a == b,
+        };
+        notes.push(format!("{}-{:02}-{:02} {:?} {}-{:02}-{:02} → {}", ds.date.year, ds.date.month, ds.date.day, cmp, qdate.year, qdate.month, qdate.day, r));
+        outcomes.push(r);
+    }
+    if outcomes.is_empty() {
+        return None;
+    }
+    let all_true = outcomes.iter().all(|x| *x);
+    let all_false = outcomes.iter().all(|x| !*x);
+    if !(all_true || all_false) {
+        return None;
+    }
+    let truth = all_true != q.question_negated;
+    let logit = if truth { STRONG * 0.8 } else { -STRONG * 0.8 };
+    Some(Resolved { name: "date_comparison", logits: vec![logit], notes })
 }
 
 /// Exact enum extraction: options are literal values; the longest option
@@ -84,7 +336,7 @@ fn numeric_levels(q: &QuestionView, state: &StateIndex) -> Option<Resolved> {
     let focus = &q.focus_fields;
     let mut cands: Vec<f64> = Vec::new();
     for ns in &state.numbers {
-        if ns.kind == NumKind::Ordinal {
+        if ns.kind == NumKind::Ordinal || ns.from_word {
             continue;
         }
         let kind_ok = match kind {

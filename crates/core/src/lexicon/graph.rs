@@ -27,7 +27,11 @@ pub struct LexGraph {
     synset_lemmas: Vec<SmallVec<[LemmaId; 4]>>,
     synset_hypernyms: Vec<SmallVec<[SynId; 2]>>,
     synset_similar: Vec<SmallVec<[SynId; 2]>>,
+    /// Topic-domain synsets (WordNet `;c` pointers), e.g. "computer science".
+    synset_domains: Vec<SmallVec<[SynId; 1]>>,
     antonyms: FxHashMap<LemmaId, SmallVec<[LemmaId; 2]>>,
+    /// Minimum hypernym distance to a root (memoized at load).
+    root_depth: Vec<u8>,
     pub n_synsets: usize,
 }
 
@@ -51,6 +55,7 @@ impl LexGraph {
             g.synset_lemmas.push(SmallVec::new());
             g.synset_hypernyms.push(SmallVec::new());
             g.synset_similar.push(SmallVec::new());
+            g.synset_domains.push(SmallVec::new());
             syn_ids.insert(s.into(), id);
             id
         };
@@ -120,6 +125,15 @@ impl LexGraph {
                     g.synset_similar[sid as usize].push(id2);
                 }
             }
+            if let Some(doms) = it.next() {
+                for d in doms.split(',') {
+                    if d.is_empty() {
+                        continue;
+                    }
+                    let id2 = syn_id(d, &mut syn_ids, &mut g);
+                    g.synset_domains[sid as usize].push(id2);
+                }
+            }
         }
         for line in antonyms_tsv.lines() {
             let line = line.trim();
@@ -133,7 +147,78 @@ impl LexGraph {
             g.antonyms.entry(b).or_default().push(a);
         }
         g.n_synsets = g.synset_lemmas.len();
+        g.compute_root_depths();
         g
+    }
+
+    /// Memoized minimum distance to a root synset (one with no hypernyms).
+    fn compute_root_depths(&mut self) {
+        let n = self.synset_lemmas.len();
+        let mut depth = vec![u8::MAX; n];
+        // Iterative relaxation (graph is a DAG in practice; bounded passes guard against cycles).
+        for s in 0..n {
+            if self.synset_hypernyms[s].is_empty() {
+                depth[s] = 0;
+            }
+        }
+        for _ in 0..24 {
+            let mut changed = false;
+            for s in 0..n {
+                let mut best = depth[s];
+                for &h in &self.synset_hypernyms[s] {
+                    let d = depth[h as usize];
+                    if d != u8::MAX && d.saturating_add(1) < best {
+                        best = d + 1;
+                    }
+                }
+                if best != depth[s] {
+                    depth[s] = best;
+                    changed = true;
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+        for d in depth.iter_mut() {
+            if *d == u8::MAX {
+                *d = 8;
+            }
+        }
+        self.root_depth = depth;
+    }
+
+    #[inline]
+    pub fn root_depth(&self, s: SynId) -> u8 {
+        self.root_depth.get(s as usize).copied().unwrap_or(8)
+    }
+
+    #[inline]
+    pub fn domains(&self, s: SynId) -> &[SynId] {
+        self.synset_domains.get(s as usize).map(|v| v.as_slice()).unwrap_or(&[])
+    }
+
+    /// Hypernym closure with depths: (depth, synset) for depth 1..=depth.
+    pub fn hypernym_closure_with_depth(&self, s: SynId, depth: usize) -> SmallVec<[(u8, SynId); 8]> {
+        let mut out: SmallVec<[(u8, SynId); 8]> = SmallVec::new();
+        let mut frontier: SmallVec<[SynId; 4]> = SmallVec::new();
+        frontier.push(s);
+        for d in 1..=depth {
+            let mut next: SmallVec<[SynId; 4]> = SmallVec::new();
+            for &f in &frontier {
+                for &h in self.hypernyms(f) {
+                    if !out.iter().any(|(_, x)| *x == h) {
+                        out.push((d as u8, h));
+                        next.push(h);
+                    }
+                }
+            }
+            if next.is_empty() {
+                break;
+            }
+            frontier = next;
+        }
+        out
     }
 
     /// Lemma ids whose stem equals `st` (single-word lemmas).

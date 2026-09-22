@@ -86,12 +86,12 @@ enum Cmd {
         #[arg(long, default_value_t = 42)]
         seed: u64,
         /// L2 regularization strength.
-        #[arg(long, default_value_t = 0.05)]
+        #[arg(long, default_value_t = 0.001)]
         l2: f32,
         /// Shrinkage of per-family deltas toward the base expert.
-        #[arg(long, default_value_t = 0.5)]
+        #[arg(long, default_value_t = 0.01)]
         family_l2: f32,
-        #[arg(long, default_value_t = 400)]
+        #[arg(long, default_value_t = 600)]
         epochs: usize,
         /// Disable per-family experts.
         #[arg(long)]

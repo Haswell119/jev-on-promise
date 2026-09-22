@@ -1,0 +1,25 @@
+{
+  "generator": "scripts/synth/generate.py",
+  "seed": 20260922,
+  "records": 3151,
+  "splits": {
+    "calib": 672,
+    "train": 1746,
+    "dev": 733
+  },
+  "recipes": [
+    "recipe_routing",
+    "recipe_long_context",
+    "recipe_enum",
+    "recipe_numeric",
+    "recipe_temporal",
+    "recipe_negation",
+    "recipe_policy",
+    "recipe_sentiment",
+    "recipe_severity",
+    "recipe_json_facts",
+    "recipe_adequacy",
+    "recipe_compat"
+  ],
+  "note": "Synthetic development data; labels verifiable by construction; never derived from any benchmark."
+}
