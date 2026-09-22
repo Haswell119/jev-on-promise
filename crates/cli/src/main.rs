@@ -106,6 +106,9 @@ enum Cmd {
         /// Loss balancing across (primitive, source) groups: sqrt | full | none.
         #[arg(long, default_value = "full")]
         balance: String,
+        /// JSON file with a list of record ids to exclude (from `sextant leakage --exclusions-out`).
+        #[arg(long)]
+        exclude_ids: Option<PathBuf>,
     },
     /// Fit calibration (temperatures, Platt, confidence map) on a separate split (writes calibration.json).
     Calibrate {
@@ -127,6 +130,12 @@ enum Cmd {
         eval: Vec<PathBuf>,
         #[arg(long, default_value = "reports/leakage.json")]
         out: PathBuf,
+        /// Write the ids of training records whose STATE matches an external eval set (for `train --exclude-ids`).
+        #[arg(long)]
+        exclusions_out: Option<PathBuf>,
+        /// Eval files whose matches do not count toward the verdict or exclusions (internal dev sets), comma separated substrings.
+        #[arg(long, default_value = "data/synthetic")]
+        internal: String,
     },
     /// Write the bootstrap (hand-set) weights and default calibration to a directory.
     ExportBootstrap {
@@ -159,13 +168,13 @@ fn main() {
             show_failures,
             filter,
         ),
-        Cmd::Train { inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features, balance } => {
-            commands::train::run(inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features, balance)
+        Cmd::Train { inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features, balance, exclude_ids } => {
+            commands::train::run(inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features, balance, exclude_ids)
         }
         Cmd::Calibrate { inputs, out_dir, compare_isotonic } => {
             commands::calibrate::run(inputs, out_dir, compare_isotonic)
         }
-        Cmd::Leakage { train, eval, out } => commands::leakage::run(train, eval, out),
+        Cmd::Leakage { train, eval, out, exclusions_out, internal } => commands::leakage::run(train, eval, out, exclusions_out, internal),
         Cmd::ExportBootstrap { out_dir } => commands::export::run(out_dir),
     };
     std::process::exit(code);

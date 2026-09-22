@@ -387,15 +387,29 @@ pub fn run(
     no_families: bool,
     drop_features: Option<String>,
     balance_scheme: String,
+    exclude_ids: Option<PathBuf>,
 ) -> i32 {
     let _ = seed; // full-batch training is deterministic; the seed is recorded for provenance only
-    let records = match load_records(&inputs) {
+    let mut records = match load_records(&inputs) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: {e}");
             return 2;
         }
     };
+    let mut n_excluded = 0usize;
+    if let Some(path) = &exclude_ids {
+        let ids: std::collections::HashSet<String> = std::fs::read_to_string(path)
+            .ok()
+            .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+            .and_then(|v| v.get("exclude_ids").cloned().or(Some(v)))
+            .and_then(|v| v.as_array().map(|a| a.iter().filter_map(|x| x.as_str().map(|s| s.to_string())).collect()))
+            .unwrap_or_default();
+        let before = records.len();
+        records.retain(|r| !ids.contains(&r.id));
+        n_excluded = before - records.len();
+        eprintln!("excluded {n_excluded} records listed in {}", path.display());
+    }
     let res = Resources::embedded();
     let drop = parse_drop(&drop_features);
     let t0 = std::time::Instant::now();
@@ -436,7 +450,7 @@ pub fn run(
     let weights = Weights {
         version: format!("trained-{}", chrono_like_stamp()),
         description: format!(
-            "Fitted by `sextant train` on {} records / {} semantic examples (choice={}, score={}, noul={}); epochs={epochs} l2={l2} family_l2={family_l2} seed={seed} balance={balance_scheme} dropped_features={:?}. Choice/Score: conditional logit; Noul: logistic over (f_yes-f_no, f_yes).",
+            "Fitted by `sextant train` on {} records / {} semantic examples (choice={}, score={}, noul={}); epochs={epochs} l2={l2} family_l2={family_l2} seed={seed} balance={balance_scheme} excluded_records={n_excluded} dropped_features={:?}. Choice/Score: conditional logit; Noul: logistic over (f_yes-f_no, f_yes).",
             records.len(),
             semantic.len(),
             choice.len(),

@@ -1,0 +1,4666 @@
+{
+  "generated_by": "sextant leakage",
+  "method": {
+    "exact": "128-bit hash of the raw text (FxHash + FNV-1a)",
+    "normalized": "same hash over lowercased, punctuation-stripped, whitespace-collapsed text",
+    "near_duplicate": "MinHash (128 permutations, 16 bands x 8 rows) over token 5-shingles, flagged at Jaccard >= 0.5",
+    "units": "state text and instruction+criteria text of every record, separately (min 20 normalized chars)"
+  },
+  "train_files": [
+    "reports/raw/training_used.jsonl"
+  ],
+  "eval_files": [
+    "benchmarks/jevbench/harness/datasets/public/easy.jsonl",
+    "benchmarks/jevbench/harness/datasets/public/hard.jsonl",
+    "benchmarks/jevbench/harness/datasets/public/original.jsonl",
+    "benchmarks/jev_bench_hf/data/arc_challenge/test.jsonl",
+    "benchmarks/jev_bench_hf/data/banking77/test.jsonl",
+    "benchmarks/jev_bench_hf/data/boolq/test.jsonl",
+    "benchmarks/jev_bench_hf/data/chaosnli/test.jsonl",
+    "benchmarks/jev_bench_hf/data/civil_comments/test.jsonl",
+    "benchmarks/jev_bench_hf/data/clinc150/test.jsonl",
+    "benchmarks/jev_bench_hf/data/fever_evidence/test.jsonl",
+    "benchmarks/jev_bench_hf/data/go_emotions/test.jsonl",
+    "benchmarks/jev_bench_hf/data/helpsteer2_helpfulness/test.jsonl",
+    "benchmarks/jev_bench_hf/data/helpsteer2_verbosity/test.jsonl",
+    "benchmarks/jev_bench_hf/data/ledgar/test.jsonl",
+    "benchmarks/jev_bench_hf/data/massive/test.jsonl",
+    "benchmarks/jev_bench_hf/data/measuring_hate_speech/test.jsonl",
+    "benchmarks/jev_bench_hf/data/mmlu/test.jsonl",
+    "benchmarks/jev_bench_hf/data/mnli/test.jsonl",
+    "benchmarks/jev_bench_hf/data/paws/test.jsonl",
+    "benchmarks/jev_bench_hf/data/sms_spam/test.jsonl",
+    "benchmarks/jev_bench_hf/data/sst5/test.jsonl",
+    "benchmarks/jev_bench_hf/data/strategyqa_closed/test.jsonl",
+    "benchmarks/jev_bench_hf/data/strategyqa_grounded/test.jsonl",
+    "benchmarks/jev_bench_hf/data/stsb/test.jsonl",
+    "benchmarks/jev_bench_hf/data/yelp5/test.jsonl",
+    "data/synthetic/dev.jsonl"
+  ],
+  "train_units": 47993,
+  "eval_units": 46900,
+  "exact_matches": 508,
+  "normalized_matches": 1,
+  "near_duplicates": 104,
+  "state_exact_matches": 0,
+  "state_normalized_matches": 1,
+  "state_near_duplicates": 0,
+  "state_near_duplicate_rate": 0.0,
+  "instruction_matches_for_review": 0,
+  "internal_eval_markers": [
+    "data/synthetic"
+  ],
+  "training_ids_to_exclude": 1,
+  "max_jaccard_observed": 0.8461538461538461,
+  "verdict": "FAIL",
+  "verdict_rule": "PASS iff zero exact/normalized STATE matches against external eval sets (after exclusions) and the external state near-duplicate rate < 0.5%; instruction/criteria matches are listed for manual review; internal dev sets never count",
+  "exact_match_pairs": [
+    {
+      "eval_id": "synth-routing-shipping-1-1-json",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-returns-1-0-json",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-fallback-27",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-0-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-fallback-27",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-fallback-27",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-1-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-fallback-27",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-fallback-27",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-2-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-fallback-27",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-routing-fallback-10",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-fallback-32",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-routing-fallback-18",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-fallback-4",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-routing-fallback-28",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-fallback-32",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-routing-fallback-35",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-feedback-5-2-perm",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-routing-fallback-46",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-fallback-16",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-routing-negcontrast-3-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-negcontrast-3-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-4",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-69",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-4-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-10",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-10-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-21",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-21-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-24",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-69",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-24-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-32",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-69",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-32-ref",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-56-ref",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-32-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-35",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-69",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-35-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-38",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-38-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-39",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-69",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-39-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-40",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-69",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-40-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-47",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-47-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-51",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-51-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-53",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-69",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-53-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-57",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-69",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-57-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-58",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-69",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-58-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-59",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-59-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-64",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-64-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-65",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-69",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-65-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-72",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-69",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-72-ref",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-6-ref",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-72-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-73",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-enum-73-carrier",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-78-carrier",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-0-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-9-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-0-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-109-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-0-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-1-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-94-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-1-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-1-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-3",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-3-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-94-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-3-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-109-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-3-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-6",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-6-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-17-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-6-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-76-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-6-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-15",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-15-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-9-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-15-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-15-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-21",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-21-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-64-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-21-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-21-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-27",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-27-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-62-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-27-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-27-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-28",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-28-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-76-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-28-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-39",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-39-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-105-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-39-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-76-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-39-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-40",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-40-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-40-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-40-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-44",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-44-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-38-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-44-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-109-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-44-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-46",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-46-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-60-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-46-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-109-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-46-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-48",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-48-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-85-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-48-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-109-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-48-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-50",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-50-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-50-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-55",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-55-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-109-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-55-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-109-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-55-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-56",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-56-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-85-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-56-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-89-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-56-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-57",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-57-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-89-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-57-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-76-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-57-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-59",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-59-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-26-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-59-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-109-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-59-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-65",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-65-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-81-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-65-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-65-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-68",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-68-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-68-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-72",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-72-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-112-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-72-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-89-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-72-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-73",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-73-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-73-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-89-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-73-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-79",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-79-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-41-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-79-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-89-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-79-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-80",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-80-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-9-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-80-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-89-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-80-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-82",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-82-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-83-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-82-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-89-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-82-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-84",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-84-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-67-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-84-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-76-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-84-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-86",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-86-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-20-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-86-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-89-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-86-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-88",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-88-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-83-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-88-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-109-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-88-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-93",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-93-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-83-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-93-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-93-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-95",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-95-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-38-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-95-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-109-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-95-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-96",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-96-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-109-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-96-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-89-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-96-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-99",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-99-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-17-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-99-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-76-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-99-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-100",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-100-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-64-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-100-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-89-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-100-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-108",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-101",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-108-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-91-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-108-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-89-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-108-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-110",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-110-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-74-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-110-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-76-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-110-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-114",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-114-cmp",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-70-cmp",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-114-qty",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-109-qty",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-num-114-terms",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-num-117-terms",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-time-17",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-time-8",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-time-24",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-time-14",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-refund-request-1-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-refund-inquiry-2-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-refund-request-1-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-refund-inquiry-2-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-refund-request-1-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-refund-inquiry-2-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-refund-negated-1-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-refund-inquiry-2-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-refund-negated-1-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-refund-inquiry-2-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-refund-negated-1-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-refund-inquiry-2-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-refund-negated-2-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-refund-inquiry-2-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-refund-negated-2-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-refund-inquiry-2-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-refund-negated-2-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-refund-inquiry-2-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-refund-inquiry-1-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-refund-inquiry-2-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-refund-inquiry-1-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-refund-inquiry-2-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-refund-inquiry-1-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-refund-inquiry-2-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-negchoice-refund-1-request",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-negchoice-refund-0-inquiry",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-negchoice-refund-1-negated",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-negchoice-refund-0-inquiry",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-negchoice-refund-1-inquiry",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-negchoice-refund-0-inquiry",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-cancel-request-0-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-cancel-inquiry-1-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-cancel-request-0-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-cancel-inquiry-1-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-cancel-request-0-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-cancel-inquiry-1-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-cancel-request-2-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-cancel-inquiry-1-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-cancel-request-2-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-cancel-inquiry-1-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-cancel-request-2-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-cancel-inquiry-1-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-negchoice-cancel-1-request",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-negchoice-cancel-2-inquiry",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-negchoice-cancel-1-negated",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-negchoice-cancel-2-inquiry",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-negchoice-cancel-1-inquiry",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-neg-cancel-inquiry-0-0",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-negchoice-cancel-1-inquiry",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-negchoice-cancel-2-inquiry",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-callback-request-1-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-callback-negated-0-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-callback-request-1-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-callback-negated-0-0",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-callback-request-1-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-callback-negated-0-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-callback-inquiry-1-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-negchoice-callback-0-inquiry",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-callback-inquiry-1-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-callback-negated-0-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-callback-inquiry-1-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-callback-negated-0-0",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-callback-inquiry-1-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-callback-negated-0-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-replacement-negated-0-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-replacement-inquiry-2-0",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-replacement-negated-0-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-replacement-inquiry-2-0",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-neg-replacement-negated-0-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-neg-replacement-inquiry-2-0",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-0-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-2-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-3",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-3-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-8",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-8-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-28",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-28-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-30",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-30-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-33",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-33-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-39",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-39-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-46",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-46-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-58",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-58-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-61",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-61-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-72",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-72-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-73",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-73-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-76",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-76-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-78",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-78-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-85",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-85-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-88",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-88-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-93",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-93-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-94",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-94-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-95",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-95-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-100",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-100-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-105",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-105-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-118",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-policy-118-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-policy-116-reason",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-2-2-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-2-2-0-3",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-3",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-2-2-0-c",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-c",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-2-2-0-n",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-n",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-2-2-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-2-2-1-3",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-3",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-2-2-1-c",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-c",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-2-2-1-n",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-n",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-2-2-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-2-2-2-3",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-3",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-2-2-2-c",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-c",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-2-2-2-n",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-n",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-3-2-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-3-2-0-3",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-3",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-3-2-0-c",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-c",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-3-2-0-n",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-n",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-3-2-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-3-2-1-3",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-3",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-3-2-1-c",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-c",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-3-2-1-n",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-n",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-3-2-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-3-2-2-3",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-3",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-3-2-2-c",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-c",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sent-3-2-2-n",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sent-3-0-2-n",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-0-1-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-2-1-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-0-1-0-p",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1-p",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-0-1-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-2-2-0",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-0-1-1-p",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1-p",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-1-2-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-1-2-0-p",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1-p",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-1-2-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-1-2-1-p",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1-p",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-2-0-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-2-0-0-p",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1-p",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-2-0-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-2-0-1-p",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1-p",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-3-1-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-2-1-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-3-1-0-p",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1-p",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-3-1-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-3-1-1-p",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1-p",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-3-2-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-2-1-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-3-2-0-p",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1-p",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-3-2-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-2-1-1",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-sev-3-2-1-p",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-sev-3-0-1-p",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-3-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-3-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-3-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-3-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-3-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-3-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-3-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-7-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-7-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-7-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-7-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-7-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-7-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-7-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-17-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-17-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-17-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-17-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-17-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-17-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-17-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-95-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-22-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-22-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-22-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-22-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-22-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-22-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-22-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-25-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-25-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-25-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-25-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-25-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-25-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-25-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-95-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-27-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-27-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-27-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-27-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-27-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-27-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-27-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-28-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-28-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-28-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-28-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-28-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-28-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-28-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-30-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-30-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-30-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-30-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-30-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-30-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-30-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-89-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-32-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-32-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-32-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-32-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-32-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-32-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-32-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-40-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-40-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-40-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-40-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-40-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-40-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-40-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-42-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-42-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-42-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-42-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-42-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-42-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-42-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-95-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-48-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-48-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-48-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-48-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-48-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-48-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-48-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-89-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-49-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-49-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-49-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-49-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-49-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-49-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-49-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-95-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-52-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-52-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-52-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-52-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-52-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-52-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-52-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-54-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-54-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-54-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-54-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-54-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-54-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-54-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-57-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-57-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-57-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-57-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-57-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-57-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-57-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-89-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-60-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-60-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-60-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-60-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-60-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-60-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-60-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-95-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-62-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-62-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-62-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-62-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-62-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-62-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-62-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-63-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-63-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-63-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-63-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-63-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-63-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-63-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-95-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-72-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-72-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-72-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-72-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-72-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-72-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-72-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-78-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-78-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-78-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-78-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-78-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-78-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-78-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-89-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-79-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-79-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-79-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-79-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-79-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-79-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-79-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-85-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-85-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-85-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-85-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-85-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-85-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-85-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-87-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-87-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-87-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-87-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-87-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-95-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-87-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-87-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-95-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-99-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-99-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-99-gift",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-gift",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-99-unpaid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-97-unpaid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-99-shipped",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-shipped",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-textfact-99-paid",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-textfact-97-paid",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-json-99-count",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-json-89-count",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-adq-0-0-adequate",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-adq-3-3-off_topic",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-adq-0-0-off_topic",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-adq-3-3-off_topic",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-rel-0-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-rel-3-3",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-adq-0-1-adequate",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-adq-3-3-off_topic",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-adq-0-1-off_topic",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-adq-3-3-off_topic",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-rel-0-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-rel-3-3",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-adq-0-2-adequate",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-adq-3-3-off_topic",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-adq-0-2-off_topic",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-adq-3-3-off_topic",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-rel-0-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-rel-3-3",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-adq-0-3-adequate",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-adq-3-3-off_topic",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-adq-0-3-off_topic",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-adq-3-3-off_topic",
+      "train_file": "reports/raw/training_used.jsonl"
+    },
+    {
+      "eval_id": "synth-rel-0-3",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-rel-3-3",
+      "train_file": "reports/raw/training_used.jsonl"
+    }
+  ],
+  "normalized_match_pairs": [
+    {
+      "eval_id": "banking77/test/1156",
+      "eval_file": "benchmarks/jev_bench_hf/data/banking77/test.jsonl",
+      "kind": "state",
+      "train_id": "bitext_support/calib/106",
+      "train_file": "reports/raw/training_used.jsonl"
+    }
+  ],
+  "near_duplicate_pairs": [
+    {
+      "eval_id": "synth-routing-billing-0-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-privacy-3-2-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5815217391304348,
+      "eval_preview": "route this customer message to the right department personal data requests gdpr consent and data deletion login problems",
+      "train_preview": "which team should handle ticket message pricing quotes upgrades bulk orders and new accounts support for existing orders"
+    },
+    {
+      "eval_id": "synth-routing-billing-0-1-para",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-privacy-3-2-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5815217391304348,
+      "eval_preview": "route this customer message to the right department personal data requests gdpr consent and data deletion login problems",
+      "train_preview": "which team should handle ticket message pricing quotes upgrades bulk orders and new accounts support for existing orders"
+    },
+    {
+      "eval_id": "synth-routing-billing-0-1-distract",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-privacy-3-2-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5815217391304348,
+      "eval_preview": "route this customer message to the right department personal data requests gdpr consent and data deletion login problems",
+      "train_preview": "which team should handle ticket message pricing quotes upgrades bulk orders and new accounts support for existing orders"
+    },
+    {
+      "eval_id": "synth-routing-billing-0-1-json",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-privacy-3-2-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6055555555555555,
+      "eval_preview": "which team should handle ticket message personal data requests gdpr consent and data deletion login problems send me a c",
+      "train_preview": "which team should handle ticket message pricing quotes upgrades bulk orders and new accounts support for existing orders"
+    },
+    {
+      "eval_id": "synth-routing-billing-0-1-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-technical-4-2",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6292682926829268,
+      "eval_preview": "route this customer message to the right department charges invoices refunds payments or subscriptions order tracking de",
+      "train_preview": "route this customer message to the right department delivery status tracking carriers and shipping delays charges or acc"
+    },
+    {
+      "eval_id": "synth-routing-billing-0-1-inject",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-privacy-3-2-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5815217391304348,
+      "eval_preview": "route this customer message to the right department personal data requests gdpr consent and data deletion login problems",
+      "train_preview": "which team should handle ticket message pricing quotes upgrades bulk orders and new accounts support for existing orders"
+    },
+    {
+      "eval_id": "synth-routing-billing-4-1-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-shipping-0-2-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7109375,
+      "eval_preview": "which team should handle this message classify the customer s primary request not every topic mentioned delivery status ",
+      "train_preview": "which team should handle this message classify the customer s primary request not every topic mentioned delivery status "
+    },
+    {
+      "eval_id": "synth-routing-billing-4-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-fallback-37",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6363636363636364,
+      "eval_preview": "please send me a receipt for the payment i made on august 10",
+      "train_preview": "please send me a receipt for the payment i made on may 14"
+    },
+    {
+      "eval_id": "synth-routing-billing-4-2-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-fallback-37",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6363636363636364,
+      "eval_preview": "please send me a receipt for the payment i made on august 10",
+      "train_preview": "please send me a receipt for the payment i made on may 14"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-feedback-3-1-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6521739130434783,
+      "eval_preview": "route this customer message to the right department compliments suggestions and general product feedback with no request",
+      "train_preview": "route this customer message to the right department compliments suggestions and general product feedback with no request"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-0-para",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-feedback-3-1-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6521739130434783,
+      "eval_preview": "route this customer message to the right department compliments suggestions and general product feedback with no request",
+      "train_preview": "route this customer message to the right department compliments suggestions and general product feedback with no request"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-0-distract",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-feedback-3-1-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6521739130434783,
+      "eval_preview": "route this customer message to the right department compliments suggestions and general product feedback with no request",
+      "train_preview": "route this customer message to the right department compliments suggestions and general product feedback with no request"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-0-json",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-feedback-3-1-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6363636363636364,
+      "eval_preview": "which team should handle ticket message compliments suggestions and general product feedback with no request for action ",
+      "train_preview": "which team should handle ticket message delivery status tracking carriers and shipping delays compliments suggestions an"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-0-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-long-38",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5882352941176471,
+      "eval_preview": "route this customer message to the right department product defects app crashes bugs outages and integrations delivery s",
+      "train_preview": "which team should handle this message product defects app crashes bugs outages and integrations delivery status tracking"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-0-inject",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-feedback-3-1-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6521739130434783,
+      "eval_preview": "route this customer message to the right department compliments suggestions and general product feedback with no request",
+      "train_preview": "route this customer message to the right department compliments suggestions and general product feedback with no request"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-returns-1-0-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7021276595744681,
+      "eval_preview": "route this customer message to the right department delivery status tracking carriers and shipping delays returning or e",
+      "train_preview": "which team should handle ticket message delivery status tracking carriers and shipping delays returning or exchanging it"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-1-para",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-returns-1-0-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7021276595744681,
+      "eval_preview": "route this customer message to the right department delivery status tracking carriers and shipping delays returning or e",
+      "train_preview": "which team should handle ticket message delivery status tracking carriers and shipping delays returning or exchanging it"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-1-distract",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-returns-1-0-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7021276595744681,
+      "eval_preview": "route this customer message to the right department delivery status tracking carriers and shipping delays returning or e",
+      "train_preview": "which team should handle ticket message delivery status tracking carriers and shipping delays returning or exchanging it"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-1-inject",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-returns-1-0-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7021276595744681,
+      "eval_preview": "route this customer message to the right department delivery status tracking carriers and shipping delays returning or e",
+      "train_preview": "which team should handle ticket message delivery status tracking carriers and shipping delays returning or exchanging it"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-billing-2-1-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7577639751552795,
+      "eval_preview": "which department is responsible for this request charges invoices refunds payments or subscriptions order tracking deliv",
+      "train_preview": "route this customer message to the right department charges invoices refunds payments or subscriptions order tracking de"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-2-para",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-billing-2-1-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7577639751552795,
+      "eval_preview": "which department is responsible for this request charges invoices refunds payments or subscriptions order tracking deliv",
+      "train_preview": "route this customer message to the right department charges invoices refunds payments or subscriptions order tracking de"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-2-distract",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-billing-2-1-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7577639751552795,
+      "eval_preview": "which department is responsible for this request charges invoices refunds payments or subscriptions order tracking deliv",
+      "train_preview": "route this customer message to the right department charges invoices refunds payments or subscriptions order tracking de"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-2-json",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-billing-2-1-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7625,
+      "eval_preview": "which team should handle ticket message charges invoices refunds payments or subscriptions order tracking delivery or ac",
+      "train_preview": "route this customer message to the right department charges invoices refunds payments or subscriptions order tracking de"
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-2-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-billing-2-1-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7239263803680982,
+      "eval_preview": "which department is responsible for this request compliments suggestions and general product feedback with no request fo",
+      "train_preview": "which team should handle ticket message login problems passwords profile details and security charges or delivery i can "
+    },
+    {
+      "eval_id": "synth-routing-shipping-1-2-inject",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-billing-2-1-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7577639751552795,
+      "eval_preview": "which department is responsible for this request charges invoices refunds payments or subscriptions order tracking deliv",
+      "train_preview": "route this customer message to the right department charges invoices refunds payments or subscriptions order tracking de"
+    },
+    {
+      "eval_id": "synth-routing-shipping-5-0-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-billing-2-2-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5747126436781609,
+      "eval_preview": "which team should handle this message delivery status tracking carriers and shipping delays charges invoices refunds pay",
+      "train_preview": "which department is responsible for this request login problems passwords profile details and security charges invoices "
+    },
+    {
+      "eval_id": "synth-routing-shipping-5-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-account-4-0-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7857142857142857,
+      "eval_preview": "which department is responsible for this request returning or exchanging items return labels and refund eligibility for ",
+      "train_preview": "which team should handle ticket message delivery status tracking carriers and shipping delays charges or account problem"
+    },
+    {
+      "eval_id": "synth-routing-shipping-5-2-distract",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-account-4-0-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7857142857142857,
+      "eval_preview": "which department is responsible for this request returning or exchanging items return labels and refund eligibility for ",
+      "train_preview": "which team should handle ticket message delivery status tracking carriers and shipping delays charges or account problem"
+    },
+    {
+      "eval_id": "synth-routing-shipping-5-2-json",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-billing-1-0-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.8423645320197044,
+      "eval_preview": "which team should handle ticket message returning or exchanging items return labels and refund eligibility for returns d",
+      "train_preview": "which team should handle ticket message returning or exchanging items return labels and refund eligibility for returns d"
+    },
+    {
+      "eval_id": "synth-routing-shipping-5-2-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-shipping-2-2-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7824074074074074,
+      "eval_preview": "which department is responsible for this request pricing quotes upgrades bulk orders and new accounts support for existi",
+      "train_preview": "which team should handle this message classify the customer s primary request not every topic mentioned login problems p"
+    },
+    {
+      "eval_id": "synth-routing-shipping-5-2-inject",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-account-4-0-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7857142857142857,
+      "eval_preview": "which department is responsible for this request returning or exchanging items return labels and refund eligibility for ",
+      "train_preview": "which team should handle ticket message delivery status tracking carriers and shipping delays charges or account problem"
+    },
+    {
+      "eval_id": "synth-routing-returns-3-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-shipping-4-2-inject",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5747126436781609,
+      "eval_preview": "which department is responsible for this request compliments suggestions and general product feedback with no request fo",
+      "train_preview": "which team should handle this message charges invoices refunds payments or subscriptions returning or exchanging items r"
+    },
+    {
+      "eval_id": "synth-routing-returns-3-0-distract",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-shipping-4-2-inject",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5747126436781609,
+      "eval_preview": "which department is responsible for this request compliments suggestions and general product feedback with no request fo",
+      "train_preview": "which team should handle this message charges invoices refunds payments or subscriptions returning or exchanging items r"
+    },
+    {
+      "eval_id": "synth-routing-returns-3-0-json",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-shipping-4-2-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6190476190476191,
+      "eval_preview": "which team should handle ticket message compliments suggestions and general product feedback with no request for action ",
+      "train_preview": "which team should handle ticket message charges invoices refunds payments or subscriptions returning or exchanging items"
+    },
+    {
+      "eval_id": "synth-routing-returns-3-0-inject",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-shipping-4-2-inject",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5747126436781609,
+      "eval_preview": "which department is responsible for this request compliments suggestions and general product feedback with no request fo",
+      "train_preview": "which team should handle this message charges invoices refunds payments or subscriptions returning or exchanging items r"
+    },
+    {
+      "eval_id": "synth-routing-returns-4-0-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-feedback-1-0-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5862068965517241,
+      "eval_preview": "route this customer message to the right department compliments suggestions and general product feedback with no request",
+      "train_preview": "route this customer message to the right department product defects app crashes bugs outages and integrations compliment"
+    },
+    {
+      "eval_id": "synth-routing-returns-4-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-returns-1-1-distract",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.509090909090909,
+      "eval_preview": "which department is responsible for this request delivery status tracking carriers and shipping delays returning or exch",
+      "train_preview": "which department is responsible for this request personal data requests gdpr consent and data deletion delivery status t"
+    },
+    {
+      "eval_id": "synth-routing-returns-4-1-distract",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-returns-1-1-distract",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.509090909090909,
+      "eval_preview": "which department is responsible for this request delivery status tracking carriers and shipping delays returning or exch",
+      "train_preview": "which department is responsible for this request personal data requests gdpr consent and data deletion delivery status t"
+    },
+    {
+      "eval_id": "synth-routing-returns-4-1-inject",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-returns-1-1-distract",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.509090909090909,
+      "eval_preview": "which department is responsible for this request delivery status tracking carriers and shipping delays returning or exch",
+      "train_preview": "which department is responsible for this request personal data requests gdpr consent and data deletion delivery status t"
+    },
+    {
+      "eval_id": "synth-routing-returns-4-2-json",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-sales-2-2-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6101694915254238,
+      "eval_preview": "which team should handle ticket message delivery status tracking carriers and shipping delays personal data requests gdp",
+      "train_preview": "which team should handle ticket message personal data requests gdpr consent and data deletion returning or exchanging it"
+    },
+    {
+      "eval_id": "synth-routing-technical-3-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-sales-5-2-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7088607594936709,
+      "eval_preview": "which department is responsible for this request product defects app crashes bugs outages and integrations billing quest",
+      "train_preview": "which department is responsible for this request returning or exchanging items return labels and refund eligibility for "
+    },
+    {
+      "eval_id": "synth-routing-technical-3-0-distract",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-sales-5-2-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7088607594936709,
+      "eval_preview": "which department is responsible for this request product defects app crashes bugs outages and integrations billing quest",
+      "train_preview": "which department is responsible for this request returning or exchanging items return labels and refund eligibility for "
+    },
+    {
+      "eval_id": "synth-routing-technical-3-0-json",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-sales-5-2-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6645962732919255,
+      "eval_preview": "which team should handle ticket message product defects app crashes bugs outages and integrations billing questions or d",
+      "train_preview": "which team should handle ticket message compliments suggestions and general product feedback with no request for action "
+    },
+    {
+      "eval_id": "synth-routing-technical-3-0-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-sales-5-2-distract",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.8,
+      "eval_preview": "which department is responsible for this request compliments suggestions and general product feedback with no request fo",
+      "train_preview": "which department is responsible for this request compliments suggestions and general product feedback with no request fo"
+    },
+    {
+      "eval_id": "synth-routing-technical-3-0-inject",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-sales-5-2-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7088607594936709,
+      "eval_preview": "which department is responsible for this request product defects app crashes bugs outages and integrations billing quest",
+      "train_preview": "which department is responsible for this request returning or exchanging items return labels and refund eligibility for "
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-shipping-2-2-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7523364485981309,
+      "eval_preview": "which department is responsible for this request returning or exchanging items return labels and refund eligibility for ",
+      "train_preview": "which team should handle ticket message product defects app crashes bugs outages and integrations billing questions or d"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-0-para",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-shipping-2-2-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7523364485981309,
+      "eval_preview": "which department is responsible for this request returning or exchanging items return labels and refund eligibility for ",
+      "train_preview": "which team should handle ticket message product defects app crashes bugs outages and integrations billing questions or d"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-0-distract",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-shipping-2-2-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7523364485981309,
+      "eval_preview": "which department is responsible for this request returning or exchanging items return labels and refund eligibility for ",
+      "train_preview": "which team should handle ticket message product defects app crashes bugs outages and integrations billing questions or d"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-0-json",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-shipping-2-2-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7725118483412322,
+      "eval_preview": "which team should handle ticket message returning or exchanging items return labels and refund eligibility for returns d",
+      "train_preview": "which team should handle ticket message product defects app crashes bugs outages and integrations billing questions or d"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-0-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-technical-2-0-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.8076923076923077,
+      "eval_preview": "which department is responsible for this request returning or exchanging items return labels and refund eligibility for ",
+      "train_preview": "which department is responsible for this request product defects app crashes bugs outages and integrations billing quest"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-0-inject",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-shipping-2-2-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7523364485981309,
+      "eval_preview": "which department is responsible for this request returning or exchanging items return labels and refund eligibility for ",
+      "train_preview": "which team should handle ticket message product defects app crashes bugs outages and integrations billing questions or d"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-1",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-billing-5-2-inject",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5918367346938775,
+      "eval_preview": "which team should handle this message classify the customer s primary request not every topic mentioned pricing quotes u",
+      "train_preview": "which team should handle this message classify the customer s primary request not every topic mentioned charges invoices"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-1-para",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-billing-5-2-inject",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5918367346938775,
+      "eval_preview": "which team should handle this message classify the customer s primary request not every topic mentioned pricing quotes u",
+      "train_preview": "which team should handle this message classify the customer s primary request not every topic mentioned charges invoices"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-1-distract",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-billing-5-2-inject",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5918367346938775,
+      "eval_preview": "which team should handle this message classify the customer s primary request not every topic mentioned pricing quotes u",
+      "train_preview": "which team should handle this message classify the customer s primary request not every topic mentioned charges invoices"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-1-json",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-fallback-27",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.625,
+      "eval_preview": "t 792 chat s okafor pro under gdpr i request a copy of all personal data you hold about me",
+      "train_preview": "under gdpr i request a copy of all personal data you hold about me"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-1-perm",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-sales-4-2-inject",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5581395348837209,
+      "eval_preview": "which team should handle this message classify the customer s primary request not every topic mentioned pricing quotes u",
+      "train_preview": "which team should handle this message classify the customer s primary request not every topic mentioned personal data re"
+    },
+    {
+      "eval_id": "synth-routing-privacy-0-1-inject",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-billing-5-2-inject",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5918367346938775,
+      "eval_preview": "which team should handle this message classify the customer s primary request not every topic mentioned pricing quotes u",
+      "train_preview": "which team should handle this message classify the customer s primary request not every topic mentioned charges invoices"
+    },
+    {
+      "eval_id": "synth-routing-fallback-28",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-fallback-16",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5735294117647058,
+      "eval_preview": "which team should handle this message pick the fallback option if none applies returning or exchanging items return labe",
+      "train_preview": "which team should handle this message pick the fallback option if none applies returning or exchanging items return labe"
+    },
+    {
+      "eval_id": "synth-routing-negcontrast-0-3",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-routing-negcontrast-0-2",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.8461538461538461,
+      "eval_preview": "this is not about the charge on my card that part is fine the delivery estimate keeps moving i need a firm arrival date ",
+      "train_preview": "this is not about the charge on my card that part is fine the delivery estimate keeps moving i need a firm arrival date "
+    },
+    {
+      "eval_id": "synth-routing-negcontrast-2-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-feedback-3-1-inject",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5660377358490566,
+      "eval_preview": "route this customer message to the right department delivery status tracking carriers and shipping delays product defect",
+      "train_preview": "route this customer message to the right department delivery status tracking carriers and shipping delays compliments su"
+    },
+    {
+      "eval_id": "synth-routing-negcontrast-3-0",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-returns-2-0-perm",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5471698113207547,
+      "eval_preview": "which team should handle this message charges invoices refunds payments or subscriptions pricing quotes upgrades bulk or",
+      "train_preview": "which team should handle this message charges invoices refunds payments or subscriptions pricing quotes upgrades bulk or"
+    },
+    {
+      "eval_id": "synth-long-52",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-routing-feedback-1-1-json",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.631578947368421,
+      "eval_preview": "which department is responsible for this request returning or exchanging items return labels and refund eligibility for ",
+      "train_preview": "which team should handle ticket message compliments suggestions and general product feedback with no request for action "
+    },
+    {
+      "eval_id": "synth-enum-24-ref",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-7-ref",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5,
+      "eval_preview": "invoice number string 5547 does extracted value match the field as it appears in source text",
+      "train_preview": "invoice number string 3667 does extracted value match the field as it appears in source text"
+    },
+    {
+      "eval_id": "synth-enum-35-ref",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-7-ref",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5,
+      "eval_preview": "invoice number string 8524 does extracted value match the field as it appears in source text",
+      "train_preview": "invoice number string 3667 does extracted value match the field as it appears in source text"
+    },
+    {
+      "eval_id": "synth-enum-53-ref",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-17-ref",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5,
+      "eval_preview": "invoice number string 5900 does extracted value match the field as it appears in source text",
+      "train_preview": "invoice number string 2051 does extracted value match the field as it appears in source text"
+    },
+    {
+      "eval_id": "synth-enum-58-ref",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-7-ref",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5,
+      "eval_preview": "invoice number string 9143 does extracted value match the field as it appears in source text",
+      "train_preview": "invoice number string 3667 does extracted value match the field as it appears in source text"
+    },
+    {
+      "eval_id": "synth-enum-65-ref",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-2-ref",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5,
+      "eval_preview": "invoice number string 3312 does extracted value match the field as it appears in source text",
+      "train_preview": "invoice number string 3289 does extracted value match the field as it appears in source text"
+    },
+    {
+      "eval_id": "synth-enum-73-ref",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-enum-7-ref",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5,
+      "eval_preview": "invoice number string 2452 does extracted value match the field as it appears in source text",
+      "train_preview": "invoice number string 3667 does extracted value match the field as it appears in source text"
+    },
+    {
+      "eval_id": "synth-time-11",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-time-2",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6,
+      "eval_preview": "is the date mentioned before 2026 04 05",
+      "train_preview": "is the date mentioned before 2026 04 24"
+    },
+    {
+      "eval_id": "synth-time-20",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-time-34",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6,
+      "eval_preview": "is the date mentioned after 2026 11 25",
+      "train_preview": "is the date mentioned after 2026 11 21"
+    },
+    {
+      "eval_id": "synth-time-47",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-time-19",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6,
+      "eval_preview": "is the date mentioned after 2026 08 20",
+      "train_preview": "is the date mentioned after 2026 08 28"
+    },
+    {
+      "eval_id": "synth-time-63",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-time-60",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6,
+      "eval_preview": "is the date mentioned before 2026 07 20",
+      "train_preview": "is the date mentioned before 2026 07 04"
+    },
+    {
+      "eval_id": "synth-time-66",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "instructions",
+      "train_id": "synth-time-67",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6,
+      "eval_preview": "is the date mentioned before 2026 10 26",
+      "train_preview": "is the date mentioned before 2026 10 19"
+    },
+    {
+      "eval_id": "synth-negchoice-cancel-1-negated",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-negchoice-cancel-0-negated",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.75,
+      "eval_preview": "i am not cancelling just checking the status of order 3920",
+      "train_preview": "i am not cancelling just checking the status of order 3359"
+    },
+    {
+      "eval_id": "synth-policy-2",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-23-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5471698113207547,
+      "eval_preview": "returns are accepted within 30 days of delivery for unused items electronics and cosmetics cannot be returned opened ite",
+      "train_preview": "returns are accepted within 30 days of delivery for unused items toys and books cannot be returned opened items may be r"
+    },
+    {
+      "eval_id": "synth-policy-2-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-23-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5471698113207547,
+      "eval_preview": "returns are accepted within 30 days of delivery for unused items electronics and cosmetics cannot be returned opened ite",
+      "train_preview": "returns are accepted within 30 days of delivery for unused items toys and books cannot be returned opened items may be r"
+    },
+    {
+      "eval_id": "synth-policy-3",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-31",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5192307692307693,
+      "eval_preview": "returns are accepted within 14 days of delivery for unused items furniture and cosmetics cannot be returned opened items",
+      "train_preview": "returns are accepted within 14 days of delivery for unused items perishable food and electronics cannot be returned open"
+    },
+    {
+      "eval_id": "synth-policy-3-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-31",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5192307692307693,
+      "eval_preview": "returns are accepted within 14 days of delivery for unused items furniture and cosmetics cannot be returned opened items",
+      "train_preview": "returns are accepted within 14 days of delivery for unused items perishable food and electronics cannot be returned open"
+    },
+    {
+      "eval_id": "synth-policy-8",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-23-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5370370370370371,
+      "eval_preview": "returns are accepted within 60 days of delivery for unused items perishable food and electronics cannot be returned open",
+      "train_preview": "returns are accepted within 30 days of delivery for unused items toys and books cannot be returned opened items may be r"
+    },
+    {
+      "eval_id": "synth-policy-8-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-23-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5370370370370371,
+      "eval_preview": "returns are accepted within 60 days of delivery for unused items perishable food and electronics cannot be returned open",
+      "train_preview": "returns are accepted within 30 days of delivery for unused items toys and books cannot be returned opened items may be r"
+    },
+    {
+      "eval_id": "synth-policy-28",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-101-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7777777777777778,
+      "eval_preview": "returns are accepted within 30 days of delivery for unused items perishable food and electronics cannot be returned open",
+      "train_preview": "returns are accepted within 30 days of delivery for unused items perishable food and electronics cannot be returned open"
+    },
+    {
+      "eval_id": "synth-policy-28-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-101-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7777777777777778,
+      "eval_preview": "returns are accepted within 30 days of delivery for unused items perishable food and electronics cannot be returned open",
+      "train_preview": "returns are accepted within 30 days of delivery for unused items perishable food and electronics cannot be returned open"
+    },
+    {
+      "eval_id": "synth-policy-30",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-62-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7708333333333334,
+      "eval_preview": "returns are accepted within 30 days of delivery for unused items electronics and perishable food cannot be returned open",
+      "train_preview": "returns are accepted within 30 days of delivery for unused items electronics and cosmetics cannot be returned opened ite"
+    },
+    {
+      "eval_id": "synth-policy-30-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-62-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.7708333333333334,
+      "eval_preview": "returns are accepted within 30 days of delivery for unused items electronics and perishable food cannot be returned open",
+      "train_preview": "returns are accepted within 30 days of delivery for unused items electronics and cosmetics cannot be returned opened ite"
+    },
+    {
+      "eval_id": "synth-policy-39",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-42",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5370370370370371,
+      "eval_preview": "returns are accepted within 14 days of delivery for unused items cosmetics and electronics cannot be returned opened ite",
+      "train_preview": "returns are accepted within 14 days of delivery for unused items perishable food and electronics cannot be returned open"
+    },
+    {
+      "eval_id": "synth-policy-39-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-42",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5370370370370371,
+      "eval_preview": "returns are accepted within 14 days of delivery for unused items cosmetics and electronics cannot be returned opened ite",
+      "train_preview": "returns are accepted within 14 days of delivery for unused items perishable food and electronics cannot be returned open"
+    },
+    {
+      "eval_id": "synth-policy-46",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-49-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5283018867924528,
+      "eval_preview": "returns are accepted within 30 days of delivery for unused items books and perishable food cannot be returned opened ite",
+      "train_preview": "returns are accepted within 30 days of delivery for unused items cosmetics and electronics cannot be returned opened ite"
+    },
+    {
+      "eval_id": "synth-policy-46-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-49-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5283018867924528,
+      "eval_preview": "returns are accepted within 30 days of delivery for unused items books and perishable food cannot be returned opened ite",
+      "train_preview": "returns are accepted within 30 days of delivery for unused items cosmetics and electronics cannot be returned opened ite"
+    },
+    {
+      "eval_id": "synth-policy-58",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-84-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6,
+      "eval_preview": "returns are accepted within 14 days of delivery for unused items electronics and clothing cannot be returned opened item",
+      "train_preview": "returns are accepted within 14 days of delivery for unused items furniture and clothing cannot be returned opened items "
+    },
+    {
+      "eval_id": "synth-policy-58-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-84-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6,
+      "eval_preview": "returns are accepted within 14 days of delivery for unused items electronics and clothing cannot be returned opened item",
+      "train_preview": "returns are accepted within 14 days of delivery for unused items furniture and clothing cannot be returned opened items "
+    },
+    {
+      "eval_id": "synth-policy-61",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-41",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6153846153846154,
+      "eval_preview": "returns are accepted within 30 days of delivery for unused items books and perishable food cannot be returned opened ite",
+      "train_preview": "returns are accepted within 60 days of delivery for unused items books and perishable food cannot be returned opened ite"
+    },
+    {
+      "eval_id": "synth-policy-61-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-41",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6153846153846154,
+      "eval_preview": "returns are accepted within 30 days of delivery for unused items books and perishable food cannot be returned opened ite",
+      "train_preview": "returns are accepted within 60 days of delivery for unused items books and perishable food cannot be returned opened ite"
+    },
+    {
+      "eval_id": "synth-policy-76",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-4",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5471698113207547,
+      "eval_preview": "returns are accepted within 14 days of delivery for unused items furniture and books cannot be returned opened items may",
+      "train_preview": "returns are accepted within 14 days of delivery for unused items cosmetics and clothing cannot be returned opened items "
+    },
+    {
+      "eval_id": "synth-policy-76-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-4",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5471698113207547,
+      "eval_preview": "returns are accepted within 14 days of delivery for unused items furniture and books cannot be returned opened items may",
+      "train_preview": "returns are accepted within 14 days of delivery for unused items cosmetics and clothing cannot be returned opened items "
+    },
+    {
+      "eval_id": "synth-policy-88",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-37",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6956521739130435,
+      "eval_preview": "returns are accepted within 60 days of delivery for unused items cosmetics and clothing cannot be returned opened items ",
+      "train_preview": "returns are accepted within 60 days of delivery for unused items clothing and furniture cannot be returned opened items "
+    },
+    {
+      "eval_id": "synth-policy-88-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-37",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6956521739130435,
+      "eval_preview": "returns are accepted within 60 days of delivery for unused items cosmetics and clothing cannot be returned opened items ",
+      "train_preview": "returns are accepted within 60 days of delivery for unused items clothing and furniture cannot be returned opened items "
+    },
+    {
+      "eval_id": "synth-policy-95",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-21-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6808510638297872,
+      "eval_preview": "returns are accepted within 30 days of delivery for unused items clothing and toys cannot be returned opened items may b",
+      "train_preview": "returns are accepted within 30 days of delivery for unused items clothing and toys cannot be returned opened items may b"
+    },
+    {
+      "eval_id": "synth-policy-95-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-21-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.6808510638297872,
+      "eval_preview": "returns are accepted within 30 days of delivery for unused items clothing and toys cannot be returned opened items may b",
+      "train_preview": "returns are accepted within 30 days of delivery for unused items clothing and toys cannot be returned opened items may b"
+    },
+    {
+      "eval_id": "synth-policy-100",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-32-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5294117647058824,
+      "eval_preview": "returns are accepted within 14 days of delivery for unused items furniture and toys cannot be returned opened items may ",
+      "train_preview": "returns are accepted within 14 days of delivery for unused items cosmetics and books cannot be returned opened items may"
+    },
+    {
+      "eval_id": "synth-policy-100-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-32-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5294117647058824,
+      "eval_preview": "returns are accepted within 14 days of delivery for unused items furniture and toys cannot be returned opened items may ",
+      "train_preview": "returns are accepted within 14 days of delivery for unused items cosmetics and books cannot be returned opened items may"
+    },
+    {
+      "eval_id": "synth-policy-105",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-60-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.68,
+      "eval_preview": "returns are accepted within 14 days of delivery for unused items perishable food and clothing cannot be returned opened ",
+      "train_preview": "returns are accepted within 14 days of delivery for unused items electronics and perishable food cannot be returned open"
+    },
+    {
+      "eval_id": "synth-policy-105-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-60-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.68,
+      "eval_preview": "returns are accepted within 14 days of delivery for unused items perishable food and clothing cannot be returned opened ",
+      "train_preview": "returns are accepted within 14 days of delivery for unused items electronics and perishable food cannot be returned open"
+    },
+    {
+      "eval_id": "synth-policy-118",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-43-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5094339622641509,
+      "eval_preview": "returns are accepted within 60 days of delivery for unused items electronics and perishable food cannot be returned open",
+      "train_preview": "returns are accepted within 60 days of delivery for unused items perishable food and cosmetics cannot be returned opened"
+    },
+    {
+      "eval_id": "synth-policy-118-reason",
+      "eval_file": "data/synthetic/dev.jsonl",
+      "kind": "state",
+      "train_id": "synth-policy-43-reason",
+      "train_file": "reports/raw/training_used.jsonl",
+      "jaccard_5shingle": 0.5094339622641509,
+      "eval_preview": "returns are accepted within 60 days of delivery for unused items electronics and perishable food cannot be returned open",
+      "train_preview": "returns are accepted within 60 days of delivery for unused items perishable food and cosmetics cannot be returned opened"
+    }
+  ]
+}

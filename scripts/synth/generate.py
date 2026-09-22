@@ -548,10 +548,10 @@ def recipe_sentiment(rng, out):
 
 
 SEVERITY = [
-    ("No function impaired; cosmetic only", ["The icon is misaligned. Every function works.", "A typo in the footer; nothing else is affected.", "The button color is slightly off but everything works fine."]),
-    ("One user or a nonessential function impaired, with a workaround", ["One user cannot export PDFs, but printing to PDF works as a workaround.", "The optional dark theme is broken for a single account; the default theme works.", "A minor report fails for one customer; they can use the CSV export instead."]),
-    ("Many users blocked from a core function, no data loss", ["Hundreds of users cannot log in since the deployment. No data has been lost.", "Checkout is failing for all customers in Europe; orders are not being placed.", "The main dashboard is down for every account, but the database is intact."]),
-    ("Confirmed irreversible data loss or physical harm", ["A migration permanently deleted three months of customer records; backups do not cover them.", "The device overheated and burned a user's hand; the batch is recalled.", "Confirmed: production database wiped, no recoverable backup exists."]),
+    ("Purely visual glitch; nothing stops working", ["The logo renders a few pixels too far left; all features behave normally.", "Two menu labels use different fonts, otherwise the app is fully usable.", "A tooltip shows a stale colour; nothing functional is affected."]),
+    ("A single customer or an optional feature is affected and a workaround exists", ["Only the Acme account cannot download invoices; support can e-mail the PDFs meanwhile.", "The optional calendar sync fails for one user, who keeps using the web calendar instead.", "One tenant's weekly summary e-mail is late; the same numbers are visible on their dashboard."]),
+    ("A core workflow is unavailable for a large share of customers; records remain intact", ["Since the 09:15 deploy, sign-in fails for roughly 40% of accounts; nothing in the database was altered.", "Payments cannot be submitted from the mobile app in any region; stored orders are unaffected.", "The search service is down for every workspace, though all documents remain safe."]),
+    ("Data has been destroyed beyond recovery or someone was physically injured", ["Last night's cleanup job erased six weeks of audit logs and the backups had already expired.", "A charger unit caught fire during testing and a technician suffered burns to the arm.", "The customer table was dropped in production; the most recent snapshot predates the incident by a month."]),
 ]
 
 
@@ -561,9 +561,9 @@ def recipe_severity(rng, out):
             for rep in range(2):
                 local = random.Random(f"sev-{li}-{ti}-{rep}")
                 msg = tmpl if rep == 0 else local.choice(DISTRACTORS) + " " + tmpl
-                q = {"type": "score", "instructions": "Rate incident impact using only reported facts. Use the highest fully supported level.", "criteria": [l for l, _ in SEVERITY]}
+                q = {"type": "score", "instructions": local.choice(["How severe is this incident based on what was reported?", "Assess the blast radius of the incident described in the report.", "Grade the impact of this incident."]), "criteria": [l for l, _ in SEVERITY]}
                 out.append(record(f"synth-sev-{li}-{ti}-{rep}", "severity", "severity", "levels", f"sev/{li}/{ti}", msg, {"impact": q}, {"impact": li}, tier="ordinal"))
-                cq = {"type": "choice", "instructions": "What priority should this incident get?", "criteria": {"P4": "Cosmetic, no functional impact", "P3": "Minor impact with a workaround", "P2": "Major impact on many users, no data loss", "P1": "Data loss, safety issue or complete outage"}}
+                cq = {"type": "choice", "instructions": "Which priority label fits this incident?", "criteria": {"P4": "Visual only, everything keeps working", "P3": "Limited to one customer or an optional feature, workaround available", "P2": "Core workflow broken for many customers, records intact", "P1": "Irrecoverable data destruction, injury or total outage"}}
                 out.append(record(f"synth-sev-{li}-{ti}-{rep}-p", "severity", "severity", "priority", f"sev/{li}/{ti}", msg, {"prio": cq}, {"prio": ["P4", "P3", "P2", "P1"][li]}, tier="ordinal"))
 
 
@@ -579,7 +579,7 @@ def recipe_json_facts(rng, out):
         state = {"order": {"id": f"#{local.randint(1000,9999)}", "paid": paid, "status": status, "gift_wrap": gift, "items": [{"sku": f"SKU-{local.randint(100,999)}", "qty": local.randint(1, 4)} for _ in range(local.randint(1, 4))], "carrier": local.choice(CARRIERS) if shipped else None}}
         qs = {
             "paid": ({"type": "noul", "instructions": "Has the order been paid?"}, paid),
-            "shipped": ({"type": "noul", "instructions": "Has the order been shipped? Answer strictly from the facts stated.", "criteria": {"true": "The record states that it is shipped", "false": "The record states that it is not shipped"}}, shipped),
+            "shipped": ({"type": "noul", "instructions": local.choice(["According to the record, has this order left the warehouse?", "Does the record show the order as already shipped?"]), "criteria": {"true": "The record marks the order as shipped", "false": "The record marks the order as not yet shipped"}}, shipped),
             "gift": ({"type": "noul", "instructions": "Is gift wrap requested for `order`?"}, gift),
             "unpaid": ({"type": "noul", "instructions": "Is the order still unpaid?"}, not paid),
         }
@@ -644,11 +644,11 @@ def recipe_compat(rng, out):
             local = random.Random(f"nli-{pi}-{rep}")
             for label, hyp in (("entailment", ent), ("contradiction", con), ("neutral", neu)):
                 state = {"premise": prem, "hypothesis": hyp}
-                q = {"type": "choice", "instructions": "What is the relationship of `hypothesis` to `premise`?", "criteria": {"entailment": "The hypothesis is definitely true given the premise.", "neutral": "The hypothesis might be true; the premise does not settle it.", "contradiction": "The hypothesis is definitely false given the premise."}}
+                q = {"type": "choice", "instructions": local.choice(["Given `premise`, how should `hypothesis` be classified?", "Does `premise` support, contradict or leave open `hypothesis`?"]), "criteria": {"entailment": "Reading the premise guarantees that the hypothesis holds.", "neutral": "The premise neither confirms nor rules out the hypothesis.", "contradiction": "The premise makes the hypothesis impossible."}}
                 if rep == 1:
                     q["criteria"] = shuffled(local, q["criteria"])
                 out.append(record(f"synth-nli-{pi}-{rep}-{label}", "compatibility", "compatibility", label, f"nli/{pi}", state, {"rel": q}, {"rel": label}, tier="compatibility"))
-                nq = {"type": "noul", "instructions": "Is `hypothesis` supported by `premise`?"}
+                nq = {"type": "noul", "instructions": local.choice(["Does `premise` guarantee that `hypothesis` is true?", "Can `hypothesis` be concluded from `premise` alone?"])}
                 out.append(record(f"synth-nli-{pi}-{rep}-{label}-n", "compatibility", "compatibility", label, f"nli/{pi}", state, {"supported": nq}, {"supported": label == "entailment"}, tier="compatibility"))
 
 

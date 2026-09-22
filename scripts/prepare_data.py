@@ -182,9 +182,9 @@ DBPEDIA_CLASSES = [  # order = ClassLabel order on the card
 
 SNLI_LABELS = ["entailment", "neutral", "contradiction"]  # ClassLabel order on the card
 SNLI_OPTIONS = {
-    "entailment": "The hypothesis is definitely true given the premise",
+    "entailment": "Reading the premise guarantees that the hypothesis holds",
     "neutral": "The hypothesis might be true: the premise neither confirms nor contradicts it",
-    "contradiction": "The hypothesis is definitely false given the premise",
+    "contradiction": "The premise makes the hypothesis impossible",
 }
 
 AMAZON_LABELS = ["negative", "positive"]  # ClassLabel order on the card
@@ -843,8 +843,8 @@ def build_snli(ctx: Ctx, em: Emitter) -> dict:
         return out
 
     splits = make_splits(load(tr_path, "train"), load(va_path, "validation"), lambda r: r["label"], ctx.caps, ctx.rng("snli"))
-    qc = choice_q("What is the relationship of `hypothesis` to `premise`?", SNLI_OPTIONS)
-    qn = noul_q("Is `hypothesis` definitely true given `premise`?",
+    qc = choice_q("Given `premise`, how should `hypothesis` be classified?", SNLI_OPTIONS)
+    qn = noul_q("Does `premise` guarantee that `hypothesis` is true?",
                 "The premise entails the hypothesis: it must be true", "The hypothesis is not guaranteed by the premise (neutral or contradicted)")
     for split, srows in splits.items():
         for r in srows:

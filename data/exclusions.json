@@ -1,0 +1,8 @@
+{
+  "generated_by": "sextant leakage",
+  "rule": "training records whose state text exactly/normalized/near-duplicate matches an external evaluation state",
+  "exclude_ids": [
+    "bitext_support/calib/107",
+    "dbpedia_14/train/265"
+  ]
+}

@@ -192,7 +192,7 @@ fn make_units(paths: &[PathBuf], hasher: &Hasher128, min_chars: usize) -> Vec<Un
                 let sh = shingles(&norm);
                 out.push(Unit {
                     id: id.clone(),
-                    file: p.file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or_default(),
+                    file: p.display().to_string(),
                     kind,
                     exact: h64(&txt) ^ fnv(&txt).rotate_left(17),
                     normalized: h64(&norm) ^ fnv(&norm).rotate_left(17),
@@ -214,7 +214,9 @@ fn jaccard(a: &FxHashSet<u64>, b: &FxHashSet<u64>) -> f64 {
     inter as f64 / (a.len() + b.len() - inter) as f64
 }
 
-pub fn run(train: Vec<PathBuf>, eval: Vec<PathBuf>, out: PathBuf) -> i32 {
+pub fn run(train: Vec<PathBuf>, eval: Vec<PathBuf>, out: PathBuf, exclusions_out: Option<PathBuf>, internal: String) -> i32 {
+    let internal_markers: Vec<String> = internal.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
+    let is_internal = |file: &str| internal_markers.iter().any(|m| file.contains(m.as_str()));
     let hasher = Hasher128::new();
     let train_units = make_units(&train, &hasher, 20);
     let eval_units = make_units(&eval, &hasher, 20);
@@ -267,11 +269,23 @@ pub fn run(train: Vec<PathBuf>, eval: Vec<PathBuf>, out: PathBuf) -> i32 {
         }
         let _ = ei;
     }
-    let n_eval_state = eval_units.iter().filter(|u| u.kind == "state").count().max(1) as f64;
-    let state_exact = exact_hits.iter().filter(|h| h["kind"] == "state").count();
-    let state_norm = norm_hits.iter().filter(|h| h["kind"] == "state").count();
-    let state_near = near_hits.iter().filter(|h| h["kind"] == "state").count();
-    let instr_matches = exact_hits.len() + norm_hits.len() - state_exact - state_norm;
+    // External = not an internal dev set; only external matches drive the verdict and the exclusion list.
+    let external = |h: &Value| !is_internal(h["eval_file"].as_str().unwrap_or(""));
+    let n_eval_state = eval_units.iter().filter(|u| u.kind == "state" && !is_internal(&u.file)).count().max(1) as f64;
+    let state_exact = exact_hits.iter().filter(|h| h["kind"] == "state" && external(h)).count();
+    let state_norm = norm_hits.iter().filter(|h| h["kind"] == "state" && external(h)).count();
+    let state_near = near_hits.iter().filter(|h| h["kind"] == "state" && external(h)).count();
+    let mut exclude_ids: Vec<String> = exact_hits.iter().chain(norm_hits.iter()).chain(near_hits.iter()).filter(|h| h["kind"] == "state" && external(h)).filter_map(|h| h["train_id"].as_str().map(|s| s.to_string())).collect();
+    exclude_ids.sort();
+    exclude_ids.dedup();
+    if let Some(p) = &exclusions_out {
+        if let Some(parent) = p.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        std::fs::write(p, serde_json::to_string_pretty(&json!({"generated_by": "sextant leakage", "rule": "training records whose state text exactly/normalized/near-duplicate matches an external evaluation state", "exclude_ids": exclude_ids})).unwrap() + "\n").expect("write exclusions");
+        println!("wrote {} ({} ids)", p.display(), exclude_ids.len());
+    }
+    let instr_matches = exact_hits.iter().chain(norm_hits.iter()).filter(|h| h["kind"] == "instructions" && external(h)).count();
     // Verdict is driven by STATE text: instruction templates ("Is this message spam?")
     // can legitimately coincide and are reported separately for manual review.
     let verdict = state_exact == 0 && state_norm == 0 && (state_near as f64 / n_eval_state) < 0.005;
@@ -295,9 +309,11 @@ pub fn run(train: Vec<PathBuf>, eval: Vec<PathBuf>, out: PathBuf) -> i32 {
         "state_near_duplicates": state_near,
         "state_near_duplicate_rate": state_near as f64 / n_eval_state,
         "instruction_matches_for_review": instr_matches,
+        "internal_eval_markers": internal_markers,
+        "training_ids_to_exclude": exclude_ids.len(),
         "max_jaccard_observed": max_jaccard,
         "verdict": if verdict { "PASS" } else { "FAIL" },
-        "verdict_rule": "PASS iff zero exact/normalized STATE matches and state near-duplicate rate < 0.5%; instruction/criteria matches are listed for manual review",
+        "verdict_rule": "PASS iff zero exact/normalized STATE matches against external eval sets (after exclusions) and the external state near-duplicate rate < 0.5%; instruction/criteria matches are listed for manual review; internal dev sets never count",
         "exact_match_pairs": exact_hits,
         "normalized_match_pairs": norm_hits,
         "near_duplicate_pairs": near_hits,
