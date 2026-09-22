@@ -255,7 +255,7 @@ def recipe_routing(rng, out):
                 local.shuffle(depts)
                 structured = local.choice(["string", "object", "string"])
                 q = dept_question(local, depts, structured)
-                group = f"routing/{dept}/{ti}/{rep}"
+                group = f"routing/{dept}/{ti}"
                 base_id = f"synth-routing-{dept}-{ti}-{rep}"
                 out.append(record(base_id, "routing", "routing", "plain", group, msg, {"dept": q}, {"dept": dept}))
                 n += 1

@@ -3,9 +3,9 @@
   "seed": 20260922,
   "records": 3151,
   "splits": {
-    "calib": 672,
-    "train": 1746,
-    "dev": 733
+    "dev": 675,
+    "train": 1899,
+    "calib": 577
   },
   "recipes": [
     "recipe_routing",

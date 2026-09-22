@@ -166,7 +166,10 @@ fn answer_question(q: &Question, ctx: &Ctx<'_>) -> Answer {
                 None => (ctx.model.dense.noul.logit(&feats.rows[0], &feats.rows[1], family), "semantic".to_string()),
             };
             let p = match &resolved {
-                Some(_) => platt(logit_raw as f64, cal.noul_symbolic_platt.as_ref().unwrap_or(&cal.noul_platt)),
+                Some(_) => {
+                    let eps = cal.symbolic_epsilon_for(QuestionKind::Noul);
+                    (1.0 - eps) * platt(logit_raw as f64, cal.noul_symbolic_platt.as_ref().unwrap_or(&cal.noul_platt)) + eps * 0.5
+                }
                 None => platt(logit_raw as f64, cal.platt_for(family)),
             };
             let explain = ctx.explain.then(|| {
@@ -191,6 +194,14 @@ fn answer_question(q: &Question, ctx: &Ctx<'_>) -> Answer {
                 None => (feats.rows.iter().map(|f| head.score(f, family)).collect(), cal.temperature_for(view.kind, family, k), "semantic".to_string()),
             };
             let mut probs = softmax_temp(&z, temperature as f32);
+            if resolved.is_some() {
+                let eps = cal.symbolic_epsilon_for(view.kind);
+                let u = 1.0 / probs.len() as f64;
+                for p in probs.iter_mut() {
+                    *p = (1.0 - eps) * *p + eps * u;
+                }
+                crate::scoring::softmax::fix_sum(&mut probs);
+            }
             if view.kind == QuestionKind::Score {
                 probs = ordinal_smooth(&probs, cal.ordinal_lambda);
             }

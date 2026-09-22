@@ -338,6 +338,11 @@ pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, seed: u64, l2: f32, family_l2
     let path = out_dir.join("weights.json");
     std::fs::write(&path, serde_json::to_string_pretty(&weights).unwrap() + "\n").expect("write weights");
     println!("wrote {}", path.display());
+    let cal_path = out_dir.join("calibration.json");
+    if !cal_path.exists() {
+        std::fs::write(&cal_path, serde_json::to_string_pretty(&sextant_core::calibration::Calibration::default()).unwrap() + "\n").expect("write calibration");
+        println!("wrote {} (default, uncalibrated — run `sextant calibrate`)", cal_path.display());
+    }
     0
 }
 

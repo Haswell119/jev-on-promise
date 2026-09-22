@@ -48,6 +48,12 @@ pub struct Calibration {
     /// Temperature for symbolic (resolver) logits per primitive.
     #[serde(default)]
     pub symbolic_temperature: IndexMap<String, f64>,
+    /// Laplace-smoothed error rate of symbolic resolvers per primitive
+    /// ("choice" | "score" | "noul"): the resolver distribution is mixed
+    /// with the uniform distribution by this amount, so a resolver that was
+    /// always right on N calibration examples still leaves 1/(N+2) mass.
+    #[serde(default)]
+    pub symbolic_epsilon: IndexMap<String, f64>,
     /// Noul Platt scaling (global + per family): p = σ(a·logit + b).
     pub noul_platt: PlattParams,
     #[serde(default)]
@@ -69,6 +75,10 @@ impl Default for Calibration {
         let mut symbolic_temperature = IndexMap::new();
         symbolic_temperature.insert("choice".to_string(), 1.0);
         symbolic_temperature.insert("score".to_string(), 1.0);
+        let mut symbolic_epsilon = IndexMap::new();
+        symbolic_epsilon.insert("choice".to_string(), 0.02);
+        symbolic_epsilon.insert("score".to_string(), 0.02);
+        symbolic_epsilon.insert("noul".to_string(), 0.02);
         let mut confidence = IndexMap::new();
         confidence.insert("choice".to_string(), ConfidenceParams::default());
         confidence.insert("score".to_string(), ConfidenceParams::default());
@@ -79,6 +89,7 @@ impl Default for Calibration {
             family_temperature: IndexMap::new(),
             bucket_temperature: IndexMap::new(),
             symbolic_temperature,
+            symbolic_epsilon,
             noul_platt: PlattParams::default(),
             noul_family_platt: IndexMap::new(),
             noul_symbolic_platt: None,
@@ -105,6 +116,11 @@ impl Calibration {
 
     pub fn symbolic_temperature_for(&self, kind: QuestionKind) -> f64 {
         self.symbolic_temperature.get(kind.as_str()).copied().unwrap_or(1.0).max(1e-3)
+    }
+
+    /// Uniform-mixing weight for symbolic answers (default 0.02).
+    pub fn symbolic_epsilon_for(&self, kind: QuestionKind) -> f64 {
+        self.symbolic_epsilon.get(kind.as_str()).copied().unwrap_or(0.02).clamp(0.0, 0.5)
     }
 
     pub fn platt_for(&self, family: Family) -> &PlattParams {
