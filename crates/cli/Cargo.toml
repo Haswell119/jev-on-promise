@@ -1,0 +1,26 @@
+[package]
+name = "sextant"
+description = "Sextant CLI: serve, decide, validate, bench, eval, train, calibrate."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "sextant"
+path = "src/main.rs"
+
+[dependencies]
+sextant-core.workspace = true
+sextant-server.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+indexmap.workspace = true
+tokio.workspace = true
+clap.workspace = true
+rayon.workspace = true
+rustc-hash.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

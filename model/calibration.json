@@ -1,0 +1,37 @@
+{
+  "version": "uncalibrated",
+  "method": "temperature",
+  "temperature": {
+    "choice": 1.0,
+    "score": 1.0
+  },
+  "family_temperature": {},
+  "bucket_temperature": {},
+  "symbolic_temperature": {
+    "choice": 1.0,
+    "score": 1.0
+  },
+  "noul_platt": {
+    "a": 1.0,
+    "b": 0.0
+  },
+  "noul_family_platt": {},
+  "noul_symbolic_platt": null,
+  "ordinal_lambda": 0.2,
+  "confidence": {
+    "choice": {
+      "a_concentration": 3.0,
+      "b_margin": 2.0,
+      "c_evidence": 0.0,
+      "d_ood": 0.0,
+      "bias": -2.0
+    },
+    "score": {
+      "a_concentration": 3.0,
+      "b_margin": 2.0,
+      "c_evidence": 0.0,
+      "d_ood": 0.0,
+      "bias": -2.0
+    }
+  }
+}

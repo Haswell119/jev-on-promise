@@ -1,0 +1,272 @@
+openapi: 3.1.0
+info:
+  title: Sextant decision engine API
+  version: 0.1.0
+  description: |
+    Non-neural, deterministic, calibrated probabilistic decision engine.
+    Evaluate a `state` (string, object or array) against a map of typed questions
+    (Choice / Score / Noul) and receive typed probabilistic answers.
+    No external AI service is used; inference works with networking disabled.
+  license:
+    name: Apache-2.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      summary: Liveness / readiness
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  version: { type: string }
+                  model: { type: string }
+                  uptime_seconds: { type: integer }
+                  neural: { type: boolean, example: false }
+                  network_required: { type: boolean, example: false }
+  /v1/models:
+    get:
+      summary: List available models
+      responses:
+        "200":
+          description: Model list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object: { type: string, example: list }
+                  models:
+                    type: array
+                    items: { $ref: "#/components/schemas/ModelCard" }
+  /v1/systemone:
+    post:
+      summary: Evaluate typed questions against a state
+      parameters:
+        - in: query
+          name: explain
+          schema: { type: boolean }
+          description: Attach an `explain` block to every answer (never alters inference).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SystemOneRequest" }
+            example:
+              model: sextant-1
+              state: "Help! My payouts have been failing for 3 days."
+              questions:
+                department:
+                  type: choice
+                  instructions: Which team should handle this?
+                  criteria:
+                    billing: Payments, invoicing, refunds
+                    technical: Bugs, outages, integrations
+                    sales: Pricing, upgrades, new accounts
+                is_urgent:
+                  type: noul
+                  instructions: Does this convey urgency?
+                frustration:
+                  type: score
+                  instructions: How frustrated is the customer?
+                  criteria: [Calm, Frustrated, Very angry]
+      responses:
+        "200":
+          description: Typed answers keyed by question id
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SystemOneResponse" }
+        "404":
+          description: Unknown model
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "413":
+          description: Payload too large
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Validation failed (the body names the offending field)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+  /openapi.yaml:
+    get:
+      summary: This document
+      responses:
+        "200":
+          description: OpenAPI YAML
+components:
+  schemas:
+    Entry:
+      description: string | object | array | null
+      oneOf:
+        - type: string
+        - type: object
+        - type: array
+        - type: "null"
+    SystemOneRequest:
+      type: object
+      required: [model, state, questions]
+      properties:
+        model:
+          type: string
+          description: "`sextant-1` (aliases: `sextant-latest`, `sextant`)"
+        state:
+          description: The evidence. A string, object or array.
+          oneOf:
+            - type: string
+            - type: object
+            - type: array
+        questions:
+          type: object
+          description: Caller-chosen ids → questions. Ids never influence inference.
+          additionalProperties: { $ref: "#/components/schemas/Question" }
+        explain:
+          type: boolean
+          description: Attach explanations to every answer.
+    Question:
+      oneOf:
+        - $ref: "#/components/schemas/NoulQuestion"
+        - $ref: "#/components/schemas/ChoiceQuestion"
+        - $ref: "#/components/schemas/ScoreQuestion"
+      discriminator:
+        propertyName: type
+    NoulQuestion:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [noul] }
+        instructions: { $ref: "#/components/schemas/Entry" }
+        criteria:
+          type: object
+          properties:
+            "true": { $ref: "#/components/schemas/Entry" }
+            "false": { $ref: "#/components/schemas/Entry" }
+    ChoiceQuestion:
+      type: object
+      required: [type, criteria]
+      properties:
+        type: { type: string, enum: [choice] }
+        instructions: { $ref: "#/components/schemas/Entry" }
+        criteria:
+          type: object
+          description: option key → description (2..255 options)
+          additionalProperties: { $ref: "#/components/schemas/Entry" }
+    ScoreQuestion:
+      type: object
+      required: [type, criteria]
+      properties:
+        type: { type: string, enum: [score] }
+        instructions: { $ref: "#/components/schemas/Entry" }
+        criteria:
+          type: array
+          description: ordered level descriptions (2..10 levels), index 0 = lowest
+          items: { $ref: "#/components/schemas/Entry" }
+    SystemOneResponse:
+      type: object
+      required: [model, answers, usage]
+      properties:
+        model: { type: string }
+        answers:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/Answer" }
+        usage:
+          type: object
+          properties:
+            input_tokens: { type: integer }
+            output_tokens: { type: integer }
+    Answer:
+      oneOf:
+        - $ref: "#/components/schemas/NoulAnswer"
+        - $ref: "#/components/schemas/ChoiceAnswer"
+        - $ref: "#/components/schemas/ScoreAnswer"
+      discriminator:
+        propertyName: type
+    NoulAnswer:
+      type: object
+      required: [type, noul]
+      properties:
+        type: { type: string, enum: [noul] }
+        noul: { type: number, minimum: 0, maximum: 1, description: Calibrated P(true) }
+        explain: { $ref: "#/components/schemas/Explanation" }
+    ChoiceAnswer:
+      type: object
+      required: [type, choice, probabilities, confidence]
+      properties:
+        type: { type: string, enum: [choice] }
+        choice: { type: string, description: argmax option (lexicographic tie-break) }
+        probabilities:
+          type: object
+          additionalProperties: { type: number }
+          description: exactly the supplied keys; sums to 1
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        explain: { $ref: "#/components/schemas/Explanation" }
+    ScoreAnswer:
+      type: object
+      required: [type, score, legend, probabilities, confidence]
+      properties:
+        type: { type: string, enum: [score] }
+        score: { type: number, description: "Σ level_index × P(level)" }
+        legend:
+          type: object
+          additionalProperties: { type: string }
+        probabilities:
+          type: object
+          additionalProperties: { type: number }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        explain: { $ref: "#/components/schemas/Explanation" }
+    Explanation:
+      type: object
+      description: Optional inspection block (only when explain=true)
+      properties:
+        family: { type: string }
+        path: { type: string, description: "`symbolic:<resolver>` or `semantic`" }
+        top_evidence:
+          type: array
+          items:
+            type: object
+            properties:
+              path: { type: string }
+              text: { type: string }
+              score: { type: number }
+        raw_scores:
+          type: object
+          additionalProperties: { type: number }
+        features:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: { type: number }
+        calibration:
+          type: object
+        notes:
+          type: array
+          items: { type: string }
+    ModelCard:
+      type: object
+      properties:
+        name: { type: string }
+        id: { type: string }
+        description: { type: string }
+        release_date: { type: string }
+        aliases: { type: array, items: { type: string } }
+        max_choice_options: { type: integer }
+        max_score_levels: { type: integer }
+        neural: { type: boolean }
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            status: { type: integer }
+            code: { type: string }
+            message: { type: string }
+            field: { type: string }

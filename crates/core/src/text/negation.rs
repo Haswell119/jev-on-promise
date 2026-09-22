@@ -1,0 +1,424 @@
+//! Bounded-window scope annotation for negation, exceptions, hypothetical /
+//! interrogative modality, requests and intensity. Operates on the tokens of
+//! one segment. Deterministic; no learned parameters.
+//!
+//! The design follows the NegEx / ConText family of algorithms: a cue opens a
+//! scope that extends over the following content tokens until either a
+//! window limit or a clause terminator is reached. A second negation cue
+//! inside an active scope toggles it (double negation → positive).
+
+use super::tokenize::{RawToken, TokenKind};
+
+pub type Flags = u8;
+pub const NEGATED: Flags = 1;
+pub const HYPOTHETICAL: Flags = 2;
+pub const INTERROGATIVE: Flags = 4;
+pub const REQUEST: Flags = 8;
+pub const EXCEPTION: Flags = 16;
+pub const INTENSIFIED: Flags = 32;
+pub const DIMINISHED: Flags = 64;
+/// The token is itself a cue word (negator/modal/etc.), not evidence.
+pub const CUE: Flags = 128;
+
+/// Content tokens a negation scope may extend over.
+pub const NEG_WINDOW: usize = 6;
+pub const HYP_WINDOW: usize = 8;
+pub const REQ_WINDOW: usize = 8;
+pub const EXC_WINDOW: usize = 2;
+
+/// Pure function-word cues: they open a scope and are NOT evidence themselves.
+/// Content-bearing cues ("failed", "refuse", "possible", "want") open a scope
+/// but stay evidence tokens, so they are never flagged `CUE`.
+pub const HARD_CUES: &[&str] = &[
+    "not", "no", "never", "none", "nobody", "nothing", "nowhere", "neither", "nor", "without", "cannot", "hardly",
+    "barely", "scarcely", "seldom", "rarely", "haven", "hasn", "hadn", "didn", "doesn", "don", "won", "isn", "aren",
+    "wasn", "weren", "couldn", "wouldn", "shouldn", "mustn", "needn", "ain", "whether", "if", "maybe", "perhaps",
+    "might", "may", "suppose", "supposing", "assuming", "assume", "hypothetically", "please", "kindly", "pls", "plz",
+    "must", "except", "excepting", "unless", "excluding", "aside", "apart", "besides", "save", "bar", "barring",
+    "notwithstanding", "regardless", "very", "extremely", "really", "so", "incredibly", "absolutely", "totally",
+    "completely", "utterly", "highly", "deeply", "seriously", "terribly", "awfully", "insanely", "super", "truly",
+    "especially", "particularly", "exceptionally", "remarkably", "hugely", "massively", "severely", "strongly",
+    "badly", "entirely", "thoroughly", "immensely", "beyond", "outrageously", "slightly", "somewhat", "bit", "little",
+    "mildly", "fairly", "rather", "kind", "sort", "marginally", "partially", "moderately", "relatively", "minimally",
+    "lightly", "tad", "wonder", "wondering", "wondered", "wonders",
+];
+
+#[inline]
+fn cue_flag(word: &str) -> Flags {
+    if HARD_CUES.contains(&word) {
+        CUE
+    } else {
+        0
+    }
+}
+
+pub const NEGATORS: &[&str] = &[
+    "not", "no", "never", "none", "nobody", "nothing", "nowhere", "neither", "nor", "without", "cannot", "hardly",
+    "barely", "scarcely", "seldom", "rarely", "lack", "lacks", "lacked", "lacking", "unable", "absent", "absence",
+    "refuse", "refused", "refuses", "refusing", "deny", "denies", "denied", "denying", "fail", "failed", "fails",
+    "failing", "decline", "declined", "declines", "declining", "missing", "impossible", "unlikely", "zero",
+    "stop", "stopped", "stops", "prevent", "prevented", "prevents", "avoid", "avoided", "avoids", "forgot",
+    "forget", "forgets", "haven", "hasn", "hadn", "didn", "doesn", "don", "won", "isn", "aren", "wasn", "weren",
+    "couldn", "wouldn", "shouldn", "mustn", "needn", "ain", "unsuccessful", "unsuccessfully", "incorrect",
+    "incorrectly", "false", "falsely", "untrue",
+];
+
+/// Two-token negation phrases (first, second).
+pub const NEGATOR_BIGRAMS: &[(&str, &str)] = &[
+    ("no", "longer"),
+    ("not", "anymore"),
+    ("by", "no"),
+    ("rather", "than"),
+    ("instead", "of"),
+    ("other", "than"),
+    ("far", "from"),
+    ("free", "of"),
+    ("free", "from"),
+    ("devoid", "of"),
+    ("yet", "to"),
+    ("short", "of"),
+    ("void", "of"),
+    ("with", "no"),
+];
+
+/// Non-negating idioms starting with a negator: skip the negator.
+pub const NON_NEGATING: &[(&str, &str)] = &[
+    ("not", "only"),
+    ("not", "just"),
+    ("no", "doubt"),
+    ("no", "wonder"),
+    ("not", "to"),
+    ("no", "problem"),
+    ("no", "worries"),
+    ("not", "necessarily"),
+];
+
+pub const EXCEPTION_CUES: &[&str] = &[
+    "except", "excepting", "unless", "excluding", "excluded", "exclude", "excludes", "aside", "apart", "besides",
+    "save", "bar", "barring", "notwithstanding", "regardless",
+];
+
+pub const HYPOTHETICAL_CUES: &[&str] = &[
+    "whether", "if", "wonder", "wondering", "wondered", "wonders", "possible", "possibly", "possibility",
+    "maybe", "perhaps", "hypothetically", "hypothetical", "considering", "consider", "contemplating", "might",
+    "may", "potentially", "potential", "eventually", "someday", "curious", "unsure", "suppose", "supposing",
+    "assuming", "assume", "thinking", "planning", "plan", "plans", "intend", "intends", "hoping", "hope",
+    "option", "options", "eligible", "eligibility", "allowed", "able", "possibility", "chance", "likely",
+];
+
+/// Cues that mark a clear request / demand for action.
+pub const REQUEST_CUES: &[&str] = &[
+    "please", "want", "wants", "wanted", "need", "needs", "needed", "require", "requires", "required",
+    "requesting", "request", "requested", "demand", "demands", "demanded", "expect", "expects", "expecting",
+    "insist", "insists", "kindly", "pls", "plz", "must", "asap", "immediately", "urgently",
+];
+
+/// (first, second) request bigrams: "can you", "would like", "give me" …
+pub const REQUEST_BIGRAMS: &[(&str, &str)] = &[
+    ("can", "you"),
+    ("could", "you"),
+    ("would", "you"),
+    ("will", "you"),
+    ("would", "like"),
+    ("would", "love"),
+    ("would", "appreciate"),
+    ("give", "me"),
+    ("send", "me"),
+    ("get", "me"),
+    ("let", "me"),
+    ("make", "sure"),
+    ("i", "want"),
+    ("i", "need"),
+    ("we", "need"),
+    ("we", "want"),
+    ("asking", "for"),
+    ("ask", "for"),
+    ("looking", "for"),
+];
+
+/// Inquiry bigrams: the speaker asks about possibility rather than acting.
+pub const INQUIRY_BIGRAMS: &[(&str, &str)] = &[
+    ("can", "i"),
+    ("could", "i"),
+    ("may", "i"),
+    ("am", "i"),
+    ("do", "i"),
+    ("how", "do"),
+    ("how", "can"),
+    ("how", "would"),
+    ("what", "is"),
+    ("what", "are"),
+    ("is", "it"),
+    ("is", "there"),
+    ("are", "there"),
+    ("do", "you"),
+    ("does", "it"),
+    ("would", "it"),
+    ("possible", "to"),
+    ("able", "to"),
+];
+
+pub const INTENSIFIERS: &[&str] = &[
+    "very", "extremely", "really", "so", "incredibly", "absolutely", "totally", "completely", "utterly",
+    "highly", "deeply", "seriously", "terribly", "awfully", "insanely", "super", "truly", "especially",
+    "particularly", "exceptionally", "remarkably", "hugely", "massively", "severely", "strongly", "badly",
+    "entirely", "thoroughly", "immensely", "beyond", "outrageously",
+];
+
+pub const DIMINISHERS: &[&str] = &[
+    "slightly", "somewhat", "bit", "little", "mildly", "fairly", "rather", "kind", "sort", "marginally",
+    "partially", "moderately", "barely", "hardly", "relatively", "minor", "minimally", "lightly", "tad",
+];
+
+pub const CLAUSE_TERMINATORS: &[&str] = &[
+    "but", "however", "although", "though", "whereas", "yet", "because", "since", "so", "then", "until",
+    "while", "unless", "except", "therefore", "hence", "thus", "nevertheless", "nonetheless", "otherwise",
+    "meanwhile", "afterwards", "instead",
+];
+
+pub const WH_WORDS: &[&str] = &["what", "which", "who", "whom", "whose", "where", "when", "why", "how"];
+pub const AUX_VERBS: &[&str] = &[
+    "is", "are", "am", "was", "were", "do", "does", "did", "can", "could", "would", "will", "should", "shall",
+    "may", "might", "have", "has", "had", "must",
+];
+
+#[inline]
+fn is_terminator_punct(t: &RawToken) -> bool {
+    t.kind == TokenKind::Punct && matches!(t.text.as_str(), "," | ";" | "." | "!" | "?" | ":" | "(" | ")" | "\"" | "[" | "]")
+}
+
+#[inline]
+fn is_terminator_word(t: &RawToken) -> bool {
+    t.kind == TokenKind::Word && CLAUSE_TERMINATORS.contains(&t.text.as_str())
+}
+
+struct Scope {
+    flag: Flags,
+    remaining: usize,
+}
+
+#[derive(Default)]
+struct Scopes {
+    neg: Option<Scope>,
+    hyp: Option<Scope>,
+    req: Option<Scope>,
+    exc: Option<Scope>,
+    intens: Option<(Flags, usize)>,
+}
+
+impl Scopes {
+    fn close_all(&mut self) {
+        *self = Scopes::default();
+    }
+
+    /// Apply the active scopes to one token; `content` tokens consume window budget.
+    fn apply(&mut self, flag: &mut Flags, content: bool) {
+        for s in [&mut self.neg, &mut self.hyp, &mut self.req, &mut self.exc] {
+            if let Some(sc) = s.as_mut() {
+                *flag |= sc.flag;
+                if content {
+                    sc.remaining -= 1;
+                    if sc.remaining == 0 {
+                        *s = None;
+                    }
+                }
+            }
+        }
+        if let Some((f, rem)) = self.intens.as_mut() {
+            if content {
+                *flag |= *f;
+                *rem -= 1;
+                if *rem == 0 {
+                    self.intens = None;
+                }
+            }
+        }
+    }
+
+    fn toggle_neg(&mut self) {
+        self.neg = match self.neg {
+            Some(_) => None,
+            None => Some(Scope { flag: NEGATED, remaining: NEG_WINDOW }),
+        };
+    }
+}
+
+enum Cue {
+    Idiom,
+    Negator,
+    Exception,
+    Request,
+    Inquiry,
+    Hypothetical,
+    Intensifier,
+    Diminisher,
+}
+
+/// Annotate one segment's tokens with scope flags.
+pub fn annotate(tokens: &[RawToken]) -> Vec<Flags> {
+    let n = tokens.len();
+    let mut flags = vec![0u8; n];
+    if n == 0 {
+        return flags;
+    }
+    // Segment-level interrogative detection.
+    let last = &tokens[n - 1];
+    let first_word = tokens.iter().find(|t| t.kind == TokenKind::Word).map(|t| t.text.as_str()).unwrap_or("");
+    let ends_q = last.kind == TokenKind::Punct && last.text == "?";
+    let starts_like_question = WH_WORDS.contains(&first_word) || AUX_VERBS.contains(&first_word);
+    let has_period = tokens.iter().any(|t| t.kind == TokenKind::Punct && t.text == ".");
+    if ends_q || (starts_like_question && !has_period) {
+        for f in flags.iter_mut() {
+            *f |= INTERROGATIVE;
+        }
+    }
+
+    let mut sc = Scopes::default();
+    let mut i = 0usize;
+    while i < n {
+        let t = &tokens[i];
+        let next = tokens.get(i + 1);
+        let w = t.text.as_str();
+        let nw = next.map(|x| x.text.as_str()).unwrap_or("");
+
+        // Clause terminators close all scopes.
+        if is_terminator_punct(t) || is_terminator_word(t) {
+            sc.close_all();
+            if is_terminator_word(t) {
+                flags[i] |= CUE;
+            }
+            if t.kind == TokenKind::Word && EXCEPTION_CUES.contains(&w) {
+                sc.exc = Some(Scope { flag: EXCEPTION, remaining: EXC_WINDOW });
+            }
+            i += 1;
+            continue;
+        }
+
+        let is_word = t.kind == TokenKind::Word;
+        let content = t.kind.is_content() && !(is_word && super::stem::is_function_word(w));
+
+        // Cue detection (bigrams first).
+        let mut cue: Option<(Cue, usize)> = None;
+        if is_word {
+            if NON_NEGATING.contains(&(w, nw)) {
+                cue = Some((Cue::Idiom, 2));
+            } else if NEGATOR_BIGRAMS.contains(&(w, nw)) {
+                cue = Some((Cue::Negator, 2));
+            } else if NEGATORS.contains(&w) {
+                cue = Some((Cue::Negator, if nw == "to" { 2 } else { 1 }));
+            } else if EXCEPTION_CUES.contains(&w) {
+                cue = Some((Cue::Exception, if nw == "for" || nw == "from" { 2 } else { 1 }));
+            } else if REQUEST_BIGRAMS.contains(&(w, nw)) {
+                cue = Some((Cue::Request, 2));
+            } else if INQUIRY_BIGRAMS.contains(&(w, nw)) {
+                cue = Some((Cue::Inquiry, 2));
+            } else if REQUEST_CUES.contains(&w) {
+                cue = Some((Cue::Request, 1));
+            } else if HYPOTHETICAL_CUES.contains(&w) {
+                cue = Some((Cue::Hypothetical, 1));
+            } else if INTENSIFIERS.contains(&w) {
+                cue = Some((Cue::Intensifier, 1));
+            } else if DIMINISHERS.contains(&w) {
+                cue = Some((Cue::Diminisher, 1));
+            }
+        }
+
+        match cue {
+            None => {
+                sc.apply(&mut flags[i], content);
+                i += 1;
+            }
+            Some((kind, consumed)) => {
+                // Soft (content-bearing) cues still receive the scopes active before them.
+                let hard0 = cue_flag(w) == CUE || matches!(kind, Cue::Idiom);
+                if !hard0 {
+                    sc.apply(&mut flags[i], content);
+                } else {
+                    flags[i] |= CUE;
+                }
+                if consumed == 2 {
+                    let hard1 = cue_flag(nw) == CUE || super::stem::is_function_word(nw) || matches!(kind, Cue::Idiom);
+                    if hard1 {
+                        flags[i + 1] |= CUE;
+                    } else {
+                        let c1 = tokens[i + 1].kind.is_content();
+                        sc.apply(&mut flags[i + 1], c1);
+                    }
+                }
+                match kind {
+                    Cue::Idiom => {}
+                    Cue::Negator => sc.toggle_neg(),
+                    Cue::Exception => sc.exc = Some(Scope { flag: EXCEPTION, remaining: EXC_WINDOW }),
+                    Cue::Request => {
+                        sc.req = Some(Scope { flag: REQUEST, remaining: REQ_WINDOW });
+                        sc.hyp = None;
+                    }
+                    Cue::Inquiry | Cue::Hypothetical => sc.hyp = Some(Scope { flag: HYPOTHETICAL, remaining: HYP_WINDOW }),
+                    Cue::Intensifier => sc.intens = Some((INTENSIFIED, 2)),
+                    Cue::Diminisher => sc.intens = Some((DIMINISHED, 2)),
+                }
+                i += consumed;
+            }
+        }
+    }
+    flags
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::text::tokenize::tokenize;
+
+    fn flagged(s: &str, flag: Flags) -> Vec<String> {
+        let toks = tokenize(s);
+        let f = annotate(&toks);
+        toks.iter()
+            .zip(f)
+            .filter(|(t, f)| f & flag != 0 && f & CUE == 0 && t.kind == TokenKind::Word && !super::super::stem::is_function_word(&t.text))
+            .map(|(t, _)| t.text.clone())
+            .collect()
+    }
+
+    #[test]
+    fn simple_negation_scope() {
+        assert_eq!(flagged("the customer did not request a refund", NEGATED), vec!["request", "refund"]);
+        assert_eq!(flagged("the customer requested a refund", NEGATED), Vec::<String>::new());
+        assert_eq!(flagged("no refund was issued, but the order shipped", NEGATED), vec!["refund", "issued"]);
+        assert_eq!(flagged("I can't log in", NEGATED), vec!["log"]);
+        assert_eq!(flagged("they failed to deliver the package", NEGATED), vec!["deliver", "package"]);
+        assert_eq!(flagged("no longer works", NEGATED), vec!["works"]);
+    }
+
+    #[test]
+    fn double_negation_and_idioms() {
+        assert_eq!(flagged("not without merit", NEGATED), Vec::<String>::new());
+        assert_eq!(flagged("not only fast but cheap", NEGATED), Vec::<String>::new());
+    }
+
+    #[test]
+    fn hypothetical_and_request() {
+        assert_eq!(flagged("customer asked whether refunds are possible", HYPOTHETICAL), vec!["refunds", "possible"]);
+        assert!(flagged("is it possible to get a refund", HYPOTHETICAL).contains(&"refund".to_string()));
+        assert!(flagged("I would like a refund please", REQUEST).contains(&"refund".to_string()));
+        assert!(flagged("can I get a refund?", HYPOTHETICAL).contains(&"refund".to_string()));
+        assert!(flagged("can you refund me?", REQUEST).contains(&"refund".to_string()));
+    }
+
+    #[test]
+    fn interrogative_segment() {
+        let toks = tokenize("Did you ship it?");
+        let f = annotate(&toks);
+        assert!(f.iter().all(|x| x & INTERROGATIVE != 0));
+        let toks = tokenize("You shipped it.");
+        let f = annotate(&toks);
+        assert!(f.iter().all(|x| x & INTERROGATIVE == 0));
+    }
+
+    #[test]
+    fn exception_and_intensity() {
+        assert_eq!(flagged("all items except perishables are returnable", EXCEPTION), vec!["perishables", "returnable"]);
+        assert_eq!(flagged("all items except for perishables, are returnable", EXCEPTION), vec!["perishables"]);
+        assert_eq!(flagged("I am very angry", INTENSIFIED), vec!["angry"]);
+        assert_eq!(flagged("slightly annoyed", DIMINISHED), vec!["annoyed"]);
+    }
+}

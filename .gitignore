@@ -1,0 +1,16 @@
+/target
+**/*.rs.bk
+*.swp
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+/data/raw/
+/data/cache/
+/data/external/
+/benchmarks/jevbench/data/
+/reports/raw/*.jsonl
+!/reports/raw/.gitkeep
+/node_modules/
+.env
+.env.*

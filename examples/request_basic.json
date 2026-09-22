@@ -1,0 +1,21 @@
+{
+  "model": "sextant-1",
+  "state": "Help! My payouts have been failing for 3 days. I need this fixed today or I will cancel.",
+  "questions": {
+    "department": {
+      "type": "choice",
+      "instructions": "Which team should handle this?",
+      "criteria": {
+        "billing": "Payments, invoicing, refunds, payouts",
+        "technical": "Bugs, outages, integrations",
+        "sales": "Pricing, upgrades, new accounts"
+      }
+    },
+    "is_urgent": { "type": "noul", "instructions": "Does this convey urgency?" },
+    "frustration": {
+      "type": "score",
+      "instructions": "How frustrated is the customer?",
+      "criteria": ["Calm", "Frustrated", "Very angry"]
+    }
+  }
+}

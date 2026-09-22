@@ -1,0 +1,49 @@
+{
+  "generated_by": "scripts/build_lexicon.py",
+  "inputs": {
+    "wordnet_dir": "/tmp/claude-0/-home-user-jev-on-promise/fbafe8a5-c730-5f83-9795-d13e58f94c49/scratchpad/research/lexical/wordnet/oewn2024/oewn2024",
+    "vader": {
+      "path": "/tmp/claude-0/-home-user-jev-on-promise/fbafe8a5-c730-5f83-9795-d13e58f94c49/scratchpad/research/lexical/sentiment/vader_lexicon.txt",
+      "sha256": "ec636f884f36b5de6a4d681b2f61c08c2ec90eeb440472033f3307d0d6fa8bc9"
+    },
+    "freq_csv": {
+      "path": "/tmp/claude-0/-home-user-jev-on-promise/fbafe8a5-c730-5f83-9795-d13e58f94c49/scratchpad/research/lexical/freq/orgtre_1grams_english.csv",
+      "sha256": "f7f63aa08f0bb2f7f654cddff3a7ced4968b27887b2c0e7cd4b4d108221e197d"
+    }
+  },
+  "outputs": {
+    "wn_lemmas.tsv": {
+      "sha256": "33c7e7ff2d801664c493cca64e364c89935565873b4f577e119485c6e4f52b5d",
+      "bytes": 3182763
+    },
+    "wn_synsets.tsv": {
+      "sha256": "8b033f1c55c40dd47f3798dfeb1c213da4d3ea13ce451d328837c3ccee27ceec",
+      "bytes": 4493733
+    },
+    "wn_antonyms.tsv": {
+      "sha256": "2d331f65fd1dba979d6098e29feffbebb6818f7161bad413ea09267760a73f21",
+      "bytes": 76279
+    },
+    "sentiment.tsv": {
+      "sha256": "a1564f2cfa8a1392af9e2d9b4aa11b8c0af236317fe79b9e27bda2fbcf6885ce",
+      "bytes": 102639
+    },
+    "word_freq.tsv": {
+      "sha256": "aefbf9a264a8bc1df93cd13e3659ec5a6fe7139807f061f354c683d946a655cc",
+      "bytes": 165175
+    }
+  },
+  "stats": {
+    "wordnet": {
+      "lemmas": 151074,
+      "synsets": 120630,
+      "antonym_pairs": 3678
+    },
+    "sentiment": {
+      "entries": 7227
+    },
+    "word_freq": {
+      "entries": 9999
+    }
+  }
+}

@@ -1,0 +1,119 @@
+//! Snowball (Porter2) English stemming plus a stopword list.
+
+use rust_stemmers::{Algorithm, Stemmer};
+use rustc_hash::FxHashSet;
+use std::sync::OnceLock;
+
+fn stemmer() -> &'static Stemmer {
+    static S: OnceLock<Stemmer> = OnceLock::new();
+    S.get_or_init(|| Stemmer::create(Algorithm::English))
+}
+
+/// Stem a lowercase word. Non-alphabetic tokens are returned unchanged.
+pub fn stem(word: &str) -> String {
+    if word.len() < 3 || !word.chars().all(|c| c.is_alphabetic()) {
+        return word.to_string();
+    }
+    stemmer().stem(word).into_owned()
+}
+
+/// English function words that carry no topical evidence. Negation and
+/// modality cues are deliberately NOT stopwords (they are handled by scope
+/// detection) — but they are excluded from topical coverage features.
+pub const STOPWORDS: &[&str] = &[
+    "a", "an", "the", "and", "or", "of", "to", "in", "on", "at", "by", "for", "with", "as", "is", "are", "was",
+    "were", "be", "been", "being", "am", "it", "its", "this", "that", "these", "those", "there", "here", "i",
+    "me", "my", "mine", "we", "us", "our", "ours", "you", "your", "yours", "he", "him", "his", "she", "her",
+    "hers", "they", "them", "their", "theirs", "who", "whom", "whose", "which", "what", "when", "where",
+    "why", "how", "do", "does", "did", "doing", "done", "have", "has", "had", "having", "will", "would",
+    "shall", "should", "can", "could", "may", "might", "must", "so", "than", "then", "too", "very",
+    "just", "also", "about", "into", "from", "up", "down", "out", "over", "under", "again", "further",
+    "once", "such", "only", "own", "same", "some", "any", "each", "few", "more", "most", "other", "both",
+    "all", "s", "t", "if", "whether", "because", "while", "until", "during", "before", "after", "above",
+    "below", "between", "through", "off", "please", "thanks", "thank", "hi", "hello", "hey", "dear",
+    "regards", "ok", "okay", "yes", "yeah", "well", "etc", "via", "per", "re", "vs", "let", "get", "got",
+    "gets", "getting", "one", "ones", "thing", "things", "something", "anything", "everything", "nothing",
+    "someone", "anyone", "everyone", "kind", "sort", "lot", "lots", "much", "many", "still", "yet", "ever",
+    "even", "however", "though", "although", "either", "neither", "nor", "not", "no", "never", "none",
+    "cannot", "without", "quite", "rather", "really", "actually", "basically", "literally", "maybe",
+    "perhaps", "e", "g", "ie", "eg", "like", "want", "need", "wants", "needs", "would", "make", "makes",
+    "made", "take", "took", "go", "went", "goes", "come", "came", "say", "says", "said", "tell", "told",
+    "know", "knows", "knew", "think", "thinks", "thought", "see", "sees", "seen", "saw", "use", "used",
+    "using", "way", "ways", "day", "days", "time", "times", "new", "old", "first", "last", "next", "now",
+    "today", "yesterday", "tomorrow", "state", "question", "instructions", "answer", "option", "options",
+    "following", "based", "given", "regarding", "according", "text", "message", "content", "description",
+    "whether", "which", "does", "should", "customer", "user", "person", "people", "input", "value",
+    "type", "field", "item", "items", "data", "information", "info", "level", "levels", "criteria",
+    "criterion", "select", "choose", "pick", "best", "describes", "describe", "category", "categories",
+    "classify", "classification", "primary", "main", "mainly", "overall", "general", "generally",
+    "example", "examples", "eg", "specifically", "specific", "explicitly", "explicit", "clearly", "clear",
+    "mostly", "somewhat", "slightly", "extremely", "highly", "completely", "totally", "fully", "partially",
+    "mention", "mentions", "mentioned", "mentioning", "refer", "refers", "referring", "related", "relate",
+    "relates", "relating", "involve", "involves", "involving", "involved", "include", "includes",
+    "including", "included", "concern", "concerns", "concerning", "concerned", "matter", "matters", "case",
+    "cases", "situation", "situations", "issue", "issues", "problem", "problems", "request", "requests",
+    "requested", "requesting", "ask", "asks", "asked", "asking", "type", "types", "topic", "topics",
+    "subject", "subjects", "regarding", "about", "reason", "reasons", "sense", "context", "statement",
+    "statements", "sentence", "sentences", "passage", "document", "documents", "record", "records",
+];
+
+fn stop_set() -> &'static FxHashSet<&'static str> {
+    static S: OnceLock<FxHashSet<&'static str>> = OnceLock::new();
+    S.get_or_init(|| STOPWORDS.iter().copied().collect())
+}
+
+/// Stopwords for *topical* coverage. Negators are included here on purpose:
+/// they never count as topical evidence but are tracked as scope cues.
+#[inline]
+pub fn is_stopword(word: &str) -> bool {
+    stop_set().contains(word)
+}
+
+/// A much smaller set of pure function words (determiners, pronouns,
+/// auxiliaries, prepositions). Used where "content word" means any word
+/// that is not grammatical glue (e.g. when the caller wants domain nouns
+/// like "customer" or "request" to count as evidence).
+pub const FUNCTION_WORDS: &[&str] = &[
+    "a", "an", "the", "and", "or", "of", "to", "in", "on", "at", "by", "for", "with", "as", "is", "are", "was",
+    "were", "be", "been", "being", "am", "it", "its", "this", "that", "these", "those", "there", "here", "i",
+    "me", "my", "we", "us", "our", "you", "your", "he", "him", "his", "she", "her", "they", "them", "their",
+    "who", "whom", "whose", "which", "what", "when", "where", "why", "how", "do", "does", "did", "have",
+    "has", "had", "will", "would", "shall", "should", "can", "could", "may", "might", "must", "so", "than",
+    "then", "too", "just", "also", "about", "into", "from", "up", "down", "out", "over", "under", "such",
+    "only", "own", "same", "some", "any", "each", "all", "s", "t", "if", "whether", "because", "while",
+    "until", "during", "before", "after", "through", "off", "etc", "via", "per", "vs", "e", "g", "ie",
+    "eg", "not", "no", "nor", "neither", "either", "yet", "still", "ever", "even", "however", "though",
+    "although", "very", "really", "quite", "rather", "get", "got", "let", "one", "would", "please",
+];
+
+fn function_set() -> &'static FxHashSet<&'static str> {
+    static S: OnceLock<FxHashSet<&'static str>> = OnceLock::new();
+    S.get_or_init(|| FUNCTION_WORDS.iter().copied().collect())
+}
+
+#[inline]
+pub fn is_function_word(word: &str) -> bool {
+    function_set().contains(word)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stems_english() {
+        assert_eq!(stem("refunds"), "refund");
+        assert_eq!(stem("running"), "run");
+        assert_eq!(stem("delivery"), "deliveri");
+        assert_eq!(stem("delivered"), "deliv");
+        assert_eq!(stem("42"), "42");
+    }
+
+    #[test]
+    fn stopwords() {
+        assert!(is_stopword("the"));
+        assert!(!is_stopword("refund"));
+        assert!(is_function_word("not"));
+        assert!(!is_function_word("customer"));
+    }
+}

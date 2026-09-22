@@ -1,0 +1,30 @@
+[package]
+name = "sextant-core"
+description = "Sextant: a non-neural, deterministic, calibrated probabilistic decision engine (Choice / Score / Noul)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+indexmap.workspace = true
+thiserror.workspace = true
+regex.workspace = true
+aho-corasick.workspace = true
+unicode-normalization.workspace = true
+rust-stemmers.workspace = true
+rayon.workspace = true
+rustc-hash.workspace = true
+smallvec.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "layers"
+harness = false
