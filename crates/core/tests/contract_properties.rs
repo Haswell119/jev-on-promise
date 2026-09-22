@@ -22,16 +22,12 @@ use std::collections::BTreeSet;
 
 const EPS: f64 = 1e-9;
 
+/// Serialize -> parse -> compare (numbers within one ulp of serde_json's
+/// float parser, everything else identical).
 fn check_roundtrip(resp: &SystemOneResponse) -> Result<(), TestCaseError> {
-    let text = serde_json::to_string(resp)
-        .map_err(|e| TestCaseError::fail(format!("serialize: {e}")))?;
-    let back: SystemOneResponse = serde_json::from_str(&text)
-        .map_err(|e| TestCaseError::fail(format!("deserialize: {e}")))?;
-    prop_assert_eq!(&back, resp);
-    // The text must also parse as generic JSON with a top-level `answers` object.
-    let v: Value =
-        serde_json::from_str(&text).map_err(|e| TestCaseError::fail(format!("json: {e}")))?;
-    prop_assert!(v["answers"].is_object());
+    if let Some(diff) = roundtrip_error(resp) {
+        return Err(TestCaseError::fail(format!("JSON round trip: {diff}")));
+    }
     Ok(())
 }
 

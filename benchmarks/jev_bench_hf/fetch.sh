@@ -57,22 +57,31 @@ expected_sha() {  # expected_sha <relative path> -> sha or empty
   awk -v p="$1" '$2 == p { print $1 }' "$CHECKSUMS"
 }
 
-download() {  # download <relative path>
-  local rel="$1" url="$HF_BASE/$1" dest="$DATA_DIR/$1"
+# Local paths are relative to this directory (data/<config>/test.jsonl, data/manifest.json);
+# on the Hub the test files live under data/ and manifest.json at the repository root.
+remote_of() {
+  case "$1" in
+    data/manifest.json) echo "manifest.json" ;;
+    *) echo "$1" ;;
+  esac
+}
+
+download() {  # download <local relative path>
+  local rel="$1" url="$HF_BASE/$(remote_of "$1")" dest="$HERE/$1"
   mkdir -p "$(dirname "$dest")"
   echo "[fetch] $url"
   curl -fsSL --retry 3 --retry-delay 2 -o "$dest.part" "$url"
   mv "$dest.part" "$dest"
 }
 
-files=(manifest.json)
+files=(data/manifest.json)
 for cfg in "${CONFIGS[@]}"; do
-  files+=("$cfg/test.jsonl")
+  files+=("data/$cfg/test.jsonl")
 done
 
 if [ "$check_only" -eq 0 ]; then
   for rel in "${files[@]}"; do
-    dest="$DATA_DIR/$rel"
+    dest="$HERE/$rel"
     want="$(expected_sha "$rel")"
     if [ -f "$dest" ] && [ -n "$want" ] && [ "$(sha_of "$dest")" = "$want" ]; then
       continue  # already present and verified
@@ -83,9 +92,10 @@ fi
 
 if [ "$write_checksums" -eq 1 ]; then
   {
-    echo "# sha256 of $DATASET at revision $DATASET_REVISION (data/<config>/test.jsonl), verified by fetch.sh"
+    echo "# sha256 of $DATASET at revision $DATASET_REVISION; paths relative to benchmarks/jev_bench_hf"
+    echo "# (verify: cd benchmarks/jev_bench_hf && sha256sum -c checksums.txt)"
     for rel in "${files[@]}"; do
-      printf '%s  %s\n' "$(sha_of "$DATA_DIR/$rel")" "$rel"
+      printf '%s  %s\n' "$(sha_of "$HERE/$rel")" "$rel"
     done
   } >"$CHECKSUMS"
   echo "[fetch] wrote $CHECKSUMS"
@@ -94,10 +104,10 @@ fi
 [ -f "$CHECKSUMS" ] || die "no $CHECKSUMS to verify against (maintainers: --write-checksums)"
 missing=0
 for rel in "${files[@]}"; do
-  [ -f "$DATA_DIR/$rel" ] || { echo "missing: data/$rel" >&2; missing=1; }
+  [ -f "$HERE/$rel" ] || { echo "missing: $rel" >&2; missing=1; }
 done
 [ "$missing" -eq 0 ] || die "dataset files missing (run without --check)"
-(cd "$DATA_DIR" && sha256sum --quiet -c <(grep -v '^#' "$CHECKSUMS")) || die "checksum mismatch; see $CHECKSUMS"
+(cd "$HERE" && sha256sum --quiet -c <(grep -v '^#' "$CHECKSUMS")) || die "checksum mismatch; see $CHECKSUMS"
 total=0
 for cfg in "${CONFIGS[@]}"; do
   total=$((total + $(wc -l <"$DATA_DIR/$cfg/test.jsonl")))

@@ -69,6 +69,61 @@ pub fn all_finite(resp: &SystemOneResponse) -> bool {
     })
 }
 
+/// First numeric or structural difference between two JSON values, with a
+/// relative tolerance for numbers (`None` when equal).
+pub fn numeric_diff(a: &Value, b: &Value, path: &str, tol: f64) -> Option<String> {
+    match (a, b) {
+        (Value::Number(x), Value::Number(y)) => {
+            let (x, y) = (x.as_f64().unwrap_or(f64::NAN), y.as_f64().unwrap_or(f64::NAN));
+            let scale = x.abs().max(y.abs()).max(1.0);
+            if (x - y).abs() <= tol * scale {
+                None
+            } else {
+                Some(format!("{path}: {x} vs {y} (tolerance {tol})"))
+            }
+        }
+        (Value::Object(x), Value::Object(y)) => {
+            if !x.keys().eq(y.keys()) {
+                return Some(format!(
+                    "{path}: keys differ: {:?} vs {:?}",
+                    x.keys().collect::<Vec<_>>(),
+                    y.keys().collect::<Vec<_>>()
+                ));
+            }
+            x.iter().find_map(|(k, v)| numeric_diff(v, &y[k], &format!("{path}.{k}"), tol))
+        }
+        (Value::Array(x), Value::Array(y)) => {
+            if x.len() != y.len() {
+                return Some(format!("{path}: length {} vs {}", x.len(), y.len()));
+            }
+            x.iter().zip(y).enumerate().find_map(|(i, (v, w))| numeric_diff(v, w, &format!("{path}[{i}]"), tol))
+        }
+        _ => (a != b).then(|| format!("{path}: {a} vs {b}")),
+    }
+}
+
+/// Serialize a response to JSON, parse it back and compare. serde_json's
+/// default float parser is not correctly rounded (the `float_roundtrip`
+/// feature is off), so a number may move by one ulp on the way back
+/// (e.g. 0.11920292202211756 -> 0.11920292202211755); any other difference
+/// is an error. Returns a description of the first difference.
+pub fn roundtrip_error(resp: &SystemOneResponse) -> Option<String> {
+    let text = match serde_json::to_string(resp) {
+        Ok(t) => t,
+        Err(e) => return Some(format!("serialize: {e}")),
+    };
+    let back: SystemOneResponse = match serde_json::from_str(&text) {
+        Ok(b) => b,
+        Err(e) => return Some(format!("deserialize: {e}")),
+    };
+    let a = serde_json::to_value(resp).expect("to_value");
+    let b = serde_json::to_value(&back).expect("to_value");
+    if !a["answers"].is_object() {
+        return Some("serialized response has no `answers` object".into());
+    }
+    numeric_diff(&a, &b, "$", 1e-12)
+}
+
 /// The documented argmax rule: highest probability, ties broken by the
 /// lexicographically smallest key.
 pub fn expected_argmax(p: &indexmap::IndexMap<String, f64>) -> String {

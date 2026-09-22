@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 46725141c744d968f152a8a9a9d088170726434897b1deb82723fa07cc9d1a3e # shrinks to state = String(""), qs = [("subject", Object {"type": String("choice"), "instructions": String(""), "criteria": Object {"\u{1b}": Object {"text": Number(-5.507190578771305e-282), "-1": Null, "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk": Array [String("a aa   a aaa  aaa a  ")], "null": String("tab\tseparated\nnew\r\nlines"), "\u{5}\u{6}": Number(1.331778198150348e+183)}, "a.b[0]": Array [Array [Number(5369240938322648493), String("  a    aaa      aa   aa a  aa "), String("\u{10}")], Number(-2.2695647887927886e+203), Number(5391094028995203025)]}})], model = "sextant-1", explain = None
