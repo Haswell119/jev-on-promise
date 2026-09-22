@@ -28,6 +28,7 @@ pub mod model;
 pub mod neural;
 pub mod question;
 pub mod resolvers;
+pub mod retrieval;
 pub mod scoring;
 pub mod state;
 pub mod text;

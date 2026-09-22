@@ -198,25 +198,24 @@ fn bm25_scores(
     }
 }
 
-/// Select evidence fragments for a question, in document order, within a
-/// word budget. Short states are returned whole.
-pub fn select_evidence(view: &QuestionView<'_>, state: &StateIndex, budget_words: usize) -> (String, usize, usize) {
-    select_evidence_with(view, state, EvidenceParams::quota(budget_words))
+/// The three BM25 score vectors the selector and the learned ranker share.
+pub struct BaseScores {
+    /// Question terms (plus the expansion and the focus-field prior).
+    pub q_scores: Vec<f32>,
+    /// One vector per candidate criterion.
+    pub crit_scores: Vec<Vec<f32>>,
+    /// Question plus every criterion.
+    pub pooled: Vec<f32>,
 }
 
-pub fn select_evidence_with(view: &QuestionView<'_>, state: &StateIndex, p: EvidenceParams) -> (String, usize, usize) {
-    let all_words: usize = state.fields.iter().map(|f| f.text.split_whitespace().count()).sum();
-    let mut p = p;
-    p.budget_words = p.effective_budget(all_words);
-    if all_words <= p.budget_words {
-        let text = render_segments(state, &(0..state.segments.len() as u32).collect::<Vec<_>>());
-        let w = text.split_whitespace().count();
-        return (text, all_words, w);
-    }
+/// Score every segment for the question and for each candidate. Shared by
+/// the heuristic selector and by the learned ranker's feature extraction so
+/// the two can never disagree about what the base scores are.
+pub fn base_scores(view: &QuestionView<'_>, state: &StateIndex, local_idf: bool, q_expand: bool) -> BaseScores {
     let n_seg = state.segments.len();
     let mut q_scores = vec![0.0f32; n_seg];
-    bm25_scores(state, view.terms.iter().map(|t| (t.term, t.weight)), &mut q_scores, p.local_idf);
-    if p.q_expand {
+    bm25_scores(state, view.terms.iter().map(|t| (t.term, t.weight)), &mut q_scores, local_idf);
+    if q_expand {
         // The question itself carries no synonym set, so borrow the union of
         // the criteria expansions: a needle that paraphrases the question is
         // otherwise invisible to the question-only ranking.
@@ -225,7 +224,7 @@ pub fn select_evidence_with(view: &QuestionView<'_>, state: &StateIndex, p: Evid
                 state,
                 c.expanded.iter().take(24).map(|&(syn, weight, _)| (syn, weight * 0.35)),
                 &mut q_scores,
-                p.local_idf,
+                local_idf,
             );
         }
     }
@@ -242,12 +241,82 @@ pub fn select_evidence_with(view: &QuestionView<'_>, state: &StateIndex, p: Evid
     for c in &view.criteria {
         let mut s = vec![0.0f32; n_seg];
         let w = 1.0 / (c.terms.len().max(1) as f32).sqrt();
-        bm25_scores(state, c.terms.iter().filter(|t| t.polarity > 0).map(|t| (t.term, t.weight * w)), &mut s, p.local_idf);
-        bm25_scores(state, c.expanded.iter().take(24).map(|&(syn, weight, _)| (syn, weight * 0.5 * w)), &mut s, p.local_idf);
+        bm25_scores(state, c.terms.iter().filter(|t| t.polarity > 0).map(|t| (t.term, t.weight * w)), &mut s, local_idf);
+        bm25_scores(state, c.expanded.iter().take(24).map(|&(syn, weight, _)| (syn, weight * 0.5 * w)), &mut s, local_idf);
         for i in 0..n_seg {
             pooled[i] += s[i];
         }
         crit_scores.push(s);
+    }
+    BaseScores { q_scores, crit_scores, pooled }
+}
+
+/// Feature matrix for the learned retrieval ranker, one row per segment.
+pub fn retrieval_features(
+    view: &QuestionView<'_>,
+    state: &StateIndex,
+    local_idf: bool,
+    q_expand: bool,
+) -> Vec<[f32; crate::retrieval::N_RETRIEVAL_FEATURES]> {
+    let b = base_scores(view, state, local_idf, q_expand);
+    crate::retrieval::segment_features(view, state, &b.q_scores, &b.pooled, &b.crit_scores)
+}
+
+/// Select evidence fragments for a question, in document order, within a
+/// word budget. Short states are returned whole.
+pub fn select_evidence(view: &QuestionView<'_>, state: &StateIndex, budget_words: usize) -> (String, usize, usize) {
+    select_evidence_with(view, state, EvidenceParams::quota(budget_words))
+}
+
+pub fn select_evidence_with(view: &QuestionView<'_>, state: &StateIndex, p: EvidenceParams) -> (String, usize, usize) {
+    select_evidence_ranked(view, state, p, None)
+}
+
+/// Evidence selection with an optional learned ranker. With a ranker every
+/// segment is a candidate and the budget is filled greedily by learned
+/// score, which also removes the document-order fallback that biased the
+/// heuristic selector toward the start of long states.
+pub fn select_evidence_ranked(
+    view: &QuestionView<'_>,
+    state: &StateIndex,
+    p: EvidenceParams,
+    ranker: Option<&crate::retrieval::RetrievalRanker>,
+) -> (String, usize, usize) {
+    let all_words: usize = state.fields.iter().map(|f| f.text.split_whitespace().count()).sum();
+    let mut p = p;
+    p.budget_words = p.effective_budget(all_words);
+    if all_words <= p.budget_words {
+        let text = render_segments(state, &(0..state.segments.len() as u32).collect::<Vec<_>>());
+        let w = text.split_whitespace().count();
+        return (text, all_words, w);
+    }
+    let n_seg = state.segments.len();
+    let BaseScores { q_scores, crit_scores, pooled } = base_scores(view, state, p.local_idf, p.q_expand);
+    if let Some(r) = ranker {
+        let feats = crate::retrieval::segment_features(view, state, &q_scores, &pooled, &crit_scores);
+        let scores: Vec<f32> = feats.iter().map(|f| r.score(f)).collect();
+        let mut order: Vec<u32> = (0..n_seg as u32).collect();
+        order.sort_by(|a, b| {
+            scores[*b as usize].partial_cmp(&scores[*a as usize]).unwrap_or(std::cmp::Ordering::Equal).then(a.cmp(b))
+        });
+        let mut chosen: Vec<u32> = Vec::new();
+        let mut used = 0usize;
+        for seg in order {
+            let w = state.segment_text(seg).split_whitespace().count();
+            if w == 0 {
+                continue;
+            }
+            if used + w <= p.budget_words {
+                chosen.push(seg);
+                used += w;
+            }
+            if used >= p.budget_words {
+                break;
+            }
+        }
+        chosen.sort_unstable();
+        let text = render_segments(state, &chosen);
+        return (text, all_words, used);
     }
     let words_of = |seg: u32| state.segment_text(seg).split_whitespace().count();
     let mut chosen: Vec<u32> = Vec::new();
@@ -357,7 +426,10 @@ pub fn export_question_with(q: &Question, state: &StateIndex, res: &Resources, m
     let view = QuestionView::build(q, state, res);
     let feats = extract_features(&view, state, res);
     let resolved = resolvers::resolve(&view, state, &feats);
-    let (evidence, state_words, evidence_words) = select_evidence_with(&view, state, params);
+    // Training pairs must be retrieved exactly as inference retrieves them,
+    // so the exporter uses the model's ranker when it has one.
+    let (evidence, state_words, evidence_words) =
+        select_evidence_ranked(&view, state, params, model.retrieval.as_deref());
     let head = match view.kind {
         QuestionKind::Choice => Some(&model.dense.choice),
         QuestionKind::Score => Some(&model.dense.score),

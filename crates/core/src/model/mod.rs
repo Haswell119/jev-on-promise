@@ -18,6 +18,9 @@ pub struct Model {
     /// Locally hosted neural decision scorer (loaded from `<dir>/neural`).
     #[cfg(feature = "neural")]
     pub neural: Option<std::sync::Arc<crate::neural::NeuralScorer>>,
+    /// Learned evidence ranker (loaded from `<dir>/retrieval.json`). Absent
+    /// means the heuristic pooled-BM25 ordering is used.
+    pub retrieval: Option<std::sync::Arc<crate::retrieval::RetrievalRanker>>,
 }
 
 impl Model {
@@ -30,6 +33,7 @@ impl Model {
             source: source.to_string(),
             #[cfg(feature = "neural")]
             neural: None,
+            retrieval: None,
         }
     }
 
@@ -40,6 +44,19 @@ impl Model {
         let scorer = crate::neural::NeuralScorer::load(dir)?;
         self.neural = Some(std::sync::Arc::new(scorer));
         Ok(self)
+    }
+
+    /// Attach a learned retrieval ranker from `<dir>/retrieval.json`.
+    pub fn with_retrieval_file(mut self, path: &Path) -> Result<Model, String> {
+        let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let ranker = crate::retrieval::RetrievalRanker::from_json(&text)?;
+        self.retrieval = Some(std::sync::Arc::new(ranker));
+        Ok(self)
+    }
+
+    /// True when a learned retrieval ranker is loaded.
+    pub fn has_retrieval(&self) -> bool {
+        self.retrieval.is_some()
     }
 
     /// True when a neural scorer is loaded.
@@ -73,7 +90,11 @@ impl Model {
         let c = std::fs::read_to_string(dir.join("calibration.json")).map_err(|e| format!("calibration.json: {e}"))?;
         let calibration: Calibration = serde_json::from_str(&c).map_err(|e| format!("calibration.json: {e}"))?;
         validate_calibration(&calibration)?;
-        let model = Model::from_parts(weights, calibration, &dir.display().to_string());
+        let mut model = Model::from_parts(weights, calibration, &dir.display().to_string());
+        let rf = dir.join("retrieval.json");
+        if rf.exists() {
+            model = model.with_retrieval_file(&rf)?;
+        }
         #[cfg(feature = "neural")]
         {
             let nd = dir.join("neural");

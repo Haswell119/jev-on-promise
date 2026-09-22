@@ -169,3 +169,68 @@ must be updated in the same commit as the promotion:
 
 A promotion is not complete while any of these still claims the engine has no
 neural network. `scripts/experiment.py promote` prints this list as a reminder.
+
+## Learned retrieval ranker
+
+Retrieval, not the encoder, is the dominant long-context failure, and the
+budget is not what binds: the annotated span is a median 38 words against a
+139-word block, so a perfect ranker would retrieve nearly all of them where
+BM25 retrieves about a third.
+
+`model/retrieval.json` holds a linear ranker over 16 features that
+retrieval already computes for every segment: z-scores and rank
+percentiles of the question, pooled and best-candidate BM25 vectors, the
+question and candidate term coverage, candidate char-4-gram containment,
+length ratio, document position, the focus-field flag, number, date and
+negation flags, and the log segment count. Scores and ranks are normalised
+within the state, because raw BM25 magnitudes are not comparable across
+documents and a ranker trained on raw values learns the document rather
+than the segment.
+
+It is linear on purpose. The ranker runs on every segment of every state
+on the inference path, so it has to cost one dot product; a second encoder
+pass over hundreds of segments would blow the CPU latency budget on its
+own. Capacity belongs in the cross-encoder, which only ever sees the
+retrieved block.
+
+Training is listwise: each state's segments form one list and the loss is
+the negative log of the probability mass the softmax puts on the annotated
+evidence segments. Per-segment binary classification would spend its
+capacity on the hundreds of easy negatives a long state contains. Model
+selection uses budget recall, the fraction of annotated segments that
+survive a greedy fill of the word budget, because a ranking metric would
+hide a long winning segment crowding the needle out.
+
+    sextant export-retrieval data/synthetic/bench_train.jsonl \
+        --out data/retrieval/train.jsonl --local-idf --q-expand
+    python3 scripts/neural/train_retrieval.py \
+        --train data/retrieval/train.jsonl --dev data/retrieval/dev.jsonl \
+        --out model/retrieval.json --version R3
+
+With no `retrieval.json` present the engine keeps the heuristic pooled
+ordering, so the ranker is strictly additive. When one is loaded the
+document-order fallback disappears: every segment is a candidate and the
+budget is filled greedily by learned score, which also removes the bias
+toward the start of long states that the fallback introduced.
+
+The ranker is fitted on the training pool only and selected on a held-out
+slice of it, never on the internal dev set or the long-context suite, so
+the recall reported on those suites remains a clean measurement.
+
+## Long-context curriculum
+
+The training pool's long-context split originally stopped at 1024 tokens
+while the evaluation suite runs to 16384, so every model had to
+extrapolate sixteen-fold on the axis that already fails hardest.
+`data/synthetic/bench_train_lc.jsonl` closes that gap: 3600 records over
+256 to 16384 tokens with the evidence at the start, middle, end and split
+across the state, drawn from the same disjoint train-side template pool.
+
+    python3 scripts/synth/bench/build.py --long-train-only
+    python3 scripts/synth/bench/verify.py
+
+The verifier re-derives every gold label from `meta.checks` and confirms
+that the bench and train template pools stay disjoint with no state
+leakage in either direction. It is written as a separate file rather than
+folded into `bench_train.jsonl` so that training exports made before it
+existed stay reproducible.

@@ -40,6 +40,9 @@ reports/leakage_prescan.json
 # data/bench_internal/*.jsonl is already ignored above; MANIFEST.json is committed.
 !/data/bench_internal/MANIFEST.json
 /data/synthetic/bench_train.jsonl
+# Extended long-context training split (123 MB).
+# Regenerate with: python3 scripts/synth/bench/build.py --long-train-only
+/data/synthetic/bench_train_lc.jsonl
 
 # Per-candidate probe dumps from challenger evaluation (large; summaries kept)
 reports/challengers/*.calib_probe.jsonl

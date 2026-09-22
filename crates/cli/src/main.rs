@@ -165,6 +165,27 @@ enum Cmd {
         #[arg(long)]
         q_expand: bool,
     },
+    /// Dump per-segment retrieval features and gold-evidence labels for fitting the learned ranker.
+    ExportRetrieval {
+        #[arg(required = true)]
+        inputs: Vec<PathBuf>,
+        #[arg(long)]
+        out: PathBuf,
+        /// Limit records per input file (0 = all).
+        #[arg(long, default_value_t = 0)]
+        limit: usize,
+        /// Weight retrieval terms by their document frequency inside the state.
+        #[arg(long)]
+        local_idf: bool,
+        /// Expand the question query with the criteria synonym sets.
+        #[arg(long)]
+        q_expand: bool,
+        /// Negative segments kept per question (0 = all).
+        #[arg(long, default_value_t = 60)]
+        max_negatives: usize,
+        #[arg(long, default_value_t = 20260923)]
+        seed: u64,
+    },
     /// Score exported pair rows with the Rust neural runtime (parity / evaluation).
     NeuralProbe {
         #[arg(long)]
@@ -242,6 +263,13 @@ fn main() {
             inputs,
             out,
             commands::export_pairs::Opts { budget_words, limit, no_features, strategy, adaptive_cap, local_idf, q_expand },
+        ),
+        Cmd::ExportRetrieval { inputs, out, limit, local_idf, q_expand, max_negatives, seed } => commands::export_retrieval::run(
+            cli.model_dir,
+            cli.threads,
+            inputs,
+            out,
+            commands::export_retrieval::Opts { limit, local_idf, q_expand, max_negatives, seed },
         ),
         Cmd::NeuralProbe { neural_dir, input, out, limit } => commands::neural_probe::run(neural_dir, input, out, limit),
         Cmd::ExportBootstrap { out_dir } => commands::export::run(out_dir),

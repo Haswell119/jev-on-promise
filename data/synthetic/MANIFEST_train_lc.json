@@ -1,0 +1,75 @@
+{
+  "generator": "scripts/synth/bench/build.py --long-train-only",
+  "seed": 20260923,
+  "note": "Supplementary long-context TRAINING records covering the full evaluation length range. Train-side template pool only; no bench record, template or slot is reused. Verify with verify.py.",
+  "length_buckets": [
+    256,
+    512,
+    1024,
+    2048,
+    4096,
+    8192,
+    16384
+  ],
+  "positions": [
+    "start",
+    "middle",
+    "end",
+    "split"
+  ],
+  "files": {
+    "data/synthetic/bench_train_lc.jsonl": {
+      "records": 3600,
+      "bytes": 123123031,
+      "sha256": "1bb5d9e3949c7e8bc0aa722a699e6897f7f7502921f8c2f3e20ecfcdbe61d0c1"
+    }
+  },
+  "counts": {
+    "split": {
+      "train_lc_ext": 3600
+    },
+    "family": {
+      "long_context": 3600
+    },
+    "split_family": {
+      "train_lc_ext|long_context": 3600
+    },
+    "split_tier": {
+      "train_lc_ext|hard": 1041,
+      "train_lc_ext|judge": 1511,
+      "train_lc_ext|standard": 1048
+    },
+    "family_tier": {
+      "long_context|hard": 1041,
+      "long_context|judge": 1511,
+      "long_context|standard": 1048
+    },
+    "length_bucket": {
+      "train_lc_ext|1024": 521,
+      "train_lc_ext|16384": 471,
+      "train_lc_ext|2048": 520,
+      "train_lc_ext|256": 524,
+      "train_lc_ext|4096": 520,
+      "train_lc_ext|512": 524,
+      "train_lc_ext|8192": 520
+    },
+    "position": {
+      "end": 912,
+      "middle": 912,
+      "split": 863,
+      "start": 913
+    },
+    "reasoning": {
+      "long_context": 3600
+    },
+    "base_family": {
+      "adequacy_relevance": 521,
+      "compatibility": 521,
+      "facts_extraction": 522,
+      "intent_routing": 522,
+      "numeric_temporal": 521,
+      "ordinal": 472,
+      "policy_rules": 521
+    }
+  }
+}

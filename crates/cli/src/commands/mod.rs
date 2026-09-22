@@ -6,6 +6,7 @@ pub mod decide;
 pub mod eval;
 pub mod export;
 pub mod export_pairs;
+pub mod export_retrieval;
 pub mod leakage;
 pub mod neural_probe;
 pub mod learn;

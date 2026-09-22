@@ -56,7 +56,8 @@ fn neural_logits(view: &crate::question::QuestionView<'_>, ctx: &Ctx<'_>, feats:
         .with_adaptive_cap(scorer.config.evidence_adaptive_cap)
         .with_local_idf(scorer.config.evidence_local_idf)
         .with_q_expand(scorer.config.evidence_q_expand);
-    let (evidence, _, _) = crate::export::select_evidence_with(view, ctx.state, params);
+    let (evidence, _, _) =
+        crate::export::select_evidence_ranked(view, ctx.state, params, ctx.model.retrieval.as_deref());
     let candidates: Vec<String> = (0..view.criteria.len()).map(|i| crate::export::candidate_text_for(view, i)).collect();
     let features: Option<Vec<Vec<f32>>> = (scorer.config.n_features > 0).then(|| feats.rows.iter().map(|r| r.0.to_vec()).collect());
     let head = match view.kind {

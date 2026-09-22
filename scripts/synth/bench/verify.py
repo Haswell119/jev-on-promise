@@ -33,7 +33,7 @@ else:
 
 BENCH_FILES = ["data/bench_internal/dev.jsonl", "data/bench_internal/shadow.jsonl",
                "data/bench_internal/calib.jsonl", "data/bench_internal/long_context.jsonl"]
-TRAIN_FILES = ["data/synthetic/bench_train.jsonl"]
+TRAIN_FILES = ["data/synthetic/bench_train.jsonl", "data/synthetic/bench_train_lc.jsonl"]
 
 CMP = {
     "gt": lambda a, b: a > b,

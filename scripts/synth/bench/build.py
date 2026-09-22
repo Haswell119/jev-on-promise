@@ -55,6 +55,14 @@ DEV_N, SHADOW_N, CALIB_N, LC_N = 3000, 3000, 2000, 1512  # 1512 = 9 buckets x 4 
 TRAIN_PER_FAMILY = 7600
 TRAIN_LC_N = 4000
 TRAIN_LC_BUCKETS = [64, 128, 256, 512, 1024]
+# The evaluation suite runs to 16k tokens while the pool above stops at 1k,
+# so a model trained only on it has to extrapolate 16x on the axis that
+# already fails hardest. `--long-train-only` writes a supplementary split
+# covering the full evaluation range, from the same disjoint train-side
+# template pool, into its own file so existing training exports stay
+# reproducible.
+TRAIN_LC_EXT_N = 3600
+TRAIN_LC_EXT_BUCKETS = [256, 512, 1024, 2048, 4096, 8192, 16384]
 
 
 def req_key(rec):
@@ -147,6 +155,10 @@ def main():
     ap.add_argument("--root", default=".")
     ap.add_argument("--train-per-family", type=int, default=TRAIN_PER_FAMILY)
     ap.add_argument("--train-lc", type=int, default=TRAIN_LC_N)
+    ap.add_argument("--long-train-only", action="store_true",
+                    help="write only the extended long-context TRAINING split "
+                         "(data/synthetic/bench_train_lc.jsonl); leaves every other file alone")
+    ap.add_argument("--train-lc-ext", type=int, default=TRAIN_LC_EXT_N)
     a = ap.parse_args()
     root = os.path.abspath(a.root)
     bench_dir = os.path.join(root, BENCH_DIR)
@@ -190,6 +202,31 @@ def main():
 
     seen_bench = set()
     fam_names = list(FAMILIES)
+
+    if a.long_train_only:
+        # A distinct stream tag keeps the ids and the sampled slots disjoint
+        # from the records already in bench_train.jsonl.
+        print("building the extended long-context training split ...", flush=True)
+        seen_ext = set()
+        path = os.path.join(train_dir, "bench_train_lc.jsonl")
+        n = write(path, fill(lc_stream(a.seed, "train", "train_lc_ext", TRAIN_LC_EXT_BUCKETS),
+                             a.train_lc_ext, seen_ext, balanced=False))
+        side_leak = sorted(tids["bench"] & tids["train"])
+        assert not side_leak, "train split reused bench templates: %s" % side_leak[:5]
+        manifest = OrderedDict()
+        manifest["generator"] = "scripts/synth/bench/build.py --long-train-only"
+        manifest["seed"] = a.seed
+        manifest["note"] = ("Supplementary long-context TRAINING records covering the full "
+                            "evaluation length range. Train-side template pool only; no bench "
+                            "record, template or slot is reused. Verify with verify.py.")
+        manifest["length_buckets"] = TRAIN_LC_EXT_BUCKETS
+        manifest["positions"] = long_context.POSITIONS
+        manifest["files"] = files
+        manifest["counts"] = {k: OrderedDict(sorted(v.items())) for k, v in counts.items() if v}
+        with open(os.path.join(train_dir, "MANIFEST_train_lc.json"), "w") as f:
+            json.dump(manifest, f, indent=2)
+        print("wrote %d records -> %s" % (n, path))
+        return
 
     def bench_records(stream, total):
         qs = quotas(total, len(fam_names))
