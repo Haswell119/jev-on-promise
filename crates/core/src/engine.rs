@@ -204,11 +204,12 @@ fn answer_question(q: &Question, ctx: &Ctx<'_>) -> Answer {
         }
         QuestionKind::Choice | QuestionKind::Score => {
             let head = if view.kind == QuestionKind::Choice { &ctx.model.dense.choice } else { &ctx.model.dense.score };
+            let best_evidence = feats.rows.iter().map(|f| f.get(F::cov_w)).fold(0.0f32, f32::max) as f64;
             let (z, temperature, path): (Vec<f32>, f64, String) = match &resolved {
                 Some(r) => (r.logits.clone(), cal.symbolic_temperature_for(view.kind), format!("symbolic:{}", r.name)),
                 None => (
                     feats.rows.iter().map(|f| head.score(f, family)).collect(),
-                    cal.temperature_for(view.kind, family, k),
+                    cal.temperature_for(view.kind, family, k) * cal.evidence_multiplier(view.kind, best_evidence),
                     "semantic".to_string(),
                 ),
             };

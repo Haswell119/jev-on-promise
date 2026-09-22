@@ -306,9 +306,63 @@ fn collect(v: &Value, polarity: i8, example: bool, in_array: bool, depth: usize,
 pub fn is_fallback_option(key: &str, description: &str) -> bool {
     let k = split_key_words(key).join(" ");
     let d = description.to_lowercase();
-    let key_hit = matches!(k.as_str(), "other" | "others" | "none" | "neither" | "unknown" | "unclear" | "unrelated" | "n a" | "na" | "not applicable" | "no match" | "misc" | "miscellaneous" | "general" | "fallback" | "default" | "none of the above" | "not sure" | "cannot determine" | "undetermined" | "out of scope" | "oos" | "irrelevant" | "no category" | "uncategorized" | "unspecified");
-    let key_prefix = k.starts_with("other ") || k.starts_with("none ") || k.starts_with("no ") && (k.contains("match") || k.contains("category") || k.contains("applicable"));
-    let desc_hit = ["none of the above", "none of these", "does not fit", "doesn't fit", "not covered", "no other option", "anything else", "not applicable", "cannot be determined", "can't be determined", "unrelated to", "not related to any", "falls outside", "outside the", "any other", "everything else", "all other", "not listed", "unclear or", "is unclear", "no clear", "not enough information", "insufficient information"];
+    let key_hit = matches!(
+        k.as_str(),
+        "other"
+            | "others"
+            | "none"
+            | "neither"
+            | "unknown"
+            | "unclear"
+            | "unrelated"
+            | "n a"
+            | "na"
+            | "not applicable"
+            | "no match"
+            | "misc"
+            | "miscellaneous"
+            | "general"
+            | "fallback"
+            | "default"
+            | "none of the above"
+            | "not sure"
+            | "cannot determine"
+            | "undetermined"
+            | "out of scope"
+            | "oos"
+            | "irrelevant"
+            | "no category"
+            | "uncategorized"
+            | "unspecified"
+    );
+    let key_prefix = k.starts_with("other ")
+        || k.starts_with("none ")
+        || k.starts_with("no ") && (k.contains("match") || k.contains("category") || k.contains("applicable"));
+    let desc_hit = [
+        "none of the above",
+        "none of these",
+        "does not fit",
+        "doesn't fit",
+        "not covered",
+        "no other option",
+        "anything else",
+        "not applicable",
+        "cannot be determined",
+        "can't be determined",
+        "unrelated to",
+        "not related to any",
+        "falls outside",
+        "outside the",
+        "any other",
+        "everything else",
+        "all other",
+        "not listed",
+        "unclear or",
+        "is unclear",
+        "no clear",
+        "not enough information",
+        "insufficient information",
+    ];
     key_hit || key_prefix || desc_hit.iter().any(|p| d.contains(p))
 }
 
@@ -523,6 +577,11 @@ impl Criterion {
                 let tid = vocab.intern(&rt.text, res);
                 let info = vocab.info(tid);
                 if fl[i] & CUE != 0 || info.func {
+                    continue;
+                }
+                // Noul hypothesis descriptions ("the text states that this is so") must not
+                // dilute the proposition: stopwords carry no evidence there.
+                if info.stop && !key_is_name && (key == "true" || key == "false") {
                     continue;
                 }
                 let stop_factor = if info.stop { 0.3 } else { 1.0 };

@@ -1,0 +1,172 @@
+{
+  "engine_version": "0.1.0",
+  "model": "embedded",
+  "threads": 4,
+  "results": [
+    {
+      "scenario": "typical_8q_4k_tokens",
+      "iters": 200,
+      "p50_ms": 6.018191,
+      "p95_ms": 7.6503250000000005,
+      "p99_ms": 8.460028,
+      "mean_ms": 6.211235185,
+      "requests_per_second": 160.78640372805145,
+      "questions": 8,
+      "state_bytes": 20635
+    },
+    {
+      "scenario": "json_state_3q",
+      "iters": 200,
+      "p50_ms": 1.3817510000000002,
+      "p95_ms": 1.6259160000000001,
+      "p99_ms": 2.420296,
+      "mean_ms": 1.392702654999999,
+      "requests_per_second": 715.6794488924718,
+      "questions": 3,
+      "state_bytes": 1033
+    },
+    {
+      "scenario": "large_16q_16k_tokens_k64",
+      "iters": 40,
+      "p50_ms": 34.674130999999996,
+      "p95_ms": 36.912743,
+      "p99_ms": 37.959554,
+      "mean_ms": 34.75968600000001,
+      "requests_per_second": 28.724317237879998,
+      "questions": 16,
+      "state_bytes": 81886
+    },
+    {
+      "scenario": "choice_k2",
+      "iters": 200,
+      "p50_ms": 1.43674,
+      "p95_ms": 1.7170530000000002,
+      "p99_ms": 2.02783,
+      "mean_ms": 1.4716603050000001,
+      "requests_per_second": 679.1719288624727,
+      "questions": 1,
+      "state_bytes": 3461
+    },
+    {
+      "scenario": "choice_k5",
+      "iters": 200,
+      "p50_ms": 1.676305,
+      "p95_ms": 1.986121,
+      "p99_ms": 2.2671580000000002,
+      "mean_ms": 1.7062548500000003,
+      "requests_per_second": 585.7883253417747,
+      "questions": 1,
+      "state_bytes": 3461
+    },
+    {
+      "scenario": "choice_k10",
+      "iters": 200,
+      "p50_ms": 2.028016,
+      "p95_ms": 2.1965529999999998,
+      "p99_ms": 2.486287,
+      "mean_ms": 2.051346535,
+      "requests_per_second": 487.23253193537613,
+      "questions": 1,
+      "state_bytes": 3461
+    },
+    {
+      "scenario": "choice_k32",
+      "iters": 200,
+      "p50_ms": 3.224092,
+      "p95_ms": 3.487378,
+      "p99_ms": 3.623266,
+      "mean_ms": 3.2596478949999983,
+      "requests_per_second": 306.52654057216176,
+      "questions": 1,
+      "state_bytes": 3461
+    },
+    {
+      "scenario": "choice_k64",
+      "iters": 200,
+      "p50_ms": 5.019146,
+      "p95_ms": 5.764265999999999,
+      "p99_ms": 7.010424,
+      "mean_ms": 5.087306460000001,
+      "requests_per_second": 196.3381287779254,
+      "questions": 1,
+      "state_bytes": 3461
+    },
+    {
+      "scenario": "choice_k128",
+      "iters": 200,
+      "p50_ms": 8.639371,
+      "p95_ms": 9.324375,
+      "p99_ms": 10.41895,
+      "mean_ms": 8.715320254999996,
+      "requests_per_second": 113.96308894869351,
+      "questions": 1,
+      "state_bytes": 3461
+    },
+    {
+      "scenario": "choice_k255",
+      "iters": 200,
+      "p50_ms": 15.541098,
+      "p95_ms": 16.672409,
+      "p99_ms": 17.613282,
+      "mean_ms": 15.596392834999987,
+      "requests_per_second": 63.907542024319085,
+      "questions": 1,
+      "state_bytes": 3461
+    },
+    {
+      "scenario": "questions_1",
+      "iters": 200,
+      "p50_ms": 2.9947559999999998,
+      "p95_ms": 3.13788,
+      "p99_ms": 3.237336,
+      "mean_ms": 3.004918885000001,
+      "requests_per_second": 332.66222997600954,
+      "questions": 1,
+      "state_bytes": 10304
+    },
+    {
+      "scenario": "questions_8",
+      "iters": 200,
+      "p50_ms": 3.6847540000000003,
+      "p95_ms": 4.710726,
+      "p99_ms": 5.078047,
+      "mean_ms": 3.8080670700000008,
+      "requests_per_second": 262.08310227977836,
+      "questions": 8,
+      "state_bytes": 10304
+    },
+    {
+      "scenario": "questions_32",
+      "iters": 200,
+      "p50_ms": 5.851096,
+      "p95_ms": 7.175852,
+      "p99_ms": 8.208098,
+      "mean_ms": 6.005719040000002,
+      "requests_per_second": 165.58545299340702,
+      "questions": 32,
+      "state_bytes": 10304
+    },
+    {
+      "scenario": "questions_128",
+      "iters": 200,
+      "p50_ms": 13.274782,
+      "p95_ms": 15.697486999999999,
+      "p99_ms": 16.335602,
+      "mean_ms": 13.463309405000004,
+      "requests_per_second": 73.55276917667734,
+      "questions": 128,
+      "state_bytes": 10304
+    },
+    {
+      "scenario": "questions_512",
+      "iters": 40,
+      "p50_ms": 42.507092,
+      "p95_ms": 46.930122,
+      "p99_ms": 48.338128,
+      "mean_ms": 43.011556424999995,
+      "requests_per_second": 22.995295293081337,
+      "questions": 512,
+      "state_bytes": 10304
+    }
+  ]
+}

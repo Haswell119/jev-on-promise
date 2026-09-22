@@ -214,8 +214,15 @@ fn jaccard(a: &FxHashSet<u64>, b: &FxHashSet<u64>) -> f64 {
     inter as f64 / (a.len() + b.len() - inter) as f64
 }
 
-pub fn run(train: Vec<PathBuf>, eval: Vec<PathBuf>, out: PathBuf, exclusions_out: Option<PathBuf>, internal: String) -> i32 {
-    let internal_markers: Vec<String> = internal.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
+pub fn run(
+    train: Vec<PathBuf>,
+    eval: Vec<PathBuf>,
+    out: PathBuf,
+    exclusions_out: Option<PathBuf>,
+    internal: String,
+) -> i32 {
+    let internal_markers: Vec<String> =
+        internal.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
     let is_internal = |file: &str| internal_markers.iter().any(|m| file.contains(m.as_str()));
     let hasher = Hasher128::new();
     let train_units = make_units(&train, &hasher, 20);
@@ -289,7 +296,13 @@ pub fn run(train: Vec<PathBuf>, eval: Vec<PathBuf>, out: PathBuf, exclusions_out
     let state_exact = exact_hits.iter().filter(|h| h["kind"] == "state" && external(h)).count();
     let state_norm = norm_hits.iter().filter(|h| h["kind"] == "state" && external(h)).count();
     let state_near = near_hits.iter().filter(|h| h["kind"] == "state" && external(h)).count();
-    let mut exclude_ids: Vec<String> = exact_hits.iter().chain(norm_hits.iter()).chain(near_hits.iter()).filter(|h| h["kind"] == "state" && external(h)).filter_map(|h| h["train_id"].as_str().map(|s| s.to_string())).collect();
+    let mut exclude_ids: Vec<String> = exact_hits
+        .iter()
+        .chain(norm_hits.iter())
+        .chain(near_hits.iter())
+        .filter(|h| h["kind"] == "state" && external(h))
+        .filter_map(|h| h["train_id"].as_str().map(|s| s.to_string()))
+        .collect();
     exclude_ids.sort();
     exclude_ids.dedup();
     if let Some(p) = &exclusions_out {
@@ -299,7 +312,8 @@ pub fn run(train: Vec<PathBuf>, eval: Vec<PathBuf>, out: PathBuf, exclusions_out
         std::fs::write(p, serde_json::to_string_pretty(&json!({"generated_by": "sextant leakage", "rule": "training records whose state text exactly/normalized/near-duplicate matches an external evaluation state", "exclude_ids": exclude_ids})).unwrap() + "\n").expect("write exclusions");
         println!("wrote {} ({} ids)", p.display(), exclude_ids.len());
     }
-    let instr_matches = exact_hits.iter().chain(norm_hits.iter()).filter(|h| h["kind"] == "instructions" && external(h)).count();
+    let instr_matches =
+        exact_hits.iter().chain(norm_hits.iter()).filter(|h| h["kind"] == "instructions" && external(h)).count();
     // Verdict is driven by STATE text: instruction templates ("Is this message spam?")
     // can legitimately coincide and are reported separately for manual review.
     let verdict = state_exact == 0 && state_norm == 0 && (state_near as f64 / n_eval_state) < 0.005;

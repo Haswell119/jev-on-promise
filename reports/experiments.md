@@ -30,3 +30,31 @@ adequacy with short answers.
 | 15 | Real permissively-licensed datasets (12 sources, ~18.5k train records) generalize beyond synthetic templates | train on synthetic + real (`scripts/prepare_data.py`) | external dev 0.529 / 1.628 / 0.186 (synthetic-only model); synthetic dev 0.893 | external 0.605 / 0.990 / 0.028; synthetic 0.790 | = | ECE 0.186 → 0.028 on external | keep data; large sources crowd out small recipes |
 | 16 | Balancing the loss per (primitive, source) restores small-recipe behaviour | `--balance sqrt` vs `full`; family shrinkage 0.01 → 0.001 | external 0.605, synthetic 0.790 | sqrt/0.01: 0.605 / 0.810; full/0.01: 0.596 / 0.844; **full/0.001: 0.612 / 0.887** | = | external ECE 0.020 | keep full/0.001 as defaults (1200 epochs: no change → converged) |
 | 17 | Fallback options ("other", "none of the above", "unclear") should win when the *other* options lack evidence | `is_fallback` detection; `fallback_opt`, `fallback_x_lowmax` features; fallback recipe in synthetic data | fallback_option dev n/a | fallback_option 0.857 (7 dev items); external unchanged 0.612; synthetic 0.889 | = | – | keep; **engine frozen after this row** |
+
+## Final-evaluation protocol (JevBench / jev-bench)
+
+Both public benchmarks are evaluated with their own harnesses at pinned
+commits and are never used for training, calibration, prompt or criteria
+development. Two evaluation runs were performed:
+
+* **Run 1** (commit `c64b39b`, frozen artifact `trained-1790087629`): the
+  first full run. Only *aggregate* diagnostics were examined afterwards —
+  per-tier / per-family / per-primitive accuracies from the harness report
+  and, with our own converter, accuracy grouped by primitive, option-count
+  bucket, state type/length and by resolver path, plus the predicted-vs-gold
+  label confusion for Noul. No benchmark item text was inspected and no
+  item-specific change was made.
+* Two general defects were identified from those aggregates and reproduced
+  on hand-written probes (`reports/probes/`): (a) the Noul head had
+  learned strongly negative label priors from label-skewed training groups
+  (it answered "no" for 70 of 74 public Noul items); (b) Choice temperatures
+  fitted on lexically reliable datasets made thin-evidence answers
+  overconfident (intent NLL 3.25). Fixes: per-group Noul class balancing in
+  training and an evidence-sensitive temperature fitted on the calibration
+  split (experiment rows 18–19). Both were developed and validated on
+  internal data only.
+* **Run 2** (final, reported in `reports/latest.md`): the engine after those
+  fixes. No further changes were made after run 2.
+| 18 | Label-skewed training groups (2/3 "no" in the negation recipe, mostly-ineligible policy cases, yes-heavy PubMedQA) taught the Noul head negative family priors | per-group yes/no class balancing in `sextant train` | synthetic noul 0.885 (factual 0.880); probe "Is the courier UPS?" on a record that says so: 0.662 | synthetic noul 0.900 (factual 0.927), external noul ECE 0.016 → 0.006; probe 0.755 | = | better | keep |
+| 19 | Thin-evidence Choice answers are overconfident; flatten the distribution when no option is well supported | evidence-sensitive temperature `T·(1+γ(1−best_cov))`, γ fitted on the calibration split | – | γ = 0.0 for Choice (calibration data does not support flattening), 0.3 for Score (NLL 1.4775 → 1.4737) | = | neutral | keep the mechanism (data-driven, currently inactive for Choice) |
+| 20 | Guidance sentences inside instructions ("Answer strictly from the facts stated") and stopwords in generic true/false descriptions dilute the proposition | interrogative sentences carry the proposition, other sentences weighted 0.25; stopwords dropped from Noul hypothesis descriptions | probe with guidance + generic criteria: 0.419 | 0.465 (same record without boilerplate: 0.582); group stability 0.882 → 0.951 same-answer rate | = | – | keep; **engine frozen for benchmark run 2 after this row** |

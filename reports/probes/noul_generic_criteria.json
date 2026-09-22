@@ -1,0 +1,5 @@
+{"model":"sextant-1","state":"Ticket 77. Status: delivered on 4 May. Courier: UPS.","questions":{
+ "a":{"type":"noul","instructions":"Has the parcel been delivered? Answer strictly from the facts stated in the text.","criteria":{"true":"The text states that this is so","false":"The text states that this is not so"}},
+ "b":{"type":"noul","instructions":"Has the parcel been delivered?"},
+ "c":{"type":"noul","instructions":"Was the parcel sent by DHL?","criteria":{"true":"The text states that this is so","false":"The text states that this is not so"}},
+ "d":{"type":"noul","instructions":"Is the courier UPS?"}}}

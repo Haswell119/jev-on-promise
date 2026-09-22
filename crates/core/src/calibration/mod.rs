@@ -48,6 +48,10 @@ pub struct Calibration {
     /// Temperature for symbolic (resolver) logits per primitive.
     #[serde(default)]
     pub symbolic_temperature: IndexMap<String, f64>,
+    /// Evidence-sensitive temperature per primitive: T_eff = T · (1 + γ · (1 − best_evidence)),
+    /// where best_evidence = max_k cov_w(k). Flattens distributions when no option is well supported.
+    #[serde(default)]
+    pub evidence_gamma: IndexMap<String, f64>,
     /// Laplace-smoothed error rate of symbolic resolvers per primitive
     /// ("choice" | "score" | "noul"): the resolver distribution is mixed
     /// with the uniform distribution by this amount, so a resolver that was
@@ -90,6 +94,7 @@ impl Default for Calibration {
             bucket_temperature: IndexMap::new(),
             symbolic_temperature,
             symbolic_epsilon,
+            evidence_gamma: IndexMap::new(),
             noul_platt: PlattParams::default(),
             noul_family_platt: IndexMap::new(),
             noul_symbolic_platt: None,
@@ -100,6 +105,12 @@ impl Default for Calibration {
 }
 
 impl Calibration {
+    /// Evidence-sensitive multiplier: 1 + γ · (1 − best_evidence).
+    pub fn evidence_multiplier(&self, kind: QuestionKind, best_evidence: f64) -> f64 {
+        let g = self.evidence_gamma.get(kind.as_str()).copied().unwrap_or(0.0).max(0.0);
+        1.0 + g * (1.0 - best_evidence.clamp(0.0, 1.0))
+    }
+
     /// Effective temperature for a semantic answer.
     pub fn temperature_for(&self, kind: QuestionKind, family: Family, k: usize) -> f64 {
         let key = kind.as_str();

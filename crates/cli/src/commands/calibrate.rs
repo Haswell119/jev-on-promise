@@ -305,6 +305,33 @@ pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, compare_isotonic: bool) -> i3
             }
         }
         cal.bucket_temperature.insert(kind.as_str().into(), bucket_map);
+        // evidence-sensitive temperature: γ by grid search on NLL using the fitted temperatures.
+        {
+            let mut best = (f64::INFINITY, 0.0f64);
+            for gi in 0..=20 {
+                let gamma = gi as f64 * 0.1;
+                let mut s = 0.0;
+                for m in &sem {
+                    let t =
+                        cal.temperature_for(kind, m.family, m.k) * (1.0 + gamma * (1.0 - m.evidence.clamp(0.0, 1.0)));
+                    let mut p = softmax_temp(&m.z, t as f32);
+                    if ordinal {
+                        p = ordinal_smooth(&p, lambda);
+                    }
+                    for (pk, tk) in p.iter().zip(m.target.iter()) {
+                        if *tk > 0.0 {
+                            s -= tk * pk.max(1e-12).ln();
+                        }
+                    }
+                }
+                let v = s / sem.len().max(1) as f64;
+                if v < best.0 - 1e-9 {
+                    best = (v, gamma);
+                }
+            }
+            cal.evidence_gamma.insert(kind.as_str().into(), best.1);
+            report.push(format!("  evidence gamma={:.2} NLL={:.4}", best.1, best.0));
+        }
         // symbolic: keep T = 1 (resolver logits are already on a fixed scale) and
         // estimate the Laplace-smoothed error rate for uniform mixing.
         let sym_refs: Vec<&Multi> = sym.iter().collect();
@@ -328,7 +355,7 @@ pub fn run(inputs: Vec<PathBuf>, out_dir: PathBuf, compare_isotonic: bool) -> i3
         let mut rows: Vec<(Vec<f64>, bool)> = Vec::new();
         for m in sem.iter().chain(sym.iter()) {
             let t = if m.z.len() == m.k && sem.iter().any(|x| std::ptr::eq(x, m)) {
-                cal.temperature_for(kind, m.family, m.k)
+                cal.temperature_for(kind, m.family, m.k) * cal.evidence_multiplier(kind, m.evidence)
             } else {
                 cal.symbolic_temperature_for(kind)
             };

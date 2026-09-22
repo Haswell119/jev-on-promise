@@ -1,0 +1,20 @@
+{
+  "captured_utc": "2026-09-22T14:37:04+00:00",
+  "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+  "concurrency": "4",
+  "cpu_count": 4,
+  "cpu_model": "Intel(R) Xeon(R) Processor @ 2.80GHz",
+  "dataset_revision": "002ad22de8db2df5e0eb898b3da8072dbd4af4de",
+  "harness": "jevify",
+  "harness_commit": "2891025b8a4520d0eb639f2cd1b3fddaf4b922b3",
+  "platform": "Linux-6.18.44-fc-v37-x86_64-with-glibc2.39",
+  "python": "3.11.15",
+  "ram_gib": 15.7,
+  "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
+  "server_endpoint": "http://127.0.0.1:48755",
+  "sextant_binary": "/home/user/jev-on-promise/target/release/sextant",
+  "sextant_branch": "claude/upbeat-davinci-d6bfs1",
+  "sextant_commit": "c64b39be2f20f189c21b71301cb7b0f0d88e2732",
+  "sextant_version": "sextant 0.1.0",
+  "sextant_worktree_dirty": false
+}

@@ -298,7 +298,29 @@ impl<'a> QuestionView<'a> {
                 });
             }
         };
-        add_terms(&raw_q, &fl, 1.0, &mut terms, &mut vocab);
+        // Multi-sentence instructions: the interrogative sentence(s) carry the proposition;
+        // guidance sentences ("Answer strictly from the facts stated") are weighted low.
+        let ranges = crate::text::segment::segment_ranges(&text_norm);
+        if ranges.len() >= 2 {
+            let sentence_tokens: Vec<(Vec<crate::text::tokenize::RawToken>, Vec<u16>)> = ranges
+                .iter()
+                .map(|(s, e)| {
+                    let raw = tokenize(&text_norm[*s..*e]);
+                    let fl = negation::annotate(&raw);
+                    (raw, fl)
+                })
+                .collect();
+            let any_interrogative = sentence_tokens
+                .iter()
+                .any(|(_, fl)| fl.first().map(|f| f & negation::INTERROGATIVE != 0).unwrap_or(false));
+            for (i, (raw, fl)) in sentence_tokens.iter().enumerate() {
+                let interrogative = fl.first().map(|f| f & negation::INTERROGATIVE != 0).unwrap_or(false);
+                let primary = if any_interrogative { interrogative } else { i == 0 };
+                add_terms(raw, fl, if primary { 1.0 } else { 0.25 }, &mut terms, &mut vocab);
+            }
+        } else {
+            add_terms(&raw_q, &fl, 1.0, &mut terms, &mut vocab);
+        }
         for (i, rt) in raw_q.iter().enumerate() {
             if fl[i] & NEGATED != 0 && rt.kind.is_content() {
                 let tid = vocab.intern(&rt.text, res);

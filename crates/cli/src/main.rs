@@ -168,13 +168,35 @@ fn main() {
             show_failures,
             filter,
         ),
-        Cmd::Train { inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features, balance, exclude_ids } => {
-            commands::train::run(inputs, out_dir, seed, l2, family_l2, epochs, no_families, drop_features, balance, exclude_ids)
-        }
+        Cmd::Train {
+            inputs,
+            out_dir,
+            seed,
+            l2,
+            family_l2,
+            epochs,
+            no_families,
+            drop_features,
+            balance,
+            exclude_ids,
+        } => commands::train::run(
+            inputs,
+            out_dir,
+            seed,
+            l2,
+            family_l2,
+            epochs,
+            no_families,
+            drop_features,
+            balance,
+            exclude_ids,
+        ),
         Cmd::Calibrate { inputs, out_dir, compare_isotonic } => {
             commands::calibrate::run(inputs, out_dir, compare_isotonic)
         }
-        Cmd::Leakage { train, eval, out, exclusions_out, internal } => commands::leakage::run(train, eval, out, exclusions_out, internal),
+        Cmd::Leakage { train, eval, out, exclusions_out, internal } => {
+            commands::leakage::run(train, eval, out, exclusions_out, internal)
+        }
         Cmd::ExportBootstrap { out_dir } => commands::export::run(out_dir),
     };
     std::process::exit(code);

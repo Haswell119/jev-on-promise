@@ -1,0 +1,3 @@
+[2m2026-09-22T14:36:11.049821Z[0m [32m INFO[0m loaded model artifact [3mmodel[0m[2m=[0membedded
+[2m2026-09-22T14:36:11.050366Z[0m [32m INFO[0m sextant listening [3maddr[0m[2m=[0m127.0.0.1:48755
+[2m2026-09-22T14:37:00.065696Z[0m [32m INFO[0m shutdown signal received

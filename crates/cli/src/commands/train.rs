@@ -97,7 +97,14 @@ fn targets(ex: &Example) -> Vec<f32> {
 /// Deterministic parallelism: examples are split into fixed chunks, each chunk
 /// produces its own gradient/loss, and chunks are reduced sequentially in a
 /// fixed order (floating-point results do not depend on thread scheduling).
-fn train_multinomial(examples: &[&Example], epochs: usize, l2: f32, family_l2: f32, use_families: bool, lr: f32) -> (HeadParams, f32) {
+fn train_multinomial(
+    examples: &[&Example],
+    epochs: usize,
+    l2: f32,
+    family_l2: f32,
+    use_families: bool,
+    lr: f32,
+) -> (HeadParams, f32) {
     use rayon::prelude::*;
     let n_fam = Family::all().len();
     let mut p = HeadParams::new(n_fam);
@@ -118,7 +125,8 @@ fn train_multinomial(examples: &[&Example], epochs: usize, l2: f32, family_l2: f
     let n = examples.len().max(1) as f32;
     // Pre-resolve the target distributions once.
     let targets_all: Vec<Vec<f32>> = examples.iter().map(|e| targets(e)).collect();
-    let chunks: Vec<(usize, usize)> = (0..examples.len()).step_by(256).map(|s| (s, (s + 256).min(examples.len()))).collect();
+    let chunks: Vec<(usize, usize)> =
+        (0..examples.len()).step_by(256).map(|s| (s, (s + 256).min(examples.len()))).collect();
     for _epoch in 0..epochs {
         let active = &p.active;
         let base = &p.base;
@@ -360,6 +368,25 @@ fn balance(examples: &mut [Example], scheme: &str) {
             "full" => 1.0 / n,
             _ => 1.0 / n.sqrt(),
         };
+    }
+    // Noul: within each (source group) make yes and no carry equal total weight,
+    // so that no family learns a label prior from a skewed recipe or dataset.
+    let mut yes_no: BTreeMap<String, (f32, f32)> = BTreeMap::new();
+    for e in examples.iter().filter(|e| e.kind == QuestionKind::Noul) {
+        let ent = yes_no.entry(e.group_key.clone()).or_insert((0.0, 0.0));
+        if e.gold == 1 {
+            ent.0 += e.weight;
+        } else {
+            ent.1 += e.weight;
+        }
+    }
+    for e in examples.iter_mut().filter(|e| e.kind == QuestionKind::Noul) {
+        let (y, n) = yes_no[&e.group_key];
+        let total = y + n;
+        if y > 0.0 && n > 0.0 {
+            let share = if e.gold == 1 { y / total } else { n / total };
+            e.weight *= 0.5 / share;
+        }
     }
     for kind in ["choice", "score", "noul"] {
         let (mut sum, mut cnt) = (0.0f32, 0usize);
