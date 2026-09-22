@@ -59,8 +59,13 @@ is: easy 1.000, standard 0.990, judge 0.945, hard 0.741, schema validity
 reports easy 48/48, standard 71/72, hard 81/111. On jev-bench: macro
 accuracy 0.733, macro ECE 0.113, Brier 0.349.
 
-`reports/latest.md` places Sextant's measured numbers next to these and
-states the gap per tier. Sextant is a non-neural engine: it is expected to
+Measured (frozen engine, run 2, `reports/latest.md`): JevBench public easy
+39/48 = 81.2 %, standard 32/72 = 44.4 %, hard 44/111 = 39.6 %, schema
+validity 100 % strict, easy ECE 0.059; jev-bench macro accuracy 0.415, macro
+ECE 0.192, macro Brier 0.646 (0 errors on 22,773 records); typical-request
+latency p50 5.9 ms / p95 6.7 ms. The per-tier gaps are −18.8 / −54.2 /
+−33.4 points on the public subsets and −0.318 macro accuracy on jev-bench
+(`docs/LIMITATIONS.md`). Sextant is a non-neural engine: it is expected to
 trail a trained neural decision model on judgement-heavy tiers, while
 matching or exceeding it on latency, determinism and cost, and on
 mechanical questions (extraction, numbers, dates). Claims of "Jev-class"

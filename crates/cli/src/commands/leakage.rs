@@ -342,9 +342,10 @@ pub fn run(
         "max_jaccard_observed": max_jaccard,
         "verdict": if verdict { "PASS" } else { "FAIL" },
         "verdict_rule": "PASS iff zero exact/normalized STATE matches against external eval sets (after exclusions) and the external state near-duplicate rate < 0.5%; instruction/criteria matches are listed for manual review; internal dev sets never count",
-        "exact_match_pairs": exact_hits,
-        "normalized_match_pairs": norm_hits,
-        "near_duplicate_pairs": near_hits,
+        "pair_lists_capped_at": 500,
+        "exact_match_pairs": exact_hits.iter().take(500).cloned().collect::<Vec<_>>(),
+        "normalized_match_pairs": norm_hits.iter().take(500).cloned().collect::<Vec<_>>(),
+        "near_duplicate_pairs": near_hits.iter().take(500).cloned().collect::<Vec<_>>(),
     });
     if let Some(parent) = out.parent() {
         let _ = std::fs::create_dir_all(parent);

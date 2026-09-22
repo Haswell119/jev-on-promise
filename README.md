@@ -114,8 +114,18 @@ and reproduced in `reports/latest.md` (which also records the commit,
 hardware and versions). Nothing here is estimated.
 
 <!-- BENCHMARK_TABLE_START -->
-_See `reports/latest.md` for the frozen evaluation (internal dev sets,
-external dev sets, public JevBench and jev-bench runs, latency)._
+| Benchmark (measured) | Sextant | Published Jev 1.13 reference |
+|---|---|---|
+| JevBench public **easy** accuracy | 39/48 = 81.2 % | 100 % full tier; 48/48 public |
+| JevBench public **standard** accuracy | 32/72 = 44.4 % | 99.0 % full tier; 71/72 public |
+| JevBench public **hard** accuracy | 44/111 = 39.6 % | 74.1 % full tier; 81/111 public |
+| JevBench schema validity | 100 % (strict) | 100 % |
+| jev-bench macro accuracy / ECE / Brier (22 configs, 22773 records) | 0.415 / 0.192 / 0.646 | 0.733 / 0.113 / 0.349 |
+| Internal synthetic dev accuracy / ECE | 89.3 % / 0.151 | – |
+| External public dev sets accuracy / ECE | 59.6 % / 0.029 | – |
+| Latency, typical 8-question request (p50 / p95) | 5.9 ms / 6.7 ms | ≈100 ms round trip (published) |
+
+Full tables, per-family breakdowns, calibration and robustness metrics: `reports/latest.md`.
 <!-- BENCHMARK_TABLE_END -->
 
 The public Jev 1.13 reference profile on JevBench (easy ≈ 100 %, standard ≈
