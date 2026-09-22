@@ -1,5 +1,5 @@
 {
-  "version": "trained-1790087490",
+  "version": "trained-1790087629",
   "description": "Fitted by `sextant train` on 18066 records / 17646 semantic examples (choice=11650, score=1359, noul=4637); epochs=600 l2=0.001 family_l2=0.001 seed=42 balance=full excluded_records=1 dropped_features=\"\". Choice/Score: conditional logit; Noul: logistic over (f_yes-f_no, f_yes).",
   "features": [
     "bm25_best",

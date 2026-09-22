@@ -221,8 +221,13 @@ pub fn run(train: Vec<PathBuf>, eval: Vec<PathBuf>, out: PathBuf, exclusions_out
     let train_units = make_units(&train, &hasher, 20);
     let eval_units = make_units(&eval, &hasher, 20);
     eprintln!("train units: {} eval units: {}", train_units.len(), eval_units.len());
-    let exact: FxHashMap<u64, usize> = train_units.iter().enumerate().map(|(i, u)| (u.exact, i)).collect();
-    let normalized: FxHashMap<u64, usize> = train_units.iter().enumerate().map(|(i, u)| (u.normalized, i)).collect();
+    // Every training unit per hash (duplicates inside the training data must all be excluded).
+    let mut exact: FxHashMap<u64, Vec<usize>> = FxHashMap::default();
+    let mut normalized: FxHashMap<u64, Vec<usize>> = FxHashMap::default();
+    for (i, u) in train_units.iter().enumerate() {
+        exact.entry(u.exact).or_default().push(i);
+        normalized.entry(u.normalized).or_default().push(i);
+    }
     // LSH buckets over train
     let mut buckets: FxHashMap<(usize, u64), Vec<usize>> = FxHashMap::default();
     for (i, u) in train_units.iter().enumerate() {
@@ -237,12 +242,16 @@ pub fn run(train: Vec<PathBuf>, eval: Vec<PathBuf>, out: PathBuf, exclusions_out
     let mut near_hits = Vec::new();
     let mut max_jaccard = 0.0f64;
     for (ei, e) in eval_units.iter().enumerate() {
-        if let Some(&ti) = exact.get(&e.exact) {
-            exact_hits.push(json!({"eval_id": e.id, "eval_file": e.file, "kind": e.kind, "train_id": train_units[ti].id, "train_file": train_units[ti].file}));
+        if let Some(tis) = exact.get(&e.exact) {
+            for &ti in tis {
+                exact_hits.push(json!({"eval_id": e.id, "eval_file": e.file, "kind": e.kind, "train_id": train_units[ti].id, "train_file": train_units[ti].file}));
+            }
             continue;
         }
-        if let Some(&ti) = normalized.get(&e.normalized) {
-            norm_hits.push(json!({"eval_id": e.id, "eval_file": e.file, "kind": e.kind, "train_id": train_units[ti].id, "train_file": train_units[ti].file}));
+        if let Some(tis) = normalized.get(&e.normalized) {
+            for &ti in tis {
+                norm_hits.push(json!({"eval_id": e.id, "eval_file": e.file, "kind": e.kind, "train_id": train_units[ti].id, "train_file": train_units[ti].file}));
+            }
             continue;
         }
         let mut cands: FxHashSet<usize> = FxHashSet::default();
@@ -254,8 +263,10 @@ pub fn run(train: Vec<PathBuf>, eval: Vec<PathBuf>, out: PathBuf, exclusions_out
             }
         }
         let mut best = (0.0f64, None);
+        let mut cands_scored: Vec<(usize, f64)> = Vec::new();
         for ti in cands {
             let j = jaccard(&e.shingles, &train_units[ti].shingles);
+            cands_scored.push((ti, j));
             if j > best.0 {
                 best = (j, Some(ti));
             }
@@ -264,8 +275,11 @@ pub fn run(train: Vec<PathBuf>, eval: Vec<PathBuf>, out: PathBuf, exclusions_out
             max_jaccard = best.0;
         }
         if best.0 >= 0.5 {
-            let ti = best.1.unwrap();
-            near_hits.push(json!({"eval_id": e.id, "eval_file": e.file, "kind": e.kind, "train_id": train_units[ti].id, "train_file": train_units[ti].file, "jaccard_5shingle": best.0, "eval_preview": e.text_preview, "train_preview": train_units[ti].text_preview}));
+            let mut above: Vec<(usize, f64)> = cands_scored.iter().copied().filter(|(_, j)| *j >= 0.5).collect();
+            above.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap().then(a.0.cmp(&b.0)));
+            for (ti, j) in above {
+                near_hits.push(json!({"eval_id": e.id, "eval_file": e.file, "kind": e.kind, "train_id": train_units[ti].id, "train_file": train_units[ti].file, "jaccard_5shingle": j, "eval_preview": e.text_preview, "train_preview": train_units[ti].text_preview}));
+            }
         }
         let _ = ei;
     }
