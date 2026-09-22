@@ -34,6 +34,12 @@ pub struct ScorerConfig {
     /// Evidence selection strategy used at training time.
     #[serde(default = "default_strategy")]
     pub evidence_strategy: String,
+    /// Retrieval used state-local document frequencies at training time.
+    #[serde(default)]
+    pub evidence_local_idf: bool,
+    /// Retrieval expanded the question query at training time.
+    #[serde(default)]
+    pub evidence_q_expand: bool,
     /// Number of symbolic features consumed by the head (0 = none).
     #[serde(default)]
     pub n_features: usize,
@@ -68,6 +74,8 @@ impl Default for ScorerConfig {
             evidence_words: 140,
             evidence_adaptive_cap: 0,
             evidence_strategy: default_strategy(),
+            evidence_local_idf: false,
+            evidence_q_expand: false,
             n_features: 0,
             use_symbolic_logit: false,
             encoder: String::new(),

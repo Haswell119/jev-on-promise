@@ -27,3 +27,12 @@ before starting work. One experiment at a time challenges the champion.
 | H13 | A learned bi-encoder retriever (question → chunk) trained on the 72k gold-evidence annotations lifts long-context recall far above BM25 | very high | R1: BM25 full recall 0.04–0.09 above 1k tokens; gold evidence spans are available for free in the training pool | medium | ~1.5 h CPU | medium | pending |
 | H14 | Encoding state chunks ONCE per request and reusing them across questions makes hierarchical retrieval affordable (Direction B+D) | high (latency) | a request with many questions currently re-reads the state per question | high | medium | medium | pending |
 | H15 | Adaptive evidence budget (grow with state length, cap 400 words) is worth its latency | medium | recall 0.283 → 0.342 at equal short-state cost | done | low | low | testing in E2 |
+
+## Added after the retrieval scoring experiment (R2)
+
+| id | hypothesis | gain | evidence | impl | compute | risk | status |
+|---|---|---|---|---|---|---|---|
+| H16 | BM25 retrieval is missing a state-local document-frequency factor, so long states are scored almost uniformly | medium | R2: full evidence recall 0.288 → 0.306 overall, +4 points in every bucket above 1k tokens, no bucket regressed | low | none | low | adopted (R2) |
+| H17 | Expanding the question query with the criteria synonym sets reaches needles that paraphrase the question | low-medium | R2: +0.8 points alone, additive with H16 | low | none | low | adopted (R2) |
+| H18 | Boosting segments that reproduce a candidate phrase near-verbatim (char 4-gram containment ≥ 0.7) | none | R2: 0.000 change in every length bucket; code removed | low | none | low | rejected (R2) |
+| H19 | Oracle ranking is the whole game: the gold span is a median 38 words against a 139-word budget, so a perfect ranker would reach ~1.0 recall where BM25 reaches 0.31 | very high | R2 span measurement; bounds the ceiling for H13 | — | — | — | motivates H13 |

@@ -112,6 +112,37 @@ budget that can grow with the state length (`evidence_adaptive_cap`).
 sentence actually survives this step. It is the dominant long-context
 failure mode and is tracked as a first-class metric.
 
+Two scoring switches are recorded per model in `scorer.json`, because
+retrieval must be identical in training and inference:
+
+- `evidence_local_idf` weights each query term by its document frequency
+  *inside this state*, `ln(1 + (N - df + 0.5) / (df + 0.5))` over segments.
+  The query-side weight already carries a corpus-level idf, but within one
+  long document the discriminating signal is how many of its own segments
+  contain the term. Without it a state about refunds scores almost
+  uniformly on the term "refund" and ranking degenerates to document order.
+- `evidence_q_expand` adds the criteria synonym sets to the question-only
+  query at 0.35 weight, so a fragment that paraphrases the question rather
+  than an option is still reachable.
+
+Measured on the internal long-context suite (1548 questions, 140-word
+budget, `reports/retrieval/R2_local_idf.json`), full recall of the gold
+span rises from 0.288 to 0.306 and the fraction of questions where the span
+is lost entirely falls from 0.525 to 0.504. No length bucket regressed and
+the gain concentrates where retrieval is worst: +4.2 points at 1k tokens,
++3.9 at 4k, +4.0 at 16k. Both switches default to off so that models
+trained before this change keep their parity.
+
+A third idea measured in the same pass, boosting segments that reproduce a
+candidate phrase near-verbatim (char 4-gram containment at least 0.7),
+changed recall by 0.000 in every bucket; the code was removed rather than
+left as a dead switch.
+
+The ceiling here is high and unclaimed. The gold span is a median 38 words
+against a 139-word block, so a perfect ranker would retrieve nearly all of
+them where BM25 retrieves 0.31. That gap, not the encoder, is the main
+long-context target (backlog H13, a learned bi-encoder retriever).
+
 ## Reproducibility
 
 Every experiment is recorded in `experiments/index.jsonl` with its
@@ -120,3 +151,21 @@ parameter count, metrics and decision; `experiments/CURRENT_CHAMPION.json`
 names the champion. `scripts/research_loop.sh status|next|run|resume` drives
 the queue and resumes interrupted training from the checkpoint (model,
 optimizer, scheduler, RNG and data cursor).
+
+## Promotion checklist (documentation)
+
+The repository still describes Sextant as a non-neural engine, which is true
+of the current champion `C0`. The `/v1/models` card is already computed from
+the loaded artifact (`Model::has_neural`), so it needs no edit. The following
+prose claims are stale the moment a neural artifact becomes the champion and
+must be updated in the same commit as the promotion:
+
+- `README.md` — headline "A non-neural, deterministic, calibrated probabilistic decision engine."
+- `crates/core/src/lib.rs` — crate doc comment.
+- `crates/cli/src/main.rs` — the clap `about` string.
+- `docs/LIMITATIONS.md` — opening paragraph and the capability limits that follow from having no learned semantics.
+- `docs/BENCHMARKS.md` — the paragraph explaining the expected ceiling of a non-neural engine.
+- `scripts/prepare_data.py` — the dataset card description.
+
+A promotion is not complete while any of these still claims the engine has no
+neural network. `scripts/experiment.py promote` prints this list as a reminder.

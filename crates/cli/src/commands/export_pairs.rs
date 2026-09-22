@@ -41,8 +41,20 @@ fn soft_probs(rec: &Record, qid: &str, n: usize) -> Option<Vec<f64>> {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out: PathBuf, budget_words: usize, limit: usize, no_features: bool, strategy: String, adaptive_cap: usize) -> i32 {
+/// Retrieval / export knobs (one struct so experiments can add switches
+/// without reshuffling a long argument list).
+pub struct Opts {
+    pub budget_words: usize,
+    pub limit: usize,
+    pub no_features: bool,
+    pub strategy: String,
+    pub adaptive_cap: usize,
+    pub local_idf: bool,
+    pub q_expand: bool,
+}
+
+pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out: PathBuf, opts: Opts) -> i32 {
+    let Opts { budget_words, limit, no_features, strategy, adaptive_cap, local_idf, q_expand } = opts;
     let engine = match build_engine(model_dir, threads) {
         Ok(e) => e,
         Err(e) => {
@@ -50,7 +62,10 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
             return 2;
         }
     };
-    let params = sextant_core::export::EvidenceParams::from_name(&strategy, budget_words).with_adaptive_cap(adaptive_cap);
+    let params = sextant_core::export::EvidenceParams::from_name(&strategy, budget_words)
+        .with_adaptive_cap(adaptive_cap)
+        .with_local_idf(local_idf)
+        .with_q_expand(q_expand);
     let files = expand_jsonl(&inputs);
     if let Some(parent) = out.parent() {
         let _ = std::fs::create_dir_all(parent);
@@ -118,6 +133,23 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
         }
     }
     let _ = w.flush();
+    // Sidecar manifest: retrieval must be identical in training and
+    // inference, so the parameters travel with the data instead of being
+    // re-typed on the command line at export time.
+    let meta = serde_json::json!({
+        "budget_words": budget_words,
+        "strategy": strategy,
+        "adaptive_cap": adaptive_cap,
+        "local_idf": local_idf,
+        "q_expand": q_expand,
+        "rows": n_rows,
+        "records": n_records,
+        "engine_version": env!("CARGO_PKG_VERSION"),
+    });
+    let meta_path = out.with_extension("meta.json");
+    if let Err(e) = std::fs::write(&meta_path, format!("{}\n", serde_json::to_string_pretty(&meta).expect("serialize"))) {
+        eprintln!("warning: could not write {}: {e}", meta_path.display());
+    }
     eprintln!(
         "exported {n_rows} rows from {n_records} records ({skipped} skipped) in {:.1}s -> {} [{}]",
         t0.elapsed().as_secs_f64(),

@@ -90,6 +90,18 @@ def cmd_promote(a):
     }
     CHAMP.write_text(json.dumps(champ, indent=2) + "\n")
     print(f"champion is now {a.id} (dev_score {champ['dev_score']})")
+    if a.neural_dir:
+        print(
+            "\nThe new champion is neural. These files still claim the engine has no\n"
+            "neural network and must be corrected in the same commit (see the\n"
+            "promotion checklist in docs/NEURAL.md):\n"
+            "  README.md\n"
+            "  crates/core/src/lib.rs\n"
+            "  crates/cli/src/main.rs\n"
+            "  docs/LIMITATIONS.md\n"
+            "  docs/BENCHMARKS.md\n"
+            "  scripts/prepare_data.py\n"
+        )
 
 
 def cmd_show(a):

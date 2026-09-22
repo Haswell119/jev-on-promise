@@ -53,7 +53,9 @@ struct Ctx<'a> {
 fn neural_logits(view: &crate::question::QuestionView<'_>, ctx: &Ctx<'_>, feats: &crate::features::FeatureMatrix) -> Option<(Vec<f32>, String)> {
     let scorer = ctx.model.neural.as_ref()?;
     let params = crate::export::EvidenceParams::from_name(&scorer.config.evidence_strategy, scorer.config.evidence_words)
-        .with_adaptive_cap(scorer.config.evidence_adaptive_cap);
+        .with_adaptive_cap(scorer.config.evidence_adaptive_cap)
+        .with_local_idf(scorer.config.evidence_local_idf)
+        .with_q_expand(scorer.config.evidence_q_expand);
     let (evidence, _, _) = crate::export::select_evidence_with(view, ctx.state, params);
     let candidates: Vec<String> = (0..view.criteria.len()).map(|i| crate::export::candidate_text_for(view, i)).collect();
     let features: Option<Vec<Vec<f32>>> = (scorer.config.n_features > 0).then(|| feats.rows.iter().map(|r| r.0.to_vec()).collect());
@@ -101,14 +103,22 @@ impl Engine {
     }
 
     pub fn models(&self) -> Vec<ModelCard> {
+        // The card must describe what is actually loaded: an artifact with a
+        // neural scorer may not advertise itself as non-neural.
+        let neural = self.model.has_neural();
+        let description = if neural {
+            "Sextant hybrid probabilistic decision engine (Choice / Score / Noul): symbolic resolvers and lexical features fused with a local neural scorer; deterministic, calibrated, no external AI services."
+        } else {
+            "Sextant symbolic probabilistic decision engine (Choice / Score / Noul); deterministic, calibrated, no neural network, no external AI services."
+        };
         vec![ModelCard {
             id: MODEL_ID.into(),
             object: "model".into(),
-            description: "Sextant non-neural probabilistic decision engine (Choice / Score / Noul); deterministic, calibrated, no external AI services.".into(),
+            description: description.into(),
             aliases: MODEL_ALIASES.iter().map(|s| s.to_string()).collect(),
             max_choice_options: self.config.limits.max_choice_options,
             max_score_levels: self.config.limits.max_score_levels,
-            neural: false,
+            neural,
         }]
     }
 

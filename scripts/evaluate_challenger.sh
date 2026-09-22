@@ -33,6 +33,11 @@ python3 scripts/neural/export_rust.py --run "$RUN" --out "$MODEL/neural" --versi
   --evidence-words "$EVIDENCE_WORDS" --evidence-adaptive-cap "$EVIDENCE_CAP" --evidence-strategy "$EVIDENCE_STRATEGY" >/dev/null
 cp model/weights.json "$MODEL/weights.json"
 
+# The evidence handed to the encoder at evaluation time must be the same
+# evidence it was trained on, so refuse to score pairs that were exported
+# with different retrieval parameters rather than report a wrong number.
+python3 scripts/neural/check_pairs_match.py "$MODEL/neural/scorer.json" "$CALIB_PAIRS" "$PAIRS_SET"
+
 echo "== 2/5 neural probe on the calibration split"
 $BIN neural-probe --neural-dir "$MODEL/neural" --input "$CALIB_PAIRS" --out "reports/challengers/$RUN_ID.calib_probe.jsonl"
 

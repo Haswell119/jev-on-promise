@@ -95,6 +95,12 @@ pub struct EvidenceParams {
     /// long documents get proportionally more evidence, short ones stay
     /// cheap. `budget = min(cap, base + (state_words - base) / 6)`.
     pub adaptive_cap: usize,
+    /// Weight retrieval terms by their document frequency *inside this
+    /// state* (see `local_idf`). Off reproduces the v1/v2 scoring.
+    pub local_idf: bool,
+    /// Expand the question query with the criteria synonym sets, so a
+    /// needle that paraphrases the question is still reachable.
+    pub q_expand: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -105,13 +111,21 @@ pub enum Strategy {
 
 impl Default for EvidenceParams {
     fn default() -> Self {
-        EvidenceParams { budget_words: DEFAULT_EVIDENCE_WORDS, question_slots: 3, per_criterion: 2, strategy: Strategy::Quota, adaptive_cap: 0 }
+        EvidenceParams {
+            budget_words: DEFAULT_EVIDENCE_WORDS,
+            question_slots: 3,
+            per_criterion: 2,
+            strategy: Strategy::Quota,
+            adaptive_cap: 0,
+            local_idf: false,
+            q_expand: false,
+        }
     }
 }
 
 impl EvidenceParams {
     pub fn pooled(budget_words: usize) -> Self {
-        EvidenceParams { budget_words, question_slots: 0, per_criterion: 0, strategy: Strategy::Pooled, adaptive_cap: 0 }
+        EvidenceParams { budget_words, question_slots: 0, per_criterion: 0, strategy: Strategy::Pooled, ..Default::default() }
     }
     pub fn quota(budget_words: usize) -> Self {
         EvidenceParams { budget_words, ..Default::default() }
@@ -128,6 +142,16 @@ impl EvidenceParams {
         self
     }
 
+    pub fn with_local_idf(mut self, on: bool) -> Self {
+        self.local_idf = on;
+        self
+    }
+
+    pub fn with_q_expand(mut self, on: bool) -> Self {
+        self.q_expand = on;
+        self
+    }
+
     /// Effective word budget for a state of `state_words` words.
     pub fn effective_budget(&self, state_words: usize) -> usize {
         if self.adaptive_cap <= self.budget_words {
@@ -138,14 +162,37 @@ impl EvidenceParams {
     }
 }
 
-fn bm25_scores(state: &StateIndex, terms: impl Iterator<Item = (crate::state::vocab::TermId, f32)>, scores: &mut [f32]) {
+/// Document frequency factor of a term *within this state*.
+///
+/// The query-side weight already carries a corpus-level idf, but inside one
+/// long document the discriminating signal is how many of ITS segments
+/// contain the term: a state about refunds mentions "refund" everywhere, so
+/// that term localises nothing. Without this factor long states are scored
+/// almost uniformly and retrieval degenerates to document order.
+fn local_idf(n_segments: usize, df: usize) -> f32 {
+    let n = n_segments as f32;
+    let df = df.max(1) as f32;
+    (1.0 + (n - df + 0.5) / (df + 0.5)).ln()
+}
+
+fn bm25_scores(
+    state: &StateIndex,
+    terms: impl Iterator<Item = (crate::state::vocab::TermId, f32)>,
+    scores: &mut [f32],
+    idf: bool,
+) {
+    let n_seg = state.segments.len();
     for (term, weight) in terms {
         if let Some(post) = state.postings.get(&term) {
+            let boost = if idf { local_idf(n_seg, post.len()) } else { 1.0 };
+            if boost <= 0.0 {
+                continue;
+            }
             for &(seg, tf) in post {
                 let s = &state.segments[seg as usize];
                 let tf = tf as f32;
                 let norm = tf * 2.2 / (tf + 1.2 * (0.25 + 0.75 * s.content_len as f32 / state.avg_seg_len));
-                scores[seg as usize] += weight * norm;
+                scores[seg as usize] += weight * boost * norm;
             }
         }
     }
@@ -168,7 +215,20 @@ pub fn select_evidence_with(view: &QuestionView<'_>, state: &StateIndex, p: Evid
     }
     let n_seg = state.segments.len();
     let mut q_scores = vec![0.0f32; n_seg];
-    bm25_scores(state, view.terms.iter().map(|t| (t.term, t.weight)), &mut q_scores);
+    bm25_scores(state, view.terms.iter().map(|t| (t.term, t.weight)), &mut q_scores, p.local_idf);
+    if p.q_expand {
+        // The question itself carries no synonym set, so borrow the union of
+        // the criteria expansions: a needle that paraphrases the question is
+        // otherwise invisible to the question-only ranking.
+        for c in &view.criteria {
+            bm25_scores(
+                state,
+                c.expanded.iter().take(24).map(|&(syn, weight, _)| (syn, weight * 0.35)),
+                &mut q_scores,
+                p.local_idf,
+            );
+        }
+    }
     // A strong prior on fields the question references explicitly.
     if !view.focus_fields.is_empty() {
         for (i, seg) in state.segments.iter().enumerate() {
@@ -182,8 +242,8 @@ pub fn select_evidence_with(view: &QuestionView<'_>, state: &StateIndex, p: Evid
     for c in &view.criteria {
         let mut s = vec![0.0f32; n_seg];
         let w = 1.0 / (c.terms.len().max(1) as f32).sqrt();
-        bm25_scores(state, c.terms.iter().filter(|t| t.polarity > 0).map(|t| (t.term, t.weight * w)), &mut s);
-        bm25_scores(state, c.expanded.iter().take(24).map(|&(syn, weight, _)| (syn, weight * 0.5 * w)), &mut s);
+        bm25_scores(state, c.terms.iter().filter(|t| t.polarity > 0).map(|t| (t.term, t.weight * w)), &mut s, p.local_idf);
+        bm25_scores(state, c.expanded.iter().take(24).map(|&(syn, weight, _)| (syn, weight * 0.5 * w)), &mut s, p.local_idf);
         for i in 0..n_seg {
             pooled[i] += s[i];
         }
@@ -192,7 +252,7 @@ pub fn select_evidence_with(view: &QuestionView<'_>, state: &StateIndex, p: Evid
     let words_of = |seg: u32| state.segment_text(seg).split_whitespace().count();
     let mut chosen: Vec<u32> = Vec::new();
     let mut used = 0usize;
-    let mut take = |seg: u32, chosen: &mut Vec<u32>, used: &mut usize| -> bool {
+    let take = |seg: u32, chosen: &mut Vec<u32>, used: &mut usize| -> bool {
         if chosen.contains(&seg) {
             return false;
         }
@@ -227,9 +287,7 @@ pub fn select_evidence_with(view: &QuestionView<'_>, state: &StateIndex, p: Evid
                         break;
                     }
                     if !chosen.contains(&seg) {
-                        if take(seg, &mut chosen, &mut used) {
-                            placed = round + 1;
-                        }
+                        take(seg, &mut chosen, &mut used);
                         break;
                     }
                     placed += 1;

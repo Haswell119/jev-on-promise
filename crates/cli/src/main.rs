@@ -158,6 +158,12 @@ enum Cmd {
         /// Grow the evidence budget with the state length, up to this cap (0 = fixed).
         #[arg(long, default_value_t = 0)]
         adaptive_cap: usize,
+        /// Weight retrieval terms by their document frequency inside the state.
+        #[arg(long)]
+        local_idf: bool,
+        /// Expand the question query with the criteria synonym sets.
+        #[arg(long)]
+        q_expand: bool,
     },
     /// Score exported pair rows with the Rust neural runtime (parity / evaluation).
     NeuralProbe {
@@ -230,9 +236,13 @@ fn main() {
         Cmd::Leakage { train, eval, out, exclusions_out, internal } => {
             commands::leakage::run(train, eval, out, exclusions_out, internal)
         }
-        Cmd::ExportPairs { inputs, out, budget_words, limit, no_features, strategy, adaptive_cap } => {
-            commands::export_pairs::run(cli.model_dir, cli.threads, inputs, out, budget_words, limit, no_features, strategy, adaptive_cap)
-        }
+        Cmd::ExportPairs { inputs, out, budget_words, limit, no_features, strategy, adaptive_cap, local_idf, q_expand } => commands::export_pairs::run(
+            cli.model_dir,
+            cli.threads,
+            inputs,
+            out,
+            commands::export_pairs::Opts { budget_words, limit, no_features, strategy, adaptive_cap, local_idf, q_expand },
+        ),
         Cmd::NeuralProbe { neural_dir, input, out, limit } => commands::neural_probe::run(neural_dir, input, out, limit),
         Cmd::ExportBootstrap { out_dir } => commands::export::run(out_dir),
     };
