@@ -42,7 +42,7 @@ fn soft_probs(rec: &Record, qid: &str, n: usize) -> Option<Vec<f64>> {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out: PathBuf, budget_words: usize, limit: usize, no_features: bool) -> i32 {
+pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out: PathBuf, budget_words: usize, limit: usize, no_features: bool, strategy: String, adaptive_cap: usize) -> i32 {
     let engine = match build_engine(model_dir, threads) {
         Ok(e) => e,
         Err(e) => {
@@ -50,6 +50,7 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
             return 2;
         }
     };
+    let params = sextant_core::export::EvidenceParams::from_name(&strategy, budget_words).with_adaptive_cap(adaptive_cap);
     let files = expand_jsonl(&inputs);
     if let Some(parent) = out.parent() {
         let _ = std::fs::create_dir_all(parent);
@@ -84,7 +85,7 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
                     skipped += 1;
                     continue;
                 };
-                let mut export = sextant_core::export::export_question(q, &state, &engine.res, &engine.model, budget_words);
+                let mut export = sextant_core::export::export_question_with(q, &state, &engine.res, &engine.model, params);
                 if no_features {
                     for c in export.candidates.iter_mut() {
                         c.features.clear();

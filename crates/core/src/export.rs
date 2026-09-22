@@ -79,19 +79,67 @@ fn candidate_text(view: &QuestionView<'_>, idx: usize) -> String {
     }
 }
 
-/// Select evidence fragments for a question: BM25 over the pooled query
-/// (question terms + all criterion terms), then the best segments in
-/// document order up to a word budget. Short states are returned whole.
-pub fn select_evidence(view: &QuestionView<'_>, state: &StateIndex, budget_words: usize) -> (String, usize, usize) {
-    let all_words: usize = state.fields.iter().map(|f| f.text.split_whitespace().count()).sum();
-    // Whole state when it already fits.
-    if all_words <= budget_words {
-        let text = render_segments(state, &(0..state.segments.len() as u32).collect::<Vec<_>>());
-        let w = text.split_whitespace().count();
-        return (text, all_words, w);
+/// Evidence selection parameters. `per_criterion` reserves slots so that
+/// every candidate gets a chance to contribute its supporting fragment
+/// instead of the pooled query being dominated by one option's vocabulary.
+#[derive(Debug, Clone, Copy)]
+pub struct EvidenceParams {
+    pub budget_words: usize,
+    /// Segments reserved for the question-only query.
+    pub question_slots: usize,
+    /// Segments reserved per candidate criterion.
+    pub per_criterion: usize,
+    /// `pooled` (v1) or `quota` (v2, per-candidate reservations).
+    pub strategy: Strategy,
+    /// When > 0, the budget grows with the state length up to this cap:
+    /// long documents get proportionally more evidence, short ones stay
+    /// cheap. `budget = min(cap, base + (state_words - base) / 6)`.
+    pub adaptive_cap: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Strategy {
+    Pooled,
+    Quota,
+}
+
+impl Default for EvidenceParams {
+    fn default() -> Self {
+        EvidenceParams { budget_words: DEFAULT_EVIDENCE_WORDS, question_slots: 3, per_criterion: 2, strategy: Strategy::Quota, adaptive_cap: 0 }
     }
-    let mut scores = vec![0.0f32; state.segments.len()];
-    let add = |term: crate::state::vocab::TermId, weight: f32, scores: &mut Vec<f32>| {
+}
+
+impl EvidenceParams {
+    pub fn pooled(budget_words: usize) -> Self {
+        EvidenceParams { budget_words, question_slots: 0, per_criterion: 0, strategy: Strategy::Pooled, adaptive_cap: 0 }
+    }
+    pub fn quota(budget_words: usize) -> Self {
+        EvidenceParams { budget_words, ..Default::default() }
+    }
+    pub fn from_name(name: &str, budget_words: usize) -> Self {
+        match name {
+            "pooled" => EvidenceParams::pooled(budget_words),
+            _ => EvidenceParams::quota(budget_words),
+        }
+    }
+
+    pub fn with_adaptive_cap(mut self, cap: usize) -> Self {
+        self.adaptive_cap = cap;
+        self
+    }
+
+    /// Effective word budget for a state of `state_words` words.
+    pub fn effective_budget(&self, state_words: usize) -> usize {
+        if self.adaptive_cap <= self.budget_words {
+            return self.budget_words;
+        }
+        let grown = self.budget_words + state_words.saturating_sub(self.budget_words) / 6;
+        grown.clamp(self.budget_words, self.adaptive_cap)
+    }
+}
+
+fn bm25_scores(state: &StateIndex, terms: impl Iterator<Item = (crate::state::vocab::TermId, f32)>, scores: &mut [f32]) {
+    for (term, weight) in terms {
         if let Some(post) = state.postings.get(&term) {
             for &(seg, tf) in post {
                 let s = &state.segments[seg as usize];
@@ -100,43 +148,110 @@ pub fn select_evidence(view: &QuestionView<'_>, state: &StateIndex, budget_words
                 scores[seg as usize] += weight * norm;
             }
         }
-    };
-    for t in &view.terms {
-        add(t.term, t.weight, &mut scores);
     }
-    for c in &view.criteria {
-        let w = 1.0 / (c.terms.len().max(1) as f32).sqrt();
-        for t in c.terms.iter().filter(|t| t.polarity > 0) {
-            add(t.term, t.weight * w, &mut scores);
-        }
-        for &(syn, weight, _) in c.expanded.iter().take(24) {
-            add(syn, weight * 0.5 * w, &mut scores);
-        }
+}
+
+/// Select evidence fragments for a question, in document order, within a
+/// word budget. Short states are returned whole.
+pub fn select_evidence(view: &QuestionView<'_>, state: &StateIndex, budget_words: usize) -> (String, usize, usize) {
+    select_evidence_with(view, state, EvidenceParams::quota(budget_words))
+}
+
+pub fn select_evidence_with(view: &QuestionView<'_>, state: &StateIndex, p: EvidenceParams) -> (String, usize, usize) {
+    let all_words: usize = state.fields.iter().map(|f| f.text.split_whitespace().count()).sum();
+    let mut p = p;
+    p.budget_words = p.effective_budget(all_words);
+    if all_words <= p.budget_words {
+        let text = render_segments(state, &(0..state.segments.len() as u32).collect::<Vec<_>>());
+        let w = text.split_whitespace().count();
+        return (text, all_words, w);
     }
-    // Focus fields (explicit path references) get a strong prior.
+    let n_seg = state.segments.len();
+    let mut q_scores = vec![0.0f32; n_seg];
+    bm25_scores(state, view.terms.iter().map(|t| (t.term, t.weight)), &mut q_scores);
+    // A strong prior on fields the question references explicitly.
     if !view.focus_fields.is_empty() {
         for (i, seg) in state.segments.iter().enumerate() {
             if view.focus_fields.binary_search(&seg.field).is_ok() {
-                scores[i] += 2.0;
+                q_scores[i] += 2.0;
             }
         }
     }
-    let mut order: Vec<u32> = (0..state.segments.len() as u32).collect();
-    order.sort_by(|a, b| scores[*b as usize].partial_cmp(&scores[*a as usize]).unwrap_or(std::cmp::Ordering::Equal).then(a.cmp(b)));
+    let mut crit_scores: Vec<Vec<f32>> = Vec::with_capacity(view.criteria.len());
+    let mut pooled = q_scores.clone();
+    for c in &view.criteria {
+        let mut s = vec![0.0f32; n_seg];
+        let w = 1.0 / (c.terms.len().max(1) as f32).sqrt();
+        bm25_scores(state, c.terms.iter().filter(|t| t.polarity > 0).map(|t| (t.term, t.weight * w)), &mut s);
+        bm25_scores(state, c.expanded.iter().take(24).map(|&(syn, weight, _)| (syn, weight * 0.5 * w)), &mut s);
+        for i in 0..n_seg {
+            pooled[i] += s[i];
+        }
+        crit_scores.push(s);
+    }
+    let words_of = |seg: u32| state.segment_text(seg).split_whitespace().count();
     let mut chosen: Vec<u32> = Vec::new();
     let mut used = 0usize;
-    for seg in order {
-        let w = state.segment_text(seg).split_whitespace().count();
-        if w == 0 {
-            continue;
+    let mut take = |seg: u32, chosen: &mut Vec<u32>, used: &mut usize| -> bool {
+        if chosen.contains(&seg) {
+            return false;
         }
-        if used + w > budget_words && !chosen.is_empty() {
-            continue;
+        let w = words_of(seg);
+        if w == 0 || *used + w > p.budget_words {
+            return false;
         }
         chosen.push(seg);
-        used += w;
-        if used >= budget_words {
+        *used += w;
+        true
+    };
+    let ranked = |scores: &[f32]| -> Vec<u32> {
+        let mut order: Vec<u32> = (0..n_seg as u32).filter(|i| scores[*i as usize] > 0.0).collect();
+        order.sort_by(|a, b| scores[*b as usize].partial_cmp(&scores[*a as usize]).unwrap_or(std::cmp::Ordering::Equal).then(a.cmp(b)));
+        order
+    };
+    if p.strategy == Strategy::Quota {
+        // 1. question-only evidence
+        for seg in ranked(&q_scores).into_iter().take(p.question_slots * 3) {
+            if chosen.len() >= p.question_slots {
+                break;
+            }
+            take(seg, &mut chosen, &mut used);
+        }
+        // 2. round-robin reservations so no candidate is starved
+        let per_crit: Vec<Vec<u32>> = crit_scores.iter().map(|s| ranked(s)).collect();
+        for round in 0..p.per_criterion {
+            for lists in per_crit.iter() {
+                let mut placed = 0usize;
+                for &seg in lists.iter() {
+                    if placed > round {
+                        break;
+                    }
+                    if !chosen.contains(&seg) {
+                        if take(seg, &mut chosen, &mut used) {
+                            placed = round + 1;
+                        }
+                        break;
+                    }
+                    placed += 1;
+                }
+            }
+        }
+    }
+    // 3. fill the remaining budget with the pooled ranking, then with
+    //    unscored segments in document order (a needle with no lexical
+    //    overlap is otherwise unreachable).
+    for seg in ranked(&pooled) {
+        if used >= p.budget_words {
             break;
+        }
+        take(seg, &mut chosen, &mut used);
+    }
+    if used < p.budget_words {
+        for seg in 0..n_seg as u32 {
+            if used >= p.budget_words {
+                break;
+            }
+            take(seg, &mut chosen, &mut used);
         }
     }
     chosen.sort_unstable();
@@ -177,10 +292,14 @@ fn render_segments(state: &StateIndex, segs: &[u32]) -> String {
 
 /// Build the export for one question against a prepared state index.
 pub fn export_question(q: &Question, state: &StateIndex, res: &Resources, model: &crate::model::Model, budget_words: usize) -> QuestionExport {
+    export_question_with(q, state, res, model, EvidenceParams::quota(budget_words))
+}
+
+pub fn export_question_with(q: &Question, state: &StateIndex, res: &Resources, model: &crate::model::Model, params: EvidenceParams) -> QuestionExport {
     let view = QuestionView::build(q, state, res);
     let feats = extract_features(&view, state, res);
     let resolved = resolvers::resolve(&view, state, &feats);
-    let (evidence, state_words, evidence_words) = select_evidence(&view, state, budget_words);
+    let (evidence, state_words, evidence_words) = select_evidence_with(&view, state, params);
     let head = match view.kind {
         QuestionKind::Choice => Some(&model.dense.choice),
         QuestionKind::Score => Some(&model.dense.score),

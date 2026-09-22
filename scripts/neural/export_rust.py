@@ -16,6 +16,8 @@ def main():
     ap.add_argument("--run", required=True, help="experiments/runs/<id> containing best_encoder/ and best_head.pt")
     ap.add_argument("--out", required=True)
     ap.add_argument("--evidence-words", type=int, default=140)
+    ap.add_argument("--evidence-adaptive-cap", type=int, default=0)
+    ap.add_argument("--evidence-strategy", default="quota")
     ap.add_argument("--version", default="")
     a = ap.parse_args()
     run, out = Path(a.run), Path(a.out)
@@ -43,6 +45,8 @@ def main():
         "max_len": cfg["max_len"],
         "pooling": cfg["pooling"],
         "evidence_words": a.evidence_words,
+        "evidence_adaptive_cap": a.evidence_adaptive_cap,
+        "evidence_strategy": a.evidence_strategy,
         "n_features": cfg.get("n_features", 0),
         "use_symbolic_logit": bool(cfg.get("use_symbolic_logit", False)),
         "encoder": cfg["encoder"],

@@ -28,6 +28,12 @@ pub struct ScorerConfig {
     pub pooling: String,
     /// Word budget used when selecting evidence (must match training).
     pub evidence_words: usize,
+    /// Adaptive budget cap used at training time (0 = fixed budget).
+    #[serde(default)]
+    pub evidence_adaptive_cap: usize,
+    /// Evidence selection strategy used at training time.
+    #[serde(default = "default_strategy")]
+    pub evidence_strategy: String,
     /// Number of symbolic features consumed by the head (0 = none).
     #[serde(default)]
     pub n_features: usize,
@@ -50,12 +56,18 @@ fn default_sep() -> String {
     " | ".to_string()
 }
 
+fn default_strategy() -> String {
+    "quota".to_string()
+}
+
 impl Default for ScorerConfig {
     fn default() -> Self {
         ScorerConfig {
             max_len: 192,
             pooling: "mean".into(),
             evidence_words: 140,
+            evidence_adaptive_cap: 0,
+            evidence_strategy: default_strategy(),
             n_features: 0,
             use_symbolic_logit: false,
             encoder: String::new(),

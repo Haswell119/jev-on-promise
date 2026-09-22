@@ -19,3 +19,11 @@ before starting work. One experiment at a time challenges the champion.
 | H10 | Larger encoder (33M L12 or 100M+) buys accuracy worth the CPU latency | unknown | Pareto search required | low | high | medium | pending |
 | H11 | Distilling the trained cross-encoder into a bi-encoder for first-stage candidate pruning at K>32 | medium (latency) | 255-option Choice needs 255 forwards | high | medium | medium | pending |
 | H12 | Sextant-native encoder pretraining (MLM + contrastive on decision-shaped data) vs pretrained init | unknown | ideological interest only if it wins | high | very high | high | deferred (CPU-bound) |
+
+## Added after the retrieval diagnostic (R1)
+
+| id | hypothesis | gain | evidence | impl | compute | risk | status |
+|---|---|---|---|---|---|---|---|
+| H13 | A learned bi-encoder retriever (question → chunk) trained on the 72k gold-evidence annotations lifts long-context recall far above BM25 | very high | R1: BM25 full recall 0.04–0.09 above 1k tokens; gold evidence spans are available for free in the training pool | medium | ~1.5 h CPU | medium | pending |
+| H14 | Encoding state chunks ONCE per request and reusing them across questions makes hierarchical retrieval affordable (Direction B+D) | high (latency) | a request with many questions currently re-reads the state per question | high | medium | medium | pending |
+| H15 | Adaptive evidence budget (grow with state length, cap 400 words) is worth its latency | medium | recall 0.283 → 0.342 at equal short-state cost | done | low | low | testing in E2 |

@@ -1,0 +1,54 @@
+{
+  "measurement": "evidence retrieval recall on data/bench_internal/long_context.jsonl (1548 questions with annotated gold evidence)",
+  "metric": "share of questions whose gold evidence sentences survive into the evidence block handed to the encoder",
+  "variants": {
+    "pooled_140": {
+      "full": 0.283,
+      "partial": 0.141,
+      "lost": 0.576
+    },
+    "quota_140": {
+      "full": 0.145,
+      "partial": 0.186,
+      "lost": 0.669
+    },
+    "pooled_300": {
+      "full": 0.433,
+      "partial": 0.116,
+      "lost": 0.451
+    },
+    "quota_300": {
+      "full": 0.439,
+      "partial": 0.152,
+      "lost": 0.41
+    },
+    "quota_adaptive_140_to_400": {
+      "full": 0.342,
+      "partial": 0.197,
+      "lost": 0.461
+    },
+    "pooled_600": {
+      "full": 0.567,
+      "partial": 0.099,
+      "lost": 0.334
+    }
+  },
+  "by_length_bucket_pooled_140": {
+    "64": 0.827,
+    "128": 0.717,
+    "256": 0.398,
+    "512": 0.282,
+    "1024": 0.088,
+    "2048": 0.083,
+    "4096": 0.035,
+    "8192": 0.041,
+    "16384": 0.053
+  },
+  "by_position_pooled_140": {
+    "start": 0.467,
+    "middle": 0.245,
+    "split": 0.245,
+    "end": 0.173
+  },
+  "conclusion": "Lexical retrieval, not the decision head, is the dominant long-context failure: above 1k tokens the decisive sentence survives in under 10% of cases at a 140-word budget. Recall scales with the budget (0.28 -> 0.44 -> 0.57 at 140/300/600 words) but not to a usable level, so a learned retriever (or hierarchical chunk scoring) is required. Per-candidate quotas do not help at a small budget because the reserved slots are spent on decoy paragraphs that name the wrong options."
+}

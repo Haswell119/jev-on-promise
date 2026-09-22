@@ -152,6 +152,12 @@ enum Cmd {
         /// Omit the symbolic feature vectors (smaller files).
         #[arg(long)]
         no_features: bool,
+        /// Evidence selection strategy: quota (per-candidate reservations) or pooled.
+        #[arg(long, default_value = "quota")]
+        strategy: String,
+        /// Grow the evidence budget with the state length, up to this cap (0 = fixed).
+        #[arg(long, default_value_t = 0)]
+        adaptive_cap: usize,
     },
     /// Score exported pair rows with the Rust neural runtime (parity / evaluation).
     NeuralProbe {
@@ -224,8 +230,8 @@ fn main() {
         Cmd::Leakage { train, eval, out, exclusions_out, internal } => {
             commands::leakage::run(train, eval, out, exclusions_out, internal)
         }
-        Cmd::ExportPairs { inputs, out, budget_words, limit, no_features } => {
-            commands::export_pairs::run(cli.model_dir, cli.threads, inputs, out, budget_words, limit, no_features)
+        Cmd::ExportPairs { inputs, out, budget_words, limit, no_features, strategy, adaptive_cap } => {
+            commands::export_pairs::run(cli.model_dir, cli.threads, inputs, out, budget_words, limit, no_features, strategy, adaptive_cap)
         }
         Cmd::NeuralProbe { neural_dir, input, out, limit } => commands::neural_probe::run(neural_dir, input, out, limit),
         Cmd::ExportBootstrap { out_dir } => commands::export::run(out_dir),
