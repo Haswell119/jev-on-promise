@@ -15,12 +15,43 @@ pub struct Model {
     pub dense: DenseWeights,
     pub calibration: Calibration,
     pub source: String,
+    /// Locally hosted neural decision scorer (loaded from `<dir>/neural`).
+    #[cfg(feature = "neural")]
+    pub neural: Option<std::sync::Arc<crate::neural::NeuralScorer>>,
 }
 
 impl Model {
     pub fn from_parts(weights: Weights, calibration: Calibration, source: &str) -> Model {
         let dense = weights.dense();
-        Model { weights, dense, calibration, source: source.to_string() }
+        Model {
+            weights,
+            dense,
+            calibration,
+            source: source.to_string(),
+            #[cfg(feature = "neural")]
+            neural: None,
+        }
+    }
+
+    /// Attach a neural scorer directory (`config.json`, `model.safetensors`,
+    /// `tokenizer.json`, `head.safetensors`, `scorer.json`).
+    #[cfg(feature = "neural")]
+    pub fn with_neural_dir(mut self, dir: &Path) -> Result<Model, String> {
+        let scorer = crate::neural::NeuralScorer::load(dir)?;
+        self.neural = Some(std::sync::Arc::new(scorer));
+        Ok(self)
+    }
+
+    /// True when a neural scorer is loaded.
+    pub fn has_neural(&self) -> bool {
+        #[cfg(feature = "neural")]
+        {
+            self.neural.is_some()
+        }
+        #[cfg(not(feature = "neural"))]
+        {
+            false
+        }
     }
 
     /// The compiled-in artifact.
@@ -42,7 +73,15 @@ impl Model {
         let c = std::fs::read_to_string(dir.join("calibration.json")).map_err(|e| format!("calibration.json: {e}"))?;
         let calibration: Calibration = serde_json::from_str(&c).map_err(|e| format!("calibration.json: {e}"))?;
         validate_calibration(&calibration)?;
-        Ok(Model::from_parts(weights, calibration, &dir.display().to_string()))
+        let model = Model::from_parts(weights, calibration, &dir.display().to_string());
+        #[cfg(feature = "neural")]
+        {
+            let nd = dir.join("neural");
+            if nd.join("scorer.json").exists() {
+                return model.with_neural_dir(&nd);
+            }
+        }
+        Ok(model)
     }
 }
 

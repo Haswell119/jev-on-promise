@@ -30,6 +30,10 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 clap = { version = "4.6", features = ["derive", "env"] }
 proptest = "1.11"
+candle-core = "0.11"
+candle-nn = "0.11"
+candle-transformers = "0.11"
+tokenizers = { version = "0.21", default-features = false, features = ["onig"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 sextant-core = { path = "crates/core" }
 sextant-server = { path = "crates/server" }

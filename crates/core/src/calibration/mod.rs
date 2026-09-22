@@ -69,6 +69,56 @@ pub struct Calibration {
     pub ordinal_lambda: f64,
     /// Confidence map coefficients per primitive.
     pub confidence: IndexMap<String, ConfidenceParams>,
+    /// Neural scorer fusion (absent = symbolic-only engine).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub neural: Option<NeuralFusion>,
+}
+
+/// How the neural logits and the symbolic logits are combined.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct NeuralFusion {
+    /// Weight on the neural compatibility logit.
+    pub weight_neural: f64,
+    /// Weight on the symbolic fusion logit.
+    pub weight_symbolic: f64,
+    /// Temperature applied to the fused logits per primitive.
+    #[serde(default)]
+    pub temperature: IndexMap<String, f64>,
+    /// Platt scaling of the fused Noul logit (z_yes - z_no).
+    #[serde(default)]
+    pub noul_platt: Option<PlattParams>,
+    /// Let symbolic resolvers keep priority when they fire.
+    #[serde(default = "default_true")]
+    pub resolver_priority: bool,
+    /// Confidence coefficients per primitive for the fused path.
+    #[serde(default)]
+    pub confidence: IndexMap<String, ConfidenceParams>,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+impl Default for NeuralFusion {
+    fn default() -> Self {
+        NeuralFusion {
+            weight_neural: 1.0,
+            weight_symbolic: 0.0,
+            temperature: IndexMap::new(),
+            noul_platt: None,
+            resolver_priority: true,
+            confidence: IndexMap::new(),
+        }
+    }
+}
+
+impl NeuralFusion {
+    pub fn temperature_for(&self, kind: QuestionKind) -> f64 {
+        self.temperature.get(kind.as_str()).copied().unwrap_or(1.0).max(1e-3)
+    }
+    pub fn confidence_for(&self, kind: QuestionKind) -> Option<ConfidenceParams> {
+        self.confidence.get(kind.as_str()).cloned()
+    }
 }
 
 impl Default for Calibration {
@@ -100,6 +150,7 @@ impl Default for Calibration {
             noul_symbolic_platt: None,
             ordinal_lambda: 0.2,
             confidence,
+            neural: None,
         }
     }
 }

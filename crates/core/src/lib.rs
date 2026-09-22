@@ -20,9 +20,12 @@
 pub mod api;
 pub mod calibration;
 pub mod engine;
+pub mod export;
 pub mod features;
 pub mod lexicon;
 pub mod model;
+#[cfg(feature = "neural")]
+pub mod neural;
 pub mod question;
 pub mod resolvers;
 pub mod scoring;

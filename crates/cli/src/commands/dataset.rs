@@ -53,6 +53,23 @@ impl Record {
             "split" => self.split.clone(),
             "synthetic" => self.synthetic.to_string(),
             "transformation" => self.transformation.clone(),
+            // Derived: bucket the state length so long-context behaviour can be
+            // read off `sextant eval --group-by state_bucket`.
+            "state_bucket" => {
+                let n = self.extra.get("state_tokens").and_then(|v| v.as_u64()).unwrap_or(0);
+                match n {
+                    0..=64 => "0-64",
+                    65..=128 => "65-128",
+                    129..=256 => "129-256",
+                    257..=512 => "257-512",
+                    513..=1024 => "513-1k",
+                    1025..=2048 => "1k-2k",
+                    2049..=4096 => "2k-4k",
+                    4097..=8192 => "4k-8k",
+                    _ => "8k+",
+                }
+                .to_string()
+            }
             other => self
                 .extra
                 .get(other)

@@ -137,6 +137,33 @@ enum Cmd {
         #[arg(long, default_value = "data/synthetic")]
         internal: String,
     },
+    /// Export neural training/inference inputs (question, evidence, candidates, features).
+    ExportPairs {
+        #[arg(required = true)]
+        inputs: Vec<PathBuf>,
+        #[arg(long)]
+        out: PathBuf,
+        /// Word budget for the retrieved evidence block.
+        #[arg(long, default_value_t = 140)]
+        budget_words: usize,
+        /// Limit records per input file (0 = all).
+        #[arg(long, default_value_t = 0)]
+        limit: usize,
+        /// Omit the symbolic feature vectors (smaller files).
+        #[arg(long)]
+        no_features: bool,
+    },
+    /// Score exported pair rows with the Rust neural runtime (parity / evaluation).
+    NeuralProbe {
+        #[arg(long)]
+        neural_dir: PathBuf,
+        #[arg(long)]
+        input: PathBuf,
+        #[arg(long)]
+        out: PathBuf,
+        #[arg(long, default_value_t = 0)]
+        limit: usize,
+    },
     /// Write the bootstrap (hand-set) weights and default calibration to a directory.
     ExportBootstrap {
         #[arg(long, default_value = "model")]
@@ -197,6 +224,10 @@ fn main() {
         Cmd::Leakage { train, eval, out, exclusions_out, internal } => {
             commands::leakage::run(train, eval, out, exclusions_out, internal)
         }
+        Cmd::ExportPairs { inputs, out, budget_words, limit, no_features } => {
+            commands::export_pairs::run(cli.model_dir, cli.threads, inputs, out, budget_words, limit, no_features)
+        }
+        Cmd::NeuralProbe { neural_dir, input, out, limit } => commands::neural_probe::run(neural_dir, input, out, limit),
         Cmd::ExportBootstrap { out_dir } => commands::export::run(out_dir),
     };
     std::process::exit(code);

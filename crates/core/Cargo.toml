@@ -8,6 +8,12 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 
+[features]
+default = ["neural"]
+# Local neural decision scorer (candle + tokenizers). Disabling it yields a
+# pure symbolic build with no tensor dependencies.
+neural = ["dep:candle-core", "dep:candle-nn", "dep:candle-transformers", "dep:tokenizers"]
+
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
@@ -20,6 +26,10 @@ rust-stemmers.workspace = true
 rayon.workspace = true
 rustc-hash.workspace = true
 smallvec.workspace = true
+candle-core = { workspace = true, optional = true }
+candle-nn = { workspace = true, optional = true }
+candle-transformers = { workspace = true, optional = true }
+tokenizers = { workspace = true, optional = true }
 
 [dev-dependencies]
 proptest.workspace = true

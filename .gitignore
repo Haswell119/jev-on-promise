@@ -27,3 +27,16 @@ reports/**/raw/
 # large raw benchmark outputs are kept gzipped
 reports/jev_bench_hf/*/preds.jsonl
 reports/leakage_prescan.json
+
+/experiments/runs/*/
+!/experiments/runs/*/config.json
+!/experiments/runs/*/metrics.json
+/data/bench_internal/*.jsonl
+/data/neural/
+/models/
+
+# Synthetic training pool built by scripts/synth/bench/build.py (large).
+# Regenerate with: python3 scripts/synth/bench/build.py --seed 20260923
+# data/bench_internal/*.jsonl is already ignored above; MANIFEST.json is committed.
+!/data/bench_internal/MANIFEST.json
+/data/synthetic/bench_train.jsonl

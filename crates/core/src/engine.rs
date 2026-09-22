@@ -47,6 +47,37 @@ struct Ctx<'a> {
     explain: bool,
 }
 
+/// Neural scoring of one question's candidates, when a scorer is loaded.
+/// Returns (logits, evidence text) or None for the pure symbolic path.
+#[cfg(feature = "neural")]
+fn neural_logits(view: &crate::question::QuestionView<'_>, ctx: &Ctx<'_>, feats: &crate::features::FeatureMatrix) -> Option<(Vec<f32>, String)> {
+    let scorer = ctx.model.neural.as_ref()?;
+    let (evidence, _, _) = crate::export::select_evidence(view, ctx.state, scorer.config.evidence_words);
+    let candidates: Vec<String> = (0..view.criteria.len()).map(|i| crate::export::candidate_text_for(view, i)).collect();
+    let features: Option<Vec<Vec<f32>>> = (scorer.config.n_features > 0).then(|| feats.rows.iter().map(|r| r.0.to_vec()).collect());
+    let head = match view.kind {
+        QuestionKind::Choice => Some(&ctx.model.dense.choice),
+        QuestionKind::Score => Some(&ctx.model.dense.score),
+        QuestionKind::Noul => None,
+    };
+    let sym: Option<Vec<f32>> = scorer.config.use_symbolic_logit.then(|| match head {
+        Some(h) => feats.rows.iter().map(|f| h.score(f, view.family)).collect(),
+        None => vec![ctx.model.dense.noul.logit(&feats.rows[0], &feats.rows[1], view.family), 0.0],
+    });
+    match scorer.score(&view.neural_question_text(), &evidence, &candidates, features.as_deref(), sym.as_deref()) {
+        Ok(v) => Some((v, evidence)),
+        Err(e) => {
+            eprintln!("sextant: neural scorer failed, falling back to symbolic: {e}");
+            None
+        }
+    }
+}
+
+#[cfg(not(feature = "neural"))]
+fn neural_logits(_view: &crate::question::QuestionView<'_>, _ctx: &Ctx<'_>, _feats: &crate::features::FeatureMatrix) -> Option<(Vec<f32>, String)> {
+    None
+}
+
 impl Engine {
     pub fn new(res: Arc<Resources>, model: Arc<Model>, config: EngineConfig) -> Engine {
         let threads = if config.threads == 0 {
@@ -171,9 +202,21 @@ fn answer_question(q: &Question, ctx: &Ctx<'_>) -> Answer {
 
     match view.kind {
         QuestionKind::Noul => {
-            let (logit_raw, path) = match &resolved {
-                Some(r) => (r.logits[0], format!("symbolic:{}", r.name)),
-                None => (ctx.model.dense.noul.logit(&feats.rows[0], &feats.rows[1], family), "semantic".to_string()),
+            let fusion = cal.neural.clone();
+            let neural = match (&fusion, &resolved) {
+                (Some(f), Some(_)) if f.resolver_priority => None,
+                (Some(_), _) => neural_logits(&view, ctx, &feats),
+                (None, _) => None,
+            };
+            let (logit_raw, path) = match (&resolved, &neural, &fusion) {
+                (Some(r), None, _) => (r.logits[0], format!("symbolic:{}", r.name)),
+                (_, Some((nl, _)), Some(f)) => {
+                    let sym = ctx.model.dense.noul.logit(&feats.rows[0], &feats.rows[1], family);
+                    let nlogit = nl.first().copied().unwrap_or(0.0) - nl.get(1).copied().unwrap_or(0.0);
+                    ((f.weight_neural as f32) * nlogit + (f.weight_symbolic as f32) * sym, "neural".to_string())
+                }
+                (Some(r), _, _) => (r.logits[0], format!("symbolic:{}", r.name)),
+                (None, _, _) => (ctx.model.dense.noul.logit(&feats.rows[0], &feats.rows[1], family), "semantic".to_string()),
             };
             let p = match &resolved {
                 Some(_) => {
@@ -205,16 +248,27 @@ fn answer_question(q: &Question, ctx: &Ctx<'_>) -> Answer {
         QuestionKind::Choice | QuestionKind::Score => {
             let head = if view.kind == QuestionKind::Choice { &ctx.model.dense.choice } else { &ctx.model.dense.score };
             let best_evidence = feats.rows.iter().map(|f| f.get(F::cov_w)).fold(0.0f32, f32::max) as f64;
-            let (z, temperature, path): (Vec<f32>, f64, String) = match &resolved {
-                Some(r) => (r.logits.clone(), cal.symbolic_temperature_for(view.kind), format!("symbolic:{}", r.name)),
-                None => (
+            let fusion = cal.neural.clone();
+            let neural = match (&fusion, &resolved) {
+                (Some(f), Some(_)) if f.resolver_priority => None,
+                (Some(_), _) => neural_logits(&view, ctx, &feats),
+                (None, _) => None,
+            };
+            let (z, temperature, path): (Vec<f32>, f64, String) = match (&resolved, &neural, &fusion) {
+                (_, Some((nl, _)), Some(f)) if nl.len() == k => {
+                    let sym: Vec<f32> = feats.rows.iter().map(|x| head.score(x, family)).collect();
+                    let fused: Vec<f32> = nl.iter().zip(sym.iter()).map(|(n, s)| (f.weight_neural as f32) * n + (f.weight_symbolic as f32) * s).collect();
+                    (fused, f.temperature_for(view.kind), "neural".to_string())
+                }
+                (Some(r), _, _) => (r.logits.clone(), cal.symbolic_temperature_for(view.kind), format!("symbolic:{}", r.name)),
+                (None, _, _) => (
                     feats.rows.iter().map(|f| head.score(f, family)).collect(),
                     cal.temperature_for(view.kind, family, k) * cal.evidence_multiplier(view.kind, best_evidence),
                     "semantic".to_string(),
                 ),
             };
             let mut probs = softmax_temp(&z, temperature as f32);
-            if resolved.is_some() {
+            if resolved.is_some() && path.starts_with("symbolic") {
                 let eps = cal.symbolic_epsilon_for(view.kind);
                 let u = 1.0 / probs.len() as f64;
                 for p in probs.iter_mut() {
@@ -227,7 +281,11 @@ fn answer_question(q: &Question, ctx: &Ctx<'_>) -> Answer {
             }
             let evidence = feats.rows.iter().map(|f| f.get(F::cov_w)).fold(0.0f32, f32::max) as f64;
             let ood = feats.rows.iter().map(|f| f.get(F::ood)).fold(1.0f32, f32::min) as f64;
-            let conf = confidence(&probs, evidence, ood, &cal.confidence_for(view.kind));
+            let conf_params = match (&fusion, path.as_str()) {
+                (Some(f), "neural") => f.confidence_for(view.kind).unwrap_or_else(|| cal.confidence_for(view.kind)),
+                _ => cal.confidence_for(view.kind),
+            };
+            let conf = confidence(&probs, evidence, ood, &conf_params);
             let explain = ctx.explain.then(|| {
                 let raw: IndexMap<String, f64> =
                     view.criteria.iter().zip(z.iter()).map(|(c, v)| (c.key.clone(), *v as f64)).collect();

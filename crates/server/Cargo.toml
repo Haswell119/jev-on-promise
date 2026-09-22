@@ -8,8 +8,12 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 
+[features]
+default = ["neural"]
+neural = ["sextant-core/neural"]
+
 [dependencies]
-sextant-core.workspace = true
+sextant-core = { workspace = true, default-features = false }
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

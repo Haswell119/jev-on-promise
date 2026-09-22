@@ -1,0 +1,45 @@
+{
+  "experiment_id": "C0",
+  "promoted_at": "2026-09-22T19:53:52+00:00",
+  "git_commit": "1196da7d566e642489ae4a3b155f51ca3f60a7d7",
+  "architecture": "symbolic: BM25 + tf-idf + char n-grams + WordNet graph + negation scopes + 6 resolvers + conditional-logit fusion + temperature/Platt calibration",
+  "model_dir": "model",
+  "neural_dir": null,
+  "parameter_count": 4820,
+  "dev_metrics": {
+    "dev_score": 0.5847007376109611,
+    "components": {
+      "standard": 0.5350515463917526,
+      "hard": 0.5008503401360545,
+      "easy": 0.6791277258566978,
+      "calibration": 0.8929003600645973,
+      "paraphrase": 0.41204819277108434,
+      "order": 0.41204819277108434,
+      "latency": 1.0,
+      "memory": 1.0
+    },
+    "weights_used": {
+      "standard": 0.34,
+      "hard": 0.3,
+      "easy": 0.1,
+      "calibration": 0.1,
+      "paraphrase": 0.06,
+      "order": 0.05,
+      "latency": 0.03,
+      "memory": 0.02
+    },
+    "overall_accuracy": 0.5350675008231808,
+    "ece": 0.10709963993540272,
+    "schema_validity": 1.0,
+    "p50_ms": 5.85239,
+    "memory_mb": 0.0,
+    "n": 3037
+  },
+  "dev_score": 0.5847007376109611,
+  "latency_ms": {
+    "p50_typical_ms": 5.85,
+    "p95_typical_ms": 6.65
+  },
+  "previous_champion": null,
+  "note": "symbolic champion; neural challengers start from here"
+}

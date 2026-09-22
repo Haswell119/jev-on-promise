@@ -12,9 +12,13 @@ authors.workspace = true
 name = "sextant"
 path = "src/main.rs"
 
+[features]
+default = ["neural"]
+neural = ["sextant-core/neural", "sextant-server/neural"]
+
 [dependencies]
-sextant-core.workspace = true
-sextant-server.workspace = true
+sextant-core = { workspace = true, default-features = false }
+sextant-server = { workspace = true, default-features = false }
 serde.workspace = true
 serde_json.workspace = true
 indexmap.workspace = true

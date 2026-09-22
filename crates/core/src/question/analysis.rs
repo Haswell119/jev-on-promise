@@ -433,6 +433,17 @@ impl<'a> QuestionView<'a> {
         }
     }
 
+    /// The question string handed to the neural scorer: instruction text
+    /// plus any structured context fields, exactly as `export-pairs` writes
+    /// it, so training and inference cannot drift.
+    pub fn neural_question_text(&self) -> String {
+        if self.context_text.is_empty() {
+            self.display_text.clone()
+        } else {
+            format!("{} | {}", self.display_text, self.context_text)
+        }
+    }
+
     /// Term ids of the question's evidence terms.
     pub fn term_ids(&self) -> impl Iterator<Item = TermId> + '_ {
         self.terms.iter().map(|t| t.term)
