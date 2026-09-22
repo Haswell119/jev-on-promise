@@ -289,3 +289,24 @@ The negative result is worth as much as a positive one here: it says the
 gap between BM25 and a perfect ranker is not closed by better weights over
 these features, and it caught a selection protocol that would have passed
 a bad model through.
+
+### Selecting the ranker across a template boundary
+
+`split_retrieval.py --by template` keys the selection split on a record's
+**structural signature**: its non-slot template families, deduplicated,
+instance numbers stripped, sorted and joined. Slot templates are the value
+fillers (names, cities, products) and appear in nearly every record, so
+they cannot partition anything; the structural families decide what a
+record looks like.
+
+Requiring every individual template to land on one side would drop almost
+every record, since each carries five to twelve of them. Keying on the
+whole combination holds out structures instead: 644 distinct signatures
+over the training pool, which partitions cleanly (518 signatures for
+fitting, 126 for selection, none on both sides).
+
+This is weaker than the bench/train pool boundary, because two signatures
+can share a family, and stronger than a record-level split, which puts the
+same structure on both sides by construction. It exists so that a weight
+learned from a generator artefact fails during selection rather than after
+adoption.

@@ -21,9 +21,39 @@ import json
 from pathlib import Path
 
 
-def bucket(record_id, parts):
-    h = hashlib.blake2b(record_id.encode(), digest_size=8).digest()
+def bucket(key, parts):
+    h = hashlib.blake2b(key.encode(), digest_size=8).digest()
     return int.from_bytes(h, "big") % parts
+
+
+# Slot templates are the value fillers (names, cities, products) and appear
+# in almost every record, so they cannot partition anything. The structural
+# templates are the ones that decide what a record looks like.
+SLOT_PREFIX = "slot/"
+
+
+def template_key(row):
+    """The record's structural signature: its non-slot template families,
+    deduplicated, instance numbers stripped, sorted and joined.
+
+    Requiring every individual template to fall on one side would drop
+    nearly every record, since each carries five to twelve of them. Keying
+    on the whole combination holds out structures rather than templates:
+    644 distinct signatures over the training pool, enough to partition
+    stably while keeping records that are built the same way together.
+
+    This is weaker than the bench/train pool boundary, since two
+    signatures can share a family, but far stronger than a record-level
+    split, which puts the same structure on both sides by construction.
+    """
+    fams = sorted(
+        {
+            t.split("#", 1)[0]
+            for t in (row.get("template_ids") or [])
+            if not t.startswith(SLOT_PREFIX)
+        }
+    )
+    return "|".join(fams) if fams else None
 
 
 def main():
@@ -31,50 +61,42 @@ def main():
     ap.add_argument("--input", required=True)
     ap.add_argument("--train-out", required=True)
     ap.add_argument("--dev-out", required=True)
-    ap.add_argument("--dev-fraction", type=float, default=0.1)
+    ap.add_argument("--dev-fraction", type=float, default=0.15)
     ap.add_argument("--by", choices=("record", "template"), default="template",
-                    help="split on the record id, or on the generator template (stricter)")
+                    help="split on the record id, or on the primary structural template (stricter)")
     a = ap.parse_args()
     parts = 1000
     cut = int(a.dev_fraction * parts)
     Path(a.train_out).parent.mkdir(parents=True, exist_ok=True)
-    n_tr = n_dv = 0
-    no_templates = 0
+    n_tr = n_dv = fallback = 0
+    dev_keys, train_keys = set(), set()
     with open(a.input) as fh, open(a.train_out, "w") as tr, open(a.dev_out, "w") as dv:
         for line in fh:
-            r = json.loads(line)
-            if a.by == "template":
-                tids = r.get("template_ids") or []
-                if not tids:
-                    no_templates += 1
-                    key = r["record_id"]
-                else:
-                    # A record can use several templates. Send it to the
-                    # selection side only if EVERY template belongs there,
-                    # so no template is seen on both sides.
-                    to_dev = all(bucket(t, parts) < cut for t in tids)
-                    any_dev = any(bucket(t, parts) < cut for t in tids)
-                    if any_dev and not to_dev:
-                        continue  # straddles the boundary; drop it
-                    key = None
-                    if to_dev:
-                        dv.write(line)
-                        n_dv += 1
-                    else:
-                        tr.write(line)
-                        n_tr += 1
-                    continue
-            else:
-                key = r["record_id"]
+            row = json.loads(line)
+            key = template_key(row) if a.by == "template" else None
+            if key is None:
+                if a.by == "template":
+                    fallback += 1
+                key = row["record_id"]
             if bucket(key, parts) < cut:
                 dv.write(line)
                 n_dv += 1
+                dev_keys.add(key)
             else:
                 tr.write(line)
                 n_tr += 1
-    out = {"train_lists": n_tr, "dev_lists": n_dv, "dev_fraction": a.dev_fraction, "split_by": a.by}
-    if no_templates:
-        out["rows_without_template_ids"] = no_templates
+                train_keys.add(key)
+    out = {
+        "train_lists": n_tr,
+        "dev_lists": n_dv,
+        "dev_fraction": a.dev_fraction,
+        "split_by": a.by,
+        "train_keys": len(train_keys),
+        "dev_keys": len(dev_keys),
+        "keys_on_both_sides": len(dev_keys & train_keys),
+    }
+    if fallback:
+        out["rows_keyed_by_record_instead"] = fallback
     print(json.dumps(out, indent=2))
 
 
