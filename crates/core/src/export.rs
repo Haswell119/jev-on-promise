@@ -108,8 +108,8 @@ pub struct EvidenceParams {
     /// Turn it off to measure how much of the heuristic's score is the
     /// ranking and how much is that bet.
     pub doc_order_fallback: bool,
-    /// With a learned ranker, also take this many segments either side of
-    /// each chosen segment when the budget allows. The recall metric, and
+    /// Also take this many segments either side of each chosen segment
+    /// when the budget allows. The recall metric, and
     /// a reader, both need a whole sentence: an annotated span often runs
     /// across several segments, and a selection that takes the best ones
     /// individually can return the span in pieces.
@@ -414,6 +414,17 @@ pub fn select_evidence_ranked(
             break;
         }
         take(seg, &mut chosen, &mut used);
+        // Keep the neighbourhood of a chosen segment intact: an annotated
+        // span usually runs across several segments, and taking only the
+        // individually best ones returns it in pieces.
+        for d in 1..=p.neighbour_glue as u32 {
+            if seg >= d {
+                take(seg - d, &mut chosen, &mut used);
+            }
+            if seg + d < n_seg as u32 {
+                take(seg + d, &mut chosen, &mut used);
+            }
+        }
     }
     if p.doc_order_fallback && used < p.budget_words {
         for seg in 0..n_seg as u32 {
