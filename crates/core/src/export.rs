@@ -101,6 +101,13 @@ pub struct EvidenceParams {
     /// Expand the question query with the criteria synonym sets, so a
     /// needle that paraphrases the question is still reachable.
     pub q_expand: bool,
+    /// Fill any budget left after the scored ranking with unscored
+    /// segments in document order. A needle with no lexical overlap is
+    /// otherwise unreachable, but the fill always starts at segment 0, so
+    /// it is also a standing bet that evidence sits early in the state.
+    /// Turn it off to measure how much of the heuristic's score is the
+    /// ranking and how much is that bet.
+    pub doc_order_fallback: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -119,6 +126,7 @@ impl Default for EvidenceParams {
             adaptive_cap: 0,
             local_idf: false,
             q_expand: false,
+            doc_order_fallback: true,
         }
     }
 }
@@ -149,6 +157,11 @@ impl EvidenceParams {
 
     pub fn with_q_expand(mut self, on: bool) -> Self {
         self.q_expand = on;
+        self
+    }
+
+    pub fn with_doc_order_fallback(mut self, on: bool) -> Self {
+        self.doc_order_fallback = on;
         self
     }
 
@@ -373,7 +386,7 @@ pub fn select_evidence_ranked(
         }
         take(seg, &mut chosen, &mut used);
     }
-    if used < p.budget_words {
+    if p.doc_order_fallback && used < p.budget_words {
         for seg in 0..n_seg as u32 {
             if used >= p.budget_words {
                 break;

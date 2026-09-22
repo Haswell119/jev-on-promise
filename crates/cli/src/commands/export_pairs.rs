@@ -51,10 +51,11 @@ pub struct Opts {
     pub adaptive_cap: usize,
     pub local_idf: bool,
     pub q_expand: bool,
+    pub doc_order_fallback: bool,
 }
 
 pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out: PathBuf, opts: Opts) -> i32 {
-    let Opts { budget_words, limit, no_features, strategy, adaptive_cap, local_idf, q_expand } = opts;
+    let Opts { budget_words, limit, no_features, strategy, adaptive_cap, local_idf, q_expand, doc_order_fallback } = opts;
     let engine = match build_engine(model_dir, threads) {
         Ok(e) => e,
         Err(e) => {
@@ -65,7 +66,8 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
     let params = sextant_core::export::EvidenceParams::from_name(&strategy, budget_words)
         .with_adaptive_cap(adaptive_cap)
         .with_local_idf(local_idf)
-        .with_q_expand(q_expand);
+        .with_q_expand(q_expand)
+        .with_doc_order_fallback(doc_order_fallback);
     let files = expand_jsonl(&inputs);
     if let Some(parent) = out.parent() {
         let _ = std::fs::create_dir_all(parent);
@@ -142,6 +144,7 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
         "adaptive_cap": adaptive_cap,
         "local_idf": local_idf,
         "q_expand": q_expand,
+        "doc_order_fallback": doc_order_fallback,
         "rows": n_rows,
         "records": n_records,
         "engine_version": env!("CARGO_PKG_VERSION"),

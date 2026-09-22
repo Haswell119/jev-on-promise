@@ -158,6 +158,9 @@ enum Cmd {
         /// Grow the evidence budget with the state length, up to this cap (0 = fixed).
         #[arg(long, default_value_t = 0)]
         adaptive_cap: usize,
+        /// Do not fill leftover budget with unscored segments in document order.
+        #[arg(long)]
+        no_doc_order_fallback: bool,
         /// Weight retrieval terms by their document frequency inside the state.
         #[arg(long)]
         local_idf: bool,
@@ -260,12 +263,12 @@ fn main() {
         Cmd::Leakage { train, eval, out, exclusions_out, internal } => {
             commands::leakage::run(train, eval, out, exclusions_out, internal)
         }
-        Cmd::ExportPairs { inputs, out, budget_words, limit, no_features, strategy, adaptive_cap, local_idf, q_expand } => commands::export_pairs::run(
+        Cmd::ExportPairs { inputs, out, budget_words, limit, no_features, strategy, adaptive_cap, no_doc_order_fallback, local_idf, q_expand } => commands::export_pairs::run(
             cli.model_dir,
             cli.threads,
             inputs,
             out,
-            commands::export_pairs::Opts { budget_words, limit, no_features, strategy, adaptive_cap, local_idf, q_expand },
+            commands::export_pairs::Opts { budget_words, limit, no_features, strategy, adaptive_cap, local_idf, q_expand, doc_order_fallback: !no_doc_order_fallback },
         ),
         Cmd::ExportRetrieval { inputs, out, limit, budget_words, local_idf, q_expand, max_negatives, seed } => commands::export_retrieval::run(
             cli.model_dir,
