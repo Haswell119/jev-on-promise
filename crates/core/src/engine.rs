@@ -225,8 +225,15 @@ fn answer_question(q: &Question, ctx: &Ctx<'_>) -> Answer {
             let (logit_raw, path) = match (&resolved, &neural, &fusion) {
                 (Some(r), None, _) => (r.logits[0], format!("symbolic:{}", r.name)),
                 (_, Some((nl, _)), Some(f)) => {
+                    // Both terms must point the same way: positive means the
+                    // statement holds. The symbolic logit already does; the
+                    // neural one depends on which index the scorer was
+                    // trained to favour, which its artifact records.
                     let sym = ctx.model.dense.noul.logit(&feats.rows[0], &feats.rows[1], family);
-                    let nlogit = nl.first().copied().unwrap_or(0.0) - nl.get(1).copied().unwrap_or(0.0);
+                    let true_idx = ctx.model.noul_true_index();
+                    let false_idx = 1 - true_idx;
+                    let nlogit =
+                        nl.get(true_idx).copied().unwrap_or(0.0) - nl.get(false_idx).copied().unwrap_or(0.0);
                     ((f.weight_neural as f32) * nlogit + (f.weight_symbolic as f32) * sym, "neural".to_string())
                 }
                 (Some(r), _, _) => (r.logits[0], format!("symbolic:{}", r.name)),

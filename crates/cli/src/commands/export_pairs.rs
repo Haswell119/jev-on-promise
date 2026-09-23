@@ -146,6 +146,10 @@ pub fn run(model_dir: Option<PathBuf>, threads: usize, inputs: Vec<PathBuf>, out
         "adaptive_cap": adaptive_cap,
         "local_idf": local_idf,
         "q_expand": q_expand,
+        // The gold index convention these pairs were written with, so a
+        // model trained on them can say which candidate it learned to
+        // favour instead of leaving a consumer to guess.
+        "noul_true_index": super::learn::NOUL_TRUE_INDEX,
         "doc_order_fallback": doc_order_fallback,
         "neighbour_glue": neighbour_glue,
         "rows": n_rows,

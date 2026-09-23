@@ -43,6 +43,13 @@ pub struct ScorerConfig {
     /// Segments taken either side of each ranked pick at training time.
     #[serde(default)]
     pub evidence_neighbour_glue: usize,
+    /// Which candidate index this scorer was TRAINED to put its mass on
+    /// when a Noul statement holds. The criteria are always built as
+    /// ("true", 0) then ("false", 1), so 0 is the correct convention;
+    /// models trained before that was fixed learned 1 instead, and say so
+    /// here rather than silently returning the complement of P(true).
+    #[serde(default)]
+    pub noul_true_index: usize,
     /// Number of symbolic features consumed by the head (0 = none).
     #[serde(default)]
     pub n_features: usize,
@@ -80,6 +87,7 @@ impl Default for ScorerConfig {
             evidence_local_idf: false,
             evidence_q_expand: false,
             evidence_neighbour_glue: 0,
+            noul_true_index: 0,
             n_features: 0,
             use_symbolic_logit: false,
             encoder: String::new(),

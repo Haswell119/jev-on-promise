@@ -110,7 +110,13 @@ def main():
     ap.add_argument("--base-calibration", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--resolver-priority", default="true")
+    ap.add_argument("--noul-true-index", type=int, default=0,
+                    help="candidate index the scorer was trained to favour when a Noul "
+                         "statement holds; 0 is the correct convention, 1 for models "
+                         "trained before gold_index was fixed")
     a = ap.parse_args()
+    if a.noul_true_index not in (0, 1):
+        raise SystemExit("--noul-true-index must be 0 or 1")
     rows = load(a.pairs, a.probe)
     # Resolver-answered questions keep the symbolic path; fit on the rest.
     fit_rows = [r for r in rows if r["path"] == "semantic"]
@@ -130,10 +136,18 @@ def main():
     noul = [r for r in fit_rows if r["kind"] == "noul"]
     platt = None
     if noul:
+        # Both terms must point the same way, positive meaning the statement
+        # holds. The symbolic logit is a true-oriented scalar parked at
+        # candidate 0; the neural one points at whichever index the scorer
+        # was trained to favour. Reading the neural difference in the wrong
+        # direction returns the exact complement of P(true), which is worse
+        # than having no model at all.
+        t, f_ = a.noul_true_index, 1 - a.noul_true_index
         pts = []
         for r in noul:
-            z = [wn * n + ws * s for n, s in zip(r["neural"], r["symbolic"])]
-            pts.append((z[0] - z[1], 1.0 if r["gold"] == 0 else 0.0))
+            nlogit = r["neural"][t] - r["neural"][f_]
+            z = wn * nlogit + ws * r["symbolic"][0]
+            pts.append((z, 1.0 if r["gold"] == t else 0.0))
         pa, pb = fit_platt(pts)
         platt = {"a": pa, "b": pb}
         print(f"noul platt a={pa:.3f} b={pb:.3f} (n={len(pts)})")

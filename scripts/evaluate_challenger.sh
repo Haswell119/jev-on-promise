@@ -30,7 +30,8 @@ mkdir -p "$MODEL" reports/challengers
 
 echo "== 1/5 export $RUN -> $MODEL/neural"
 python3 scripts/neural/export_rust.py --run "$RUN" --out "$MODEL/neural" --version "$RUN_ID" \
-  --evidence-words "$EVIDENCE_WORDS" --evidence-adaptive-cap "$EVIDENCE_CAP" --evidence-strategy "$EVIDENCE_STRATEGY" >/dev/null
+  --evidence-words "$EVIDENCE_WORDS" --evidence-adaptive-cap "$EVIDENCE_CAP" \
+  --evidence-strategy "$EVIDENCE_STRATEGY" --noul-true-index "${SEXTANT_NOUL_TRUE_INDEX:-0}" >/dev/null
 cp model/weights.json "$MODEL/weights.json"
 
 # The evidence handed to the encoder at evaluation time must be the same
@@ -42,8 +43,11 @@ echo "== 2/5 neural probe on the calibration split"
 $BIN neural-probe --neural-dir "$MODEL/neural" --input "$CALIB_PAIRS" --out "reports/challengers/$RUN_ID.calib_probe.jsonl"
 
 echo "== 3/5 fit the fusion block"
+NOUL_TRUE_INDEX=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get('noul_true_index',0))" "$MODEL/neural/scorer.json")
+echo "   Noul: the scorer favours candidate index $NOUL_TRUE_INDEX when the statement holds"
 python3 scripts/neural/fit_fusion.py --pairs "$CALIB_PAIRS" --probe "reports/challengers/$RUN_ID.calib_probe.jsonl" \
-  --base-calibration model/calibration.json --out "$MODEL/calibration.json"
+  --base-calibration model/calibration.json --out "$MODEL/calibration.json" \
+  --noul-true-index "$NOUL_TRUE_INDEX"
 
 echo "== 4/5 evaluate on the internal $TAG set through the engine"
 # Measure the evaluation's peak resident set rather than assuming one. The

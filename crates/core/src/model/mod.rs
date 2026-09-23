@@ -54,6 +54,19 @@ impl Model {
         Ok(self)
     }
 
+    /// Candidate index the loaded scorer treats as the "true" hypothesis of
+    /// a Noul question. 0 with no scorer, which is the correct convention.
+    pub fn noul_true_index(&self) -> usize {
+        #[cfg(feature = "neural")]
+        {
+            return self.neural.as_ref().map(|n| n.config.noul_true_index.min(1)).unwrap_or(0);
+        }
+        #[cfg(not(feature = "neural"))]
+        {
+            0
+        }
+    }
+
     /// True when a learned retrieval ranker is loaded.
     pub fn has_retrieval(&self) -> bool {
         self.retrieval.is_some()

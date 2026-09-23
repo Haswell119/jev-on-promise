@@ -29,6 +29,11 @@ pub struct Example {
     pub group_key: String,
 }
 
+/// Candidate index carrying the "true" hypothesis of a Noul question.
+/// `QuestionView` builds them as ("true", 0) then ("false", 1).
+pub const NOUL_TRUE_INDEX: usize = 0;
+pub const NOUL_FALSE_INDEX: usize = 1;
+
 pub fn gold_index(q: &Question, gold: &Value) -> Option<usize> {
     match q {
         Question::Choice(c) => {
@@ -46,12 +51,21 @@ pub fn gold_index(q: &Question, gold: &Value) -> Option<usize> {
             }?;
             (idx < s.criteria.len()).then_some(idx)
         }
+        // A Noul question's criteria are built as ("true", index 0) and
+        // ("false", index 1), so the gold INDEX for a true statement is 0.
+        // Returning 1 here trained the scorer to prefer the candidate whose
+        // own text says the statement does not hold, and left every
+        // consumer of the index disagreeing with the candidate order.
         Question::Noul(_) => match gold {
-            Value::Bool(b) => Some(if *b { 1 } else { 0 }),
-            Value::String(s) => {
-                Some(if matches!(s.to_ascii_lowercase().as_str(), "yes" | "true" | "1") { 1 } else { 0 })
+            Value::Bool(b) => Some(if *b { NOUL_TRUE_INDEX } else { NOUL_FALSE_INDEX }),
+            Value::String(s) => Some(if matches!(s.to_ascii_lowercase().as_str(), "yes" | "true" | "1") {
+                NOUL_TRUE_INDEX
+            } else {
+                NOUL_FALSE_INDEX
+            }),
+            Value::Number(n) => {
+                Some(if n.as_f64().unwrap_or(0.0) >= 0.5 { NOUL_TRUE_INDEX } else { NOUL_FALSE_INDEX })
             }
-            Value::Number(n) => Some(if n.as_f64().unwrap_or(0.0) >= 0.5 { 1 } else { 0 }),
             _ => None,
         },
     }
