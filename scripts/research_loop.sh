@@ -87,8 +87,13 @@ env = json.loads(sys.argv[1]).get('env', {})
 print(' '.join('%s=%s' % (k, shlex.quote(str(v))) for k, v in env.items()))" "$SPEC")
 
     echo "== training $ID: $HYP"
+    # Write straight to the log rather than piping through tee and tail.
+    # A pipeline makes the trainer die of SIGPIPE if anything downstream
+    # goes away, which is a long training run lost to a tidy-up.
     # shellcheck disable=SC2086
-    python3 scripts/neural/train.py --out "experiments/runs/$ID" --resume $TRAIN_ARGS 2>&1 | tee -a "experiments/runs/$ID/stdout.log" | grep -E "^\[(train|eval)\]" | tail -5
+    python3 scripts/neural/train.py --out "experiments/runs/$ID" --resume $TRAIN_ARGS \
+      >> "experiments/runs/$ID/stdout.log" 2>&1
+    grep -E "^\[eval\]" "experiments/runs/$ID/stdout.log" | tail -5
     # shellcheck disable=SC2086
     env $ENV_ARGS scripts/evaluate_challenger.sh "$ID"
     python3 - "$ID" <<'PY'
