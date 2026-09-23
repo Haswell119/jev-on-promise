@@ -143,7 +143,7 @@ Sample sizes are 48, 72 and 111, so two or three points on a tier is one
 or two questions. The direction is consistent across all three tiers,
 which is worth more than any single figure.
 
-## Evidence recall does not predict decision accuracy
+## Evidence recall does not predict decision accuracy (WRONG, see the correction below)
 
 E5 trained the same architecture on the same data with the retrieval that
 R2 and R8 improved, plus the full-length curriculum. It was rejected.
@@ -184,3 +184,37 @@ is worth what its correlation with the outcome is worth, and that
 correlation has to be measured, not assumed. Two proxies have now failed
 here: the internal benchmark against JevBench, and evidence recall
 against decision accuracy.
+
+## Correction: that conclusion was confounded, and it was wrong
+
+The section above was written from E5's first evaluation and it does not
+hold. The fusion that produced those numbers had selected its weights by
+minimising calibration NLL, which on E5 gave away 2.6 points of accuracy
+for eight thousandths of NLL. Re-evaluating the same checkpoint with the
+weights selected on accuracy:
+
+| | champion E1f | E5 first read | E5 corrected |
+|---|---|---|---|
+| long context | 0.405 | 0.407 | **0.473** |
+| long-context Choice | 0.216 | 0.189 | **0.301** |
+| Noul | 0.765 | 0.741 | **0.792** |
+| ECE | 0.058 | 0.073 | **0.035** |
+
+So the better retrieval does help, and on exactly the axis it was built
+for: +0.068 on the long-context suite over the champion and +0.085 on
+long-context Choice. R8 was worth what its proxy suggested. What was
+wrong was reading one broken measurement as evidence about another
+component entirely.
+
+The mistake is worth more than the finding it replaces. Two defects were
+live at once, a fusion selecting on the wrong objective and a retrieval
+change under test, and I attributed the whole loss to the one I was
+looking at. A single confounded run cannot separate them, and I wrote a
+confident conclusion from one anyway.
+
+E5 is still rejected, 0.6899 against 0.7048, now losing on Choice (0.595
+against 0.658), Score (0.454 against 0.507) and the judge tier (0.353
+against 0.426) rather than on long context. And the comparison is still
+not clean: the champion's figures were fitted with the old NLL selection,
+which happened to favour it. E1 is being re-evaluated under the same
+criterion so the two can be compared on equal terms.
