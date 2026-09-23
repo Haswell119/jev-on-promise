@@ -110,6 +110,9 @@ def main():
     ap.add_argument("--base-calibration", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--resolver-priority", default="true")
+    ap.add_argument("--acc-tolerance", type=float, default=0.005,
+                    help="accuracy a weight pair may give up against the best in the grid "
+                         "in exchange for a lower calibration NLL")
     ap.add_argument("--noul-true-index", type=int, default=0,
                     help="candidate index the scorer was trained to favour when a Noul "
                          "statement holds; 0 is the correct convention, 1 for models "
@@ -121,17 +124,28 @@ def main():
     # Resolver-answered questions keep the symbolic path; fit on the rest.
     fit_rows = [r for r in rows if r["path"] == "semantic"]
     print(f"calibration rows: {len(rows)} ({len(fit_rows)} semantic)")
-    best = None
+    # Selecting purely on NLL trades accuracy away for calibration that the
+    # temperatures would have supplied anyway. On E5 it bought 0.008 of NLL
+    # for 2.6 points of accuracy and turned a usable model into a rejected
+    # one. Pick the best accuracy, then the lowest NLL among the weights
+    # that stay within a hair of it.
+    grid = []
     for wn in [0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5]:
         for ws in [0.0, 0.1, 0.25, 0.5, 0.75, 1.0]:
             if wn == 0 and ws == 0:
                 continue
             temps = {k: fit_temperature(fit_rows, wn, ws, k) for k in ("choice", "score", "noul")}
-            v = nll_of(fit_rows, wn, ws, temps)
-            acc = acc_of(fit_rows, wn, ws, temps)
-            if best is None or v < best[0]:
-                best = (v, wn, ws, temps, acc)
-    nll, wn, ws, temps, acc = best
+            grid.append((nll_of(fit_rows, wn, ws, temps), acc_of(fit_rows, wn, ws, temps), wn, ws, temps))
+    best_acc = max(g[1] for g in grid)
+    near = [g for g in grid if g[1] >= best_acc - a.acc_tolerance]
+    nll, acc, wn, ws, temps = min(near, key=lambda g: g[0])
+    nll_only = min(grid, key=lambda g: g[0])
+    if (wn, ws) != (nll_only[2], nll_only[3]):
+        print(
+            f"selected on accuracy: {wn}/{ws} acc={acc:.4f} NLL={nll:.4f}; "
+            f"NLL alone would have picked {nll_only[2]}/{nll_only[3]} "
+            f"acc={nll_only[1]:.4f} NLL={nll_only[0]:.4f}"
+        )
     print(f"fused: weight_neural={wn} weight_symbolic={ws} temps={ {k: round(v,3) for k,v in temps.items()} } calib NLL={nll:.4f} acc={acc:.4f}")
     noul = [r for r in fit_rows if r["kind"] == "noul"]
     platt = None
