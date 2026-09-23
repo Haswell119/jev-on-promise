@@ -1,6 +1,6 @@
 # Sextant
 
-**A non-neural, deterministic, calibrated probabilistic decision engine.**
+**A deterministic, calibrated probabilistic decision engine that runs entirely on your machine.**
 Send a *state* (text, JSON object or array) and a map of *typed questions*;
 get back typed probabilistic decisions your code can branch on:
 

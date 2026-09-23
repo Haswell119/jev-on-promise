@@ -1,11 +1,19 @@
 # Limitations
 
-Sextant is a non-neural engine. It is fast, deterministic and calibrated, but
-it does not understand language the way a large model does. Measured
-consequences are in `docs/BENCHMARKS.md` and `reports/latest.md`; the
-structural limitations are listed here so nobody is surprised.
+Sextant is a hybrid engine: exact symbolic resolvers and lexical features,
+fused with a 22.9M-parameter cross-encoder that runs locally on CPU. There
+is no external service and no language model generating text. It is fast,
+deterministic and calibrated, but it does not understand language the way a
+large model does. Measured consequences are in `docs/BENCHMARKS.md` and
+`reports/latest.md`; the structural limitations are listed here so nobody is
+surprised.
 
-## Semantic gaps (by design of a lexical/statistical engine)
+The neural component narrowed some of these gaps and closed none of them.
+On the internal benchmark it lifted the hard tier from 0.501 to 0.554 and
+left the standard tier flat, so read the sections below as still current
+rather than as history.
+
+## Semantic gaps (a lexical engine with a small encoder on top)
 
 * **World knowledge.** Questions whose answers require facts not present in
   the state (multiple-choice science questions, commonsense yes/no) are

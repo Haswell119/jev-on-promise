@@ -152,23 +152,18 @@ names the champion. `scripts/research_loop.sh status|next|run|resume` drives
 the queue and resumes interrupted training from the checkpoint (model,
 optimizer, scheduler, RNG and data cursor).
 
-## Promotion checklist (documentation)
+## Promotion checklist (documentation), completed
 
-The repository still describes Sextant as a non-neural engine, which is true
-of the current champion `C0`. The `/v1/models` card is already computed from
-the loaded artifact (`Model::has_neural`), so it needs no edit. The following
-prose claims are stale the moment a neural artifact becomes the champion and
-must be updated in the same commit as the promotion:
+E1 was promoted on 2026-09-23 and the prose claims that the engine has no
+neural network were corrected in the same commit: `README.md`,
+`crates/core/src/lib.rs`, `crates/core/Cargo.toml`,
+`crates/cli/src/main.rs`, `docs/LIMITATIONS.md`, `docs/BENCHMARKS.md` and
+`scripts/prepare_data.py`. The `/v1/models` card was already computed from
+the loaded artifact via `Model::has_neural`, so it needed no edit.
 
-- `README.md` — headline "A non-neural, deterministic, calibrated probabilistic decision engine."
-- `crates/core/src/lib.rs` — crate doc comment.
-- `crates/cli/src/main.rs` — the clap `about` string.
-- `docs/LIMITATIONS.md` — opening paragraph and the capability limits that follow from having no learned semantics.
-- `docs/BENCHMARKS.md` — the paragraph explaining the expected ceiling of a non-neural engine.
-- `scripts/prepare_data.py` — the dataset card description.
-
-A promotion is not complete while any of these still claims the engine has no
-neural network. `scripts/experiment.py promote` prints this list as a reminder.
+`scripts/experiment.py promote` prints this list whenever a neural
+artifact becomes the champion, so a future promotion cannot quietly leave
+the claim stale again.
 
 ## Learned retrieval ranker
 

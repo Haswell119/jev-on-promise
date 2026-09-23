@@ -10,7 +10,7 @@ use std::path::PathBuf;
 #[command(
     name = "sextant",
     version,
-    about = "Sextant: non-neural, deterministic, calibrated decision engine (Choice / Score / Noul)"
+    about = "Sextant: deterministic, calibrated, fully local decision engine (Choice / Score / Noul)"
 )]
 struct Cli {
     /// Directory holding weights.json + calibration.json (default: embedded artifact).

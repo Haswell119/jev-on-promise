@@ -1,0 +1,29 @@
+{
+  "dev_score": 0.5935837646867067,
+  "components": {
+    "standard": 0.534020618556701,
+    "hard": 0.5544217687074829,
+    "easy": 0.660436137071651,
+    "calibration": 0.912128751182592,
+    "paraphrase": 0.3493975903614458,
+    "order": 0.3493975903614458,
+    "latency": 1.0,
+    "memory": 1.0
+  },
+  "weights_used": {
+    "standard": 0.34,
+    "hard": 0.3,
+    "easy": 0.1,
+    "calibration": 0.1,
+    "paraphrase": 0.06,
+    "order": 0.05,
+    "latency": 0.03,
+    "memory": 0.02
+  },
+  "overall_accuracy": 0.5597629239380968,
+  "ece": 0.08787124881740806,
+  "schema_validity": 1.0,
+  "p50_ms": 5.85239,
+  "memory_mb": 302.5,
+  "n": 3037
+}

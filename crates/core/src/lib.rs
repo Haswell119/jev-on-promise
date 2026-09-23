@@ -1,6 +1,6 @@
 //! # Sextant core
 //!
-//! A non-neural, deterministic, calibrated probabilistic decision engine
+//! A deterministic, calibrated probabilistic decision engine
 //! exposing three typed primitives over a shared textual/structured state:
 //!
 //! * **Noul** – calibrated probability that a proposition is true;

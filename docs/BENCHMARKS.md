@@ -65,8 +65,13 @@ validity 100 % strict, easy ECE 0.059; jev-bench macro accuracy 0.415, macro
 ECE 0.192, macro Brier 0.646 (0 errors on 22,773 records); typical-request
 latency p50 5.9 ms / p95 6.7 ms. The per-tier gaps are −18.8 / −54.2 /
 −33.4 points on the public subsets and −0.318 macro accuracy on jev-bench
-(`docs/LIMITATIONS.md`). Sextant is a non-neural engine: it is expected to
-trail a trained neural decision model on judgement-heavy tiers, while
-matching or exceeding it on latency, determinism and cost, and on
-mechanical questions (extraction, numbers, dates). Claims of "Jev-class"
-accuracy are made only where the measurements support them.
+(`docs/LIMITATIONS.md`). Those figures are the symbolic engine, which was
+the champion when they were taken. Sextant is now hybrid: a 22.9M-parameter
+cross-encoder runs locally alongside the symbolic resolvers, and on the
+internal benchmark it lifted the hard tier from 0.501 to 0.554 while
+leaving the standard tier flat. It is still expected to trail a large
+trained decision model on judgement-heavy tiers, while matching or
+exceeding it on latency, determinism and cost, and on mechanical questions
+(extraction, numbers, dates). Claims of "Jev-class" accuracy are made only
+where the measurements support them, and the JevBench figures above have
+not yet been re-taken against the hybrid champion.

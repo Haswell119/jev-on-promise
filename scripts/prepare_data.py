@@ -1216,7 +1216,7 @@ def write_readme(entries: list[dict]) -> None:
     lines = [
         "# data/",
         "",
-        "Datasets used to train, calibrate and sanity-check Sextant (a non-neural decision engine).",
+        "Datasets used to train, calibrate and sanity-check Sextant (a local decision engine).",
         "",
         "| directory | contents | committed? |",
         "|---|---|---|",

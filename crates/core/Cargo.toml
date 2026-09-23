@@ -1,6 +1,6 @@
 [package]
 name = "sextant-core"
-description = "Sextant: a non-neural, deterministic, calibrated probabilistic decision engine (Choice / Score / Noul)."
+description = "Sextant: a deterministic, calibrated, fully local probabilistic decision engine (Choice / Score / Noul)."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
