@@ -55,3 +55,11 @@ before starting work. One experiment at a time challenges the champion.
 | H26 | Much heavier regularisation, or dropping the binary flags entirely, keeps the ranker to signals that generalise | medium | R3 weight profile: the three largest weights are two binary flags and a length ratio | low | none | low | pending |
 | H27 | Part of the heuristic's advantage at evidence-at-start is its document-order fallback, not its ranking; measure the heuristic with the fallback disabled to size the real gap | medium (diagnostic) | R3: the ranker's loss is concentrated at start (-0.192) and split (-0.107), the two positions the fallback favours | low | low | low | pending |
 | H28 | Retrieve contiguous neighbourhoods, not independent segments: an annotated span runs across several segments, and taking the individually best ones returns it in pieces | high | R4: the heuristic's document-order fill is contiguous by construction and beats the ranker most where scattering hurts most; the recall metric scores the longest contiguous run of gold tokens, so a split span scores as its largest fragment | low | low | low | testing (R6) |
+
+## Raised by the E5 comparison
+
+| id | hypothesis | gain | evidence | impl | compute | risk | status |
+|---|---|---|---|---|---|---|---|
+| H29 | The dev score has no long-context component, so a model cannot be promoted for the axis the brief calls a primary research target | — | E5f: 0.473 against the champion's 0.405 on the long-context suite and 0.301 against 0.216 on long-context Choice, earning nothing, while losing 0.015 of a score built from easy, standard, hard, calibration, paraphrase, order, latency and memory | low | none | **changing it with a result in hand fits the metric to the answer** | raised, deliberately not acted on |
+| H30 | E5 and the champion are complementary rather than ranked: E5 wins long context, Noul and calibration, the champion wins Choice, Score and the judge tier | medium | E5f per-primitive split | medium | medium | medium | pending |
+| H31 | Training on more long states cost short-context sharpness; a curriculum weighted toward long context should be measured against one that is not, holding retrieval fixed | medium | E5 vs E1 differ in retrieval AND curriculum AND labels; nothing isolates the curriculum | low | ~2.5 h | low | pending |
