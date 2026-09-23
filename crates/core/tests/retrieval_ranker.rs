@@ -51,10 +51,26 @@ fn rejects_a_different_feature_set() {
 }
 
 #[test]
-fn rejects_non_finite_weights() {
+fn rejects_a_weight_that_overflows_f32() {
+    // 1e39 is a perfectly good f64, so serde parses it, and it becomes +inf
+    // on the way into an f32. That is the path the finiteness guard exists
+    // for: a ranker whose scores are all infinite silently orders segments
+    // by nothing at all.
     let mut w: Vec<String> = (0..N_RETRIEVAL_FEATURES).map(|_| "0.1".to_string()).collect();
-    w[3] = "1e400".into(); // parses to +inf
+    w[3] = "1e39".into();
     let json = format!(r#"{{"weights":[{}],"bias":0.0}}"#, w.join(","));
     let err = RetrievalRanker::from_json(&json).expect_err("should reject");
     assert!(err.contains("non-finite"), "unhelpful error: {err}");
+}
+
+#[test]
+fn rejects_a_weight_that_is_not_a_number_at_all() {
+    // Out of range even for f64: serde rejects it before the guard sees it,
+    // which is still a rejection, just a different message. Asserting the
+    // guard's wording here is what made an earlier version of this test
+    // fail against correct code.
+    let mut w: Vec<String> = (0..N_RETRIEVAL_FEATURES).map(|_| "0.1".to_string()).collect();
+    w[3] = "1e400".into();
+    let json = format!(r#"{{"weights":[{}],"bias":0.0}}"#, w.join(","));
+    assert!(RetrievalRanker::from_json(&json).is_err(), "should reject");
 }
