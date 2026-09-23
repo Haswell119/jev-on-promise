@@ -110,3 +110,35 @@ symbolic champion's numbers are unaffected by them. The recall figures
 are a property of the selector, measured without a model. The accuracy
 benefit arrives when a model is trained against the improved evidence,
 which is what E5 is for.
+
+## The internal benchmark overstates transfer by an order of magnitude
+
+M1 is the first JevBench milestone taken against a neural champion, and
+it is the most important number in this file.
+
+| tier | symbolic | hybrid E1f | gain | target |
+|---|---|---|---|---|
+| easy | 0.812 | 0.833 | +0.021 | 0.98 |
+| standard | 0.444 | 0.472 | +0.028 | 0.80 |
+| hard | 0.396 | 0.405 | +0.009 | 0.65 |
+
+The same change measured on the internal suite was worth +0.106 easy,
++0.099 standard and +0.211 hard. On JevBench it is worth +0.021, +0.028
+and +0.009: roughly a tenth as much.
+
+The internal benchmark is synthetic and built by the same generator that
+produced the training pool. The template pools are disjoint and the
+leakage checks pass, so this is not contamination in the usual sense. It
+is something subtler and harder to fix: the generator has one idea of
+what a decision problem looks like, and a model can learn that shape
+instead of the task. Disjoint templates prevent memorising an instance;
+they do not prevent learning a house style.
+
+Two consequences, both binding on everything that follows. Internal gains
+are a weak signal about real capability and should be discounted heavily
+until a milestone says otherwise. And the targets are a long way off:
+0.833 against 0.98, 0.472 against 0.80, 0.405 against 0.65.
+
+Sample sizes are 48, 72 and 111, so two or three points on a tier is one
+or two questions. The direction is consistent across all three tiers,
+which is worth more than any single figure.
