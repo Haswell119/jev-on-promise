@@ -1,22 +1,29 @@
 {
-  "dev_score": 0.5936,
-  "overall_accuracy": 0.5598,
-  "easy": 0.6604,
-  "standard": 0.534,
-  "hard": 0.5544,
-  "judge": 0.4257,
-  "ece": 0.088,
+  "dev_score": 0.704824990544048,
+  "components": {
+    "standard": 0.634020618556701,
+    "hard": 0.7117346938775511,
+    "easy": 0.7850467289719626,
+    "calibration": 0.9422085098153694,
+    "paraphrase": 0.4819277108433735,
+    "order": 0.4819277108433735,
+    "latency": 1.0,
+    "memory": 1.0
+  },
+  "weights_used": {
+    "standard": 0.34,
+    "hard": 0.3,
+    "easy": 0.1,
+    "calibration": 0.1,
+    "paraphrase": 0.06,
+    "order": 0.05,
+    "latency": 0.03,
+    "memory": 0.02
+  },
+  "overall_accuracy": 0.6789594995060916,
+  "ece": 0.05779149018463057,
   "schema_validity": 1.0,
-  "p50_ms": 60.69,
-  "p95_ms": 259.64,
-  "memory_mb": 302.5,
-  "longctx_overall": 0.3463,
-  "longctx_8k_plus": 0.2959,
-  "longctx_2k_4k": 0.3274,
-  "neural_only_dev_subset_accuracy": 0.715,
-  "champion_dev_score": 0.5847,
-  "champion_overall": 0.5351,
-  "champion_easy": 0.6791,
-  "champion_standard": 0.5351,
-  "champion_hard": 0.5009
+  "p50_ms": 5.85239,
+  "memory_mb": 312.0,
+  "n": 3037
 }

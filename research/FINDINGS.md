@@ -142,3 +142,45 @@ until a milestone says otherwise. And the targets are a long way off:
 Sample sizes are 48, 72 and 111, so two or three points on a tier is one
 or two questions. The direction is consistent across all three tiers,
 which is worth more than any single figure.
+
+## Evidence recall does not predict decision accuracy
+
+E5 trained the same architecture on the same data with the retrieval that
+R2 and R8 improved, plus the full-length curriculum. It was rejected.
+
+| | champion E1f | E5 |
+|---|---|---|
+| dev score | 0.7048 | 0.6678 |
+| overall | 0.679 | 0.634 |
+| hard | 0.712 | 0.609 |
+| Choice | 0.658 | 0.589 |
+| long context | 0.405 | 0.407 |
+| long-context Choice | 0.216 | 0.189 |
+
+The long-context row is the finding. R2 and R8 raised full recall of the
+annotated span on that suite from 0.288 to 0.462, sixty percent more of
+the decisive sentence reaching the encoder, and accuracy moved by two
+thousandths. On long-context Choice it went backwards.
+
+So R8 was adopted on a proxy that does not predict the thing it was meant
+to serve. The recall measurement was correct and the inference from it
+was wrong, which is worse than a bad measurement because it looked like
+evidence.
+
+The mechanism is visible in which primitive suffered. Contiguity fills
+the budget with the neighbours of a high-scoring segment. That keeps a
+split sentence whole, which is what the recall metric rewards, and it
+also admits surrounding text that has nothing to do with the question.
+Choice has to tell options apart, and padding makes them look alike.
+Noul, which only has to judge one proposition, lost far less.
+
+Three things changed at once in E5, so it cannot apportion blame. The
+retrieval is the one with a measured proxy that failed, so it is the one
+to ablate: train the same model on pairs exported with R2 but without the
+contiguity, and on pairs with neither.
+
+The general lesson is the same one M1 taught on a different axis. A proxy
+is worth what its correlation with the outcome is worth, and that
+correlation has to be measured, not assumed. Two proxies have now failed
+here: the internal benchmark against JevBench, and evidence recall
+against decision accuracy.
