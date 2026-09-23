@@ -89,6 +89,14 @@ def cmd_promote(a):
         "note": a.note or "",
     }
     CHAMP.write_text(json.dumps(champ, indent=2) + "\n")
+    # Leave the champion's dev score where the next comparison looks for it,
+    # rather than making the next challenger fall back to a differently
+    # shaped record.
+    score_src = Path("reports/challengers") / f"{a.id}.score.json"
+    if score_src.exists():
+        dest = Path("reports") / f"dev_score_{a.id}.json"
+        dest.write_text(score_src.read_text())
+        print(f"champion dev score copied to {dest}")
     print(f"champion is now {a.id} (dev_score {champ['dev_score']})")
     if a.neural_dir:
         print(
@@ -128,8 +136,14 @@ def cmd_compare(a):
         reasons.append(f"calibration collapse: ECE {ch.get('ece')} -> {cl.get('ece')}")
     if not schema_ok:
         reasons.append(f"schema validity {cl.get('schema_validity')}")
+    # A champion record written by `record` carries flat tier accuracies
+    # while a dev_score report nests them under "components". Read either,
+    # so a missing key cannot crash the comparison after an evaluation has
+    # already spent twenty minutes of CPU.
+    ch_comp = ch.get("components") or ch
+    cl_comp = cl.get("components") or cl
     for k in ("standard", "hard", "easy"):
-        a_, b_ = ch["components"].get(k), cl["components"].get(k)
+        a_, b_ = ch_comp.get(k), cl_comp.get(k)
         if a_ is not None and b_ is not None:
             reasons.append(f"{k} {a_:.3f} -> {b_:.3f}")
     out = {"decision": decision, "gain": gain, "reason": "; ".join(reasons)}
